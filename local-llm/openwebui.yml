@@ -1,0 +1,27 @@
+services:
+  openwebui:
+    image: ghcr.io/open-webui/open-webui:latest
+    container_name: openwebui
+    depends_on:
+      - openwebui-postgres
+      - litellm
+      - ollama
+    restart: always
+    networks:
+      - proxy
+    volumes:
+      - ${DATA_DIR}/my_llm:/app/backend/data
+    environment:
+      - DATA_DIR=${DATA_DIR}
+      - OLLAMA_BASE_URL=http://ollama:11434
+      - DATABASE_URL=postgresql://openwebui:${POSTGRES_PASSWORD}@openwebui-postgres:5432/openwebui
+      # Configure RAG to use pgvector
+      - VECTOR_DB=pgvector
+      - RAG_EMBEDDING_ENGINE=ollama
+      - RAG_EMBEDDING_MODEL=nomic-embed-text
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.open-webui.entrypoints=websecure"
+      - "traefik.http.routers.open-webui.rule=Host(`webui.${TRAEFIK_ACME_DOMAIN}`)"
+      - "traefik.http.routers.open-webui.tls.certresolver=cloudflare"
+      - "traefik.http.services.open-webui.loadbalancer.server.port=8080"

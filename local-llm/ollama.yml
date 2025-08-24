@@ -1,0 +1,28 @@
+services:
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama
+    restart: always
+    networks:
+      - proxy
+    ports:
+      - 11434:11434
+    environment:
+      - DATA_DIR=${DATA_DIR}
+      - OLLAMA_HOST=0.0.0.0
+      - OLLAMA_MODELS=/root/.ollama/models
+    volumes:
+      - ${DATA_DIR}/my_llm:/root/.ollama
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.ollama.entrypoints=websecure"
+      - "traefik.http.routers.ollama.rule=Host(`ollama.${TRAEFIK_ACME_DOMAIN}`)"
+      - "traefik.http.routers.ollama.tls.certresolver=cloudflare"
+      - "traefik.http.services.ollama.loadbalancer.server.port=11434"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]

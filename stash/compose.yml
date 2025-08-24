@@ -1,0 +1,45 @@
+services:
+  stash:
+    image: stashapp/stash:latest
+    container_name: stash
+    restart: unless-stopped
+    network_mode: host
+    user: ${UID}:${GID}
+    ports:
+      - 9999:9999
+    logging:
+      driver: json-file
+      options:
+        max-file: 10
+        max-size: 2m
+    environment:
+      - UID=${UID}
+      - GID=${GID}
+      - DATA_DIR=${DATA_DIR}
+      - FILE_DIR=${FILE_DIR}
+      - STASH_CACHE=/cache
+      - STASH_GENERATED=/generated
+      - STASH_METADATA=/metadata
+      - STASH_PORT=9069
+      - STASH_STASH=/media
+    volumes:
+      - ${DATA_DIR}/blobs:/blobs
+      - ${DATA_DIR}/cache:/cache
+      - ${DATA_DIR}/config:/root/.stash
+      - ${DATA_DIR}/generated:/generated
+      - ${DATA_DIR}/metadata:/metadata
+      - ${FILE_DIR}:/media
+      - /etc/localtime:/etc/localtime:ro
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.litellm.entrypoints=websecure"
+      - "traefik.http.routers.litellm.rule=Host(`stash.${TRAEFIK_ACME_DOMAIN}`)"
+      - "traefik.http.routers.litellm.tls.certresolver=cloudflare"
+      - "traefik.http.services.litellm.loadbalancer.server.port=4000"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              capabilities: [gpu]
+              count: all
