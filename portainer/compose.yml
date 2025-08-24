@@ -1,0 +1,7 @@
+include:
+  - ./portainer.yml
+  - ./traefik.yml
+
+networks:
+  proxy:
+    external: true

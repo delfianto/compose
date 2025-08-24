@@ -1,0 +1,16 @@
+services:
+  openwebui-postgres:
+    image: pgvector/pgvector:pg17
+    container_name: openwebui-postgres
+    restart: always
+    networks:
+      - proxy
+    volumes:
+      - ${DATA_DIR}/my_llm/postgres:/var/lib/postgresql/data
+      - ${PROJ_DIR}/initdb.d:/docker-entrypoint-initdb.d
+    environment:
+      - DATA_DIR=${DATA_DIR}
+      - PROJ_DIR=${PROJ_DIR}
+      - POSTGRES_DB=postgres
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}

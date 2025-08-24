@@ -1,0 +1,7 @@
+include:
+  - ./plex.yml
+  - ./tautulli.yml
+
+networks:
+  proxy:
+    external: true

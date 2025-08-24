@@ -1,0 +1,9 @@
+include:
+  - ./litellm.yml
+  - ./ollama.yml
+  - ./openwebui.yml
+  - ./postgres.yml
+
+networks:
+  proxy:
+    external: true

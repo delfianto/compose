@@ -1,0 +1,30 @@
+services:
+  litellm:
+    image: ghcr.io/berriai/litellm:main-latest
+    container_name: litellm
+    depends_on:
+      - openwebui-postgres
+      - ollama
+    restart: always
+    networks:
+      - proxy
+    volumes:
+      - ${DATA_DIR}/my_llm/litellm.yml:/app/config.yml
+    environment:
+      - DATA_DIR=${DATA_DIR}
+      - LITELLM_HOST=0.0.0.0
+      - LITELLM_SALT_KEY=${LITELLM_SALT_KEY}
+      - LITELLM_MASTER_KEY=${LITELLM_MASTER_KEY}
+      - DATABASE_URL=postgresql://litellm:${POSTGRES_PASSWORD}@openwebui-postgres:5432/litellm
+    command:
+      - "--config"
+      - "/app/config.yml"
+      - "--port"
+      - "4000"
+      - "--detailed_debug"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.litellm.entrypoints=websecure"
+      - "traefik.http.routers.litellm.rule=Host(`litellm.${TRAEFIK_ACME_DOMAIN}`)"
+      - "traefik.http.routers.litellm.tls.certresolver=cloudflare"
+      - "traefik.http.services.litellm.loadbalancer.server.port=4000"
