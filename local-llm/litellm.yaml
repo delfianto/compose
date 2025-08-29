@@ -32,7 +32,7 @@ services:
       - "traefik.http.routers.litellm.tls.certresolver=cloudflare"
       - "traefik.http.services.litellm.loadbalancer.server.port=4000"
       # Homepage integration
-      - "homepage.group=AI Services"
+      - "homepage.group=Artificial Intelligence"
       - "homepage.name=LiteLLM"
       - "homepage.icon=anything-llm-light.svg"
       - "homepage.href=https://litellm.${TRAEFIK_ACME_DOMAIN}"

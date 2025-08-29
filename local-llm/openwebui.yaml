@@ -45,7 +45,7 @@ services:
       - "traefik.http.routers.open-webui.tls.certresolver=cloudflare"
       - "traefik.http.services.open-webui.loadbalancer.server.port=8080"
       # Homepage integration
-      - "homepage.group=AI Services"
+      - "homepage.group=Artificial Intelligence"
       - "homepage.name=Open WebUI"
       - "homepage.icon=open-webui.svg"
       - "homepage.href=https://webui.${TRAEFIK_ACME_DOMAIN}"
