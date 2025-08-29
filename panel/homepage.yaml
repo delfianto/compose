@@ -1,0 +1,23 @@
+services:
+  homepage:
+    image: ghcr.io/gethomepage/homepage:latest
+    container_name: homepage
+    restart: unless-stopped
+    user: ${UID}:${GID}
+    userns_mode: host
+    networks:
+      - proxy
+    environment:
+      - UID=${UID}
+      - GID=${GID}
+      - HOMEPAGE_ALLOWED_HOSTS=home.${TRAEFIK_ACME_DOMAIN}
+    volumes:
+      - ${DATA_DIR}/homepage:/app/config
+      - ${DATA_DIR}/homepage/public:/app/public
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.homepage.entrypoints=websecure"
+      - "traefik.http.routers.homepage.rule=Host(`home.${TRAEFIK_ACME_DOMAIN}`)"
+      - "traefik.http.routers.homepage.tls.certresolver=cloudflare"
+      - "traefik.http.services.homepage.loadbalancer.server.port=3000"
