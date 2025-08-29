@@ -12,7 +12,7 @@ services:
       - OLLAMA_HOST=0.0.0.0
       - OLLAMA_MODELS=/root/.ollama/models
     volumes:
-      - ${DATA_DIR}/llm_stack/ollama:/root/.ollama
+      - ${DATA_DIR}/ollama:/root/.ollama
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.ollama.entrypoints=websecure"
