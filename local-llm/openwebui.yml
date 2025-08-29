@@ -12,7 +12,7 @@ services:
     networks:
       - proxy
     volumes:
-      - ${DATA_DIR}/llm_stack:/app/backend/data
+      - ${DATA_DIR}:/app/backend/data
     environment:
       - DATA_DIR=${DATA_DIR}
       - OLLAMA_BASE_URL=http://ollama:11434

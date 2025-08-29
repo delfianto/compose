@@ -9,7 +9,7 @@ services:
     networks:
       - proxy
     volumes:
-      - ${DATA_DIR}/llm_stack/lite_llm.yml:/app/config.yml
+      - ${DATA_DIR}/lite_llm.yml:/app/config.yml
     environment:
       - DATA_DIR=${DATA_DIR}
       - LITELLM_HOST=0.0.0.0

@@ -6,7 +6,7 @@ services:
     networks:
       - proxy
     volumes:
-      - ${DATA_DIR}/llm_stack/postgres:/var/lib/postgresql/data
+      - ${DATA_DIR}/postgres:/var/lib/postgresql/data
       - ${PROJ_DIR}/initdb.d:/docker-entrypoint-initdb.d
     environment:
       - DATA_DIR=${DATA_DIR}
