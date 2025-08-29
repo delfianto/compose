@@ -3,13 +3,13 @@ services:
     image: ghcr.io/berriai/litellm:main-latest
     container_name: litellm
     depends_on:
-      - openwebui-postgres
       - ollama
+      - pgvector
     restart: always
     networks:
       - proxy
     volumes:
-      - ${DATA_DIR}/my_llm/litellm.yml:/app/config.yml
+      - ${DATA_DIR}/llm_stack/lite_llm.yml:/app/config.yml
     environment:
       - DATA_DIR=${DATA_DIR}
       - LITELLM_HOST=0.0.0.0
@@ -18,13 +18,12 @@ services:
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - GEMINI_API_KEY=${GEMINI_API_KEY}
-      - DATABASE_URL=postgresql://litellm:${POSTGRES_PASSWORD}@openwebui-postgres:5432/litellm
+      - DATABASE_URL=postgresql://litellm:${POSTGRES_PASSWORD}@pgvector:5432/litellm
     command:
       - "--config"
       - "/app/config.yml"
       - "--port"
       - "4000"
-      - "--detailed_debug"
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.litellm.entrypoints=websecure"

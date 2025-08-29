@@ -1,0 +1,162 @@
+#!/bin/zsh
+
+# A script to test the RAG reranker service.
+# It dynamically loads configuration from the .env file,
+# reads documents from a text file (one per line),
+# constructs a JSON payload, and sends it via cURL.
+
+# --- Setup ---
+# Exit immediately if a command exits with a non-zero status.
+set -e
+
+# --- Usage Function ---
+usage() {
+    echo "Usage: $0 <documents_file> [query]"
+    echo ""
+    echo "Arguments:"
+    echo "  documents_file   Path to text file containing documents (one per line)"
+    echo "  query            Query string (optional, will prompt if not provided)"
+    echo ""
+    echo "Example:"
+    echo "  $0 documents.txt \"What is machine learning?\""
+    echo "  $0 documents.txt"
+    exit 1
+}
+
+# --- Argument Validation ---
+if [[ $# -lt 1 ]]; then
+    echo "❌ Error: Missing required argument"
+    usage
+fi
+
+DOCUMENTS_FILE="$1"
+QUERY="$2"
+
+# Check if the documents file exists
+if [[ ! -f "$DOCUMENTS_FILE" ]]; then
+    echo "❌ Error: Documents file '$DOCUMENTS_FILE' not found."
+    exit 1
+fi
+
+# If query is not provided as argument, prompt for it
+if [[ -z "$QUERY" ]]; then
+    echo -n "Enter your query: "
+    read QUERY
+    if [[ -z "$QUERY" ]]; then
+        echo "❌ Error: Query cannot be empty."
+        exit 1
+    fi
+fi
+
+# Define the path to the environment file
+ENV_FILE="../.env"
+
+# Check if the .env file exists and source it
+if [[ ! -f "$ENV_FILE" ]]; then
+    echo "❌ Error: '$ENV_FILE' not found. Please ensure it exists in the current directory."
+    exit 1
+fi
+source "$ENV_FILE"
+echo "✅ Loaded environment variables from '$ENV_FILE'"
+
+# --- Configuration ---
+
+# Replace Docker service hostname with localhost for local testing
+RERANK_URL=$(echo "${RAG_RERANK_ENDPOINT}" | sed 's/http:\/\/infinity-rerank/http:\/\/localhost/')
+echo "🔧 Rerank endpoint set to: ${RERANK_URL}"
+
+# --- Read Documents from File ---
+
+echo "📖 Reading documents from '$DOCUMENTS_FILE'..."
+
+# Read the file line by line into an array, skipping empty lines
+DOCUMENTS=()
+while IFS= read -r line || [[ -n "$line" ]]; do
+    # Skip empty lines and lines that contain only whitespace
+    if [[ -n "${line// }" ]]; then
+        DOCUMENTS+=("$line")
+    fi
+done < "$DOCUMENTS_FILE"
+
+# Check if we have any documents
+if [[ ${#DOCUMENTS[@]} -eq 0 ]]; then
+    echo "❌ Error: No valid documents found in '$DOCUMENTS_FILE'."
+    echo "Please ensure the file contains at least one non-empty line."
+    exit 1
+fi
+
+echo "📊 Found ${#DOCUMENTS[@]} document(s) to rerank"
+
+# --- JSON Payload Construction ---
+
+# 1. Build the "documents" JSON array from our shell array.
+#    This loop iterates through the documents, escapes any special characters,
+#    and builds a valid, comma-separated JSON string array.
+DOC_JSON_ARRAY=""
+for doc in "${DOCUMENTS[@]}"; do
+    # Escape double quotes, backslashes, and newlines for JSON
+    ESCAPED_DOC=$(echo "$doc" | sed 's/\\/\\\\/g; s/"/\\"/g; s/$/\\n/g' | tr -d '\n')
+    # Remove the trailing \n we just added
+    ESCAPED_DOC=${ESCAPED_DOC%\\n}
+    DOC_JSON_ARRAY+="\"${ESCAPED_DOC}\","
+done
+# Remove the final trailing comma and wrap in brackets
+DOC_JSON_ARRAY="[${DOC_JSON_ARRAY%,}]"
+
+# 2. Escape the query for JSON
+ESCAPED_QUERY=$(echo "$QUERY" | sed 's/\\/\\\\/g; s/"/\\"/g')
+
+# 3. Use a 'heredoc' (cat <<EOF) to construct the final JSON payload.
+#    This is a robust way to create a multiline string that correctly
+#    substitutes shell variables.
+JSON_PAYLOAD=$(cat <<EOF
+{
+  "model": "${RAG_RERANK_MODEL}",
+  "query": "${ESCAPED_QUERY}",
+  "documents": ${DOC_JSON_ARRAY},
+  "top_n": ${RAG_RERANK_TOP_N:-3}
+}
+EOF
+)
+
+# --- Execution ---
+echo
+echo "🚀 Sending request to reranker..."
+echo "------------------------------------"
+echo "Model: ${RAG_RERANK_MODEL}"
+echo "Query: ${QUERY}"
+echo "Documents file: ${DOCUMENTS_FILE}"
+echo "Number of documents: ${#DOCUMENTS[@]}"
+echo "Top N results: ${RAG_RERANK_TOP_N:-3}"
+echo "------------------------------------"
+echo -e "Payload:\n${JSON_PAYLOAD}\n"
+echo "------------------------------------"
+
+# Use curl to send the request with the dynamically built URL and payload
+echo "📡 Making API request..."
+RESPONSE=$(curl --silent --write-out "HTTPSTATUS:%{http_code}" -X POST "${RERANK_URL}" \
+     -H "Content-Type: application/json" \
+     --data "${JSON_PAYLOAD}")
+
+# Extract HTTP status and body
+HTTP_STATUS=$(echo "$RESPONSE" | tr -d '\n' | sed -e 's/.*HTTPSTATUS://')
+HTTP_BODY=$(echo "$RESPONSE" | sed -e 's/HTTPSTATUS:.*//g')
+
+# Check if request was successful
+if [[ "$HTTP_STATUS" -eq 200 ]]; then
+    echo "✅ Request successful (HTTP $HTTP_STATUS)"
+    echo "📋 Response:"
+    # Pretty print JSON if jq is available, otherwise just output raw response
+    if command -v jq &> /dev/null; then
+        echo "$HTTP_BODY" | jq .
+    else
+        echo "$HTTP_BODY"
+    fi
+else
+    echo "❌ Request failed (HTTP $HTTP_STATUS)"
+    echo "Error response:"
+    echo "$HTTP_BODY"
+    exit 1
+fi
+
+echo # Final newline for a clean terminal prompt
