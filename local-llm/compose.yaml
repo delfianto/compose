@@ -1,0 +1,10 @@
+include:
+  - ./infinity.yaml
+  - ./litellm.yaml
+  - ./ollama.yaml
+  - ./openwebui.yaml
+  - ./pgvector.yaml
+
+networks:
+  proxy:
+    external: true

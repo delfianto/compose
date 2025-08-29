@@ -9,7 +9,7 @@ services:
     networks:
       - proxy
     volumes:
-      - ${DATA_DIR}/lite_llm.yml:/app/config.yml
+      - ${DATA_DIR}/litellm.yaml:/app/config.yaml
     environment:
       - DATA_DIR=${DATA_DIR}
       - LITELLM_HOST=0.0.0.0
@@ -21,12 +21,18 @@ services:
       - DATABASE_URL=postgresql://litellm:${POSTGRES_PASSWORD}@pgvector:5432/litellm
     command:
       - "--config"
-      - "/app/config.yml"
+      - "/app/config.yaml"
       - "--port"
       - "4000"
     labels:
+      # Traefik integration
       - "traefik.enable=true"
       - "traefik.http.routers.litellm.entrypoints=websecure"
       - "traefik.http.routers.litellm.rule=Host(`litellm.${TRAEFIK_ACME_DOMAIN}`)"
       - "traefik.http.routers.litellm.tls.certresolver=cloudflare"
       - "traefik.http.services.litellm.loadbalancer.server.port=4000"
+      # Homepage integration
+      - "homepage.group=AI Services"
+      - "homepage.name=LiteLLM"
+      - "homepage.icon=anything-llm-light.svg"
+      - "homepage.href=https://litellm.${TRAEFIK_ACME_DOMAIN}"

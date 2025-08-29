@@ -12,6 +12,7 @@ services:
     ports:
       - 80:80
       - 443:443
+      - 8080:8080
     environment:
       # Cloudflare Zero DNS API token
       - CF_DNS_API_TOKEN_FILE=/run/secrets/cf_dns_api_token
@@ -62,6 +63,11 @@ services:
       - --certificatesresolvers.cloudflare.acme.caserver=${TRAEFIK_ACME_SERVER}
       - --certificatesresolvers.cloudflare.acme.email=${TRAEFIK_ACME_EMAIL}
       - --certificatesresolvers.cloudflare.acme.storage=${TRAEFIK_ACME_STORAGE}
+      # Enable Prometheus metrics
+      - --metrics.prometheus=true
+      - --metrics.prometheus.entrypoint=metrics
+      # API access from localhost only
+      - --api.insecure=true
     labels:
       # Global middleware for HTTP to HTTPS redirect
       - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
@@ -77,6 +83,14 @@ services:
       - "traefik.http.routers.traefik-dashboard.service=api@internal"
       - "traefik.http.routers.traefik-dashboard.tls.certresolver=cloudflare"
       - "traefik.http.routers.traefik-dashboard.tls=true"
+      # Homepage integration
+      - "homepage.group=Core"
+      - "homepage.name=Traefik"
+      - "homepage.icon=traefik.svg"
+      - "homepage.href=https://traefik.${TRAEFIK_ACME_DOMAIN}"
+      - "homepage.description=Reverse Proxy & Dashboard"
+      - "homepage.widget.type=traefik"
+      - "homepage.widget.url=http://traefik:8080"
 
 secrets:
   cf_dns_api_token:

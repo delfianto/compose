@@ -1,6 +1,6 @@
 include:
-  - ./plex.yml
-  - ./tautulli.yml
+  - ./plex.yaml
+  - ./tautulli.yaml
 
 networks:
   proxy:

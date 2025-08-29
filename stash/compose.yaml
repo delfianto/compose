@@ -31,11 +31,18 @@ services:
       - ${FILE_DIR}:/media
       - /etc/localtime:/etc/localtime:ro
     labels:
+      # Traefik integration
       - "traefik.enable=true"
       - "traefik.http.routers.litellm.entrypoints=websecure"
       - "traefik.http.routers.litellm.rule=Host(`stash.${TRAEFIK_ACME_DOMAIN}`)"
       - "traefik.http.routers.litellm.tls.certresolver=cloudflare"
       - "traefik.http.services.litellm.loadbalancer.server.port=4000"
+      # Homepage integration
+      - "homepage.group=Media"
+      - "homepage.name=StashApp"
+      - "homepage.icon=stash.svg"
+      - "homepage.href=https://stash.${TRAEFIK_ACME_DOMAIN}"
+      - "homepage.description=Adult Media Server"
     deploy:
       resources:
         reservations:

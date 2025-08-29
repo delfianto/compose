@@ -1,0 +1,8 @@
+include:
+  - ./homepage.yaml
+  - ./portainer.yaml
+  - ./traefik.yaml
+
+networks:
+  proxy:
+    external: true

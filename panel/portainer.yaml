@@ -25,8 +25,15 @@ services:
       - /etc/timezone:/etc/timezone:ro
       - /var/run/docker.sock:/var/run/docker.sock
     labels:
+      # Traefik integration
       - "traefik.enable=true"
       - "traefik.http.routers.portainer.entrypoints=websecure"
       - "traefik.http.routers.portainer.rule=Host(`panel.${TRAEFIK_ACME_DOMAIN}`)"
       - "traefik.http.routers.portainer.tls.certresolver=cloudflare"
       - "traefik.http.services.portainer.loadbalancer.server.port=9000"
+      # Homepage integration
+      - "homepage.group=Core"
+      - "homepage.name=Portainer"
+      - "homepage.icon=portainer.svg"
+      - "homepage.href=https://panel.${TRAEFIK_ACME_DOMAIN}"
+      - "homepage.description=Container Management"

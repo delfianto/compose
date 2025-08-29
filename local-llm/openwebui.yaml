@@ -38,8 +38,14 @@ services:
       - RAG_HYBRID_BM25_WEIGHT=${RAG_HYBRID_BM25_WEIGHT}
       - RAG_RELEVANCE_THRESHOLD=${RAG_RELEVANCE_THRESHOLD}
     labels:
+      # Traefik integration
       - "traefik.enable=true"
       - "traefik.http.routers.open-webui.entrypoints=websecure"
       - "traefik.http.routers.open-webui.rule=Host(`webui.${TRAEFIK_ACME_DOMAIN}`)"
       - "traefik.http.routers.open-webui.tls.certresolver=cloudflare"
       - "traefik.http.services.open-webui.loadbalancer.server.port=8080"
+      # Homepage integration
+      - "homepage.group=AI Services"
+      - "homepage.name=Open WebUI"
+      - "homepage.icon=open-webui.svg"
+      - "homepage.href=https://webui.${TRAEFIK_ACME_DOMAIN}"

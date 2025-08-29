@@ -16,8 +16,15 @@ services:
     networks:
       - proxy
     labels:
+      # Traefik integration
       - "traefik.enable=true"
       - "traefik.http.routers.tautulli.entrypoints=websecure"
       - "traefik.http.routers.tautulli.rule=Host(`tautulli.${TRAEFIK_ACME_DOMAIN}`)"
       - "traefik.http.routers.tautulli.tls.certresolver=cloudflare"
       - "traefik.http.services.tautulli.loadbalancer.server.port=8181"
+      # Homepage integration
+      - "homepage.group=Media"
+      - "homepage.name=Tautulli"
+      - "homepage.icon=tautulli.svg"
+      - "homepage.href=https://tautulli.${TRAEFIK_ACME_DOMAIN}"
+      - "homepage.description=Plex Monitoring"
