@@ -1,8 +1,9 @@
 include:
+  - ./infinity.yml
   - ./litellm.yml
   - ./ollama.yml
   - ./openwebui.yml
-  - ./postgres.yml
+  - ./pgvector.yml
 
 networks:
   proxy:
