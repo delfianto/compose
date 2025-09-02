@@ -21,7 +21,7 @@ srwarmui_git() {
   git config --global --add safe.directory $SWARMUI_ROOT
 
 # Create the internal launch script
-cat > "/SwarmUI/run.sh" <<EOF
+cat > "$SWARMUI_ROOT/run.sh" <<EOF
 #!/usr/bin/env bash
 export HOME=$SWARMUI_ROOT/Home
 $SWARMUI_ROOT/launch-linux.sh $@ --launch_mode none --host 0.0.0.0
