@@ -9,8 +9,10 @@ services:
       - 11434:11434
     environment:
       - DATA_DIR=${DATA_DIR}
+      - OLLAMA_CPU_OFFLOAD=1
       - OLLAMA_HOST=0.0.0.0
       - OLLAMA_MODELS=/root/.ollama/models
+      - NVIDIA_VISIBLE_DEVICES=${OLLAMA_GPU}
     volumes:
       - ${DATA_DIR}/ollama:/root/.ollama
     labels:

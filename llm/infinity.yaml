@@ -1,7 +1,7 @@
 services:
   # Embedding Service
   infinity-embed:
-    image: michaelf34/infinity
+    image: michaelf34/infinity:latest
     container_name: infinity-embed
     restart: always
     networks:
@@ -10,6 +10,7 @@ services:
       - 7990:7990
     environment:
       - DATA_DIR=${DATA_DIR}
+      - NVIDIA_VISIBLE_DEVICES=${EMBEDDER_GPU}
       - INFINITY_MODEL_ID=${RAG_EMBED_MODEL}
       - INFINITY_LOG_LEVEL=info
     volumes:
@@ -18,6 +19,7 @@ services:
       v2
       --host 0.0.0.0
       --port 7990
+      --engine optimum
       --url-prefix /v1
     deploy:
       resources:
@@ -29,7 +31,7 @@ services:
 
   # Rerankig Service
   infinity-rerank:
-    image: michaelf34/infinity
+    image: michaelf34/infinity:latest
     container_name: infinity-rerank
     restart: always
     networks:
@@ -38,6 +40,7 @@ services:
       - 7991:7991
     environment:
       - DATA_DIR=${DATA_DIR}
+      - NVIDIA_VISIBLE_DEVICES=${RANKER_GPU}
       - INFINITY_MODEL_ID=${RAG_RERANK_MODEL}
       - INFINITY_LOG_LEVEL=info
     volumes:
@@ -46,6 +49,7 @@ services:
       v2
       --host 0.0.0.0
       --port 7991
+      --engine optimum
       --url-prefix /v1
     deploy:
       resources:

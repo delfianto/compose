@@ -35,4 +35,4 @@ services:
       - "homepage.group=Artificial Intelligence"
       - "homepage.name=LiteLLM"
       - "homepage.icon=anything-llm-light.svg"
-      - "homepage.href=https://litellm.${TRAEFIK_ACME_DOMAIN}"
+      - "homepage.href=https://litellm.${TRAEFIK_ACME_DOMAIN}/ui"
