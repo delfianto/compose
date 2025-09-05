@@ -17,9 +17,10 @@ services:
       - ${DATA_DIR}/infinity:/app/.cache
     command: >
       v2
+      --device cuda
+      --engine torch
       --host 0.0.0.0
       --port 7990
-      --engine optimum
       --url-prefix /v1
     deploy:
       resources:
@@ -47,9 +48,10 @@ services:
       - ${DATA_DIR}/infinity:/app/.cache
     command: >
       v2
+      --device cuda
+      --engine torch
       --host 0.0.0.0
       --port 7991
-      --engine optimum
       --url-prefix /v1
     deploy:
       resources:
