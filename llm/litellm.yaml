@@ -12,6 +12,7 @@ services:
       - ${DATA_DIR}/litellm.yaml:/app/config.yaml
     environment:
       - DATA_DIR=${DATA_DIR}
+      - LITELLM_LOG=DEBUG
       - LITELLM_HOST=0.0.0.0
       - LITELLM_SALT_KEY=${LITELLM_SALT_KEY}
       - LITELLM_MASTER_KEY=${LITELLM_MASTER_KEY}
