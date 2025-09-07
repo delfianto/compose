@@ -11,14 +11,18 @@ services:
     volumes:
       - ${DATA_DIR}/litellm.yaml:/app/config.yaml
     environment:
-      - DATA_DIR=${DATA_DIR}
-      - LITELLM_LOG=DEBUG
+      - LITELLM_LOG=${LITELLM_LOG}
       - LITELLM_HOST=0.0.0.0
       - LITELLM_SALT_KEY=${LITELLM_SALT_KEY}
       - LITELLM_MASTER_KEY=${LITELLM_MASTER_KEY}
+      # API keys to various external services
+      - OPENROUTER_API_KEY=${OPENROUTE_API_KEY}
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - GEMINI_API_KEY=${GEMINI_API_KEY}
+      # Vector database for semantic caching
+      - QDRANT_API_BASE=${QDRANT_API_BASE}
+      # General database configurations
       - DATABASE_URL=postgresql://litellm:${POSTGRES_PASSWORD}@pgvector:5432/litellm
     command:
       - "--config"
@@ -35,5 +39,5 @@ services:
       # Homepage integration
       - "homepage.group=Artificial Intelligence"
       - "homepage.name=LiteLLM"
-      - "homepage.icon=anything-llm-light.svg"
+      - "homepage.icon=anything-llm.svg"
       - "homepage.href=https://litellm.${TRAEFIK_ACME_DOMAIN}/ui"

@@ -8,6 +8,7 @@ services:
       - litellm
       - ollama
       - pgvector
+      - qdrant
     restart: always
     networks:
       - proxy
@@ -20,8 +21,12 @@ services:
       # OpenAI API settings
       - ENABLE_OPENAI_API=true
       - OPENAI_API_KEY=${OPENAI_API_KEY}
+      # Vector Database Configuration
+      - VECTOR_DB=qdrant
+      - QDRANT_URI=${QDRANT_API_BASE}
+      - QDRANT_COLLECTION_PREFIX=openwebui
+      - ENABLE_QDRANT_MULTITENANCY_MODE=true
       # RAG embedder settings
-      - VECTOR_DB=pgvector
       - RAG_EMBEDDING_BATCH_SIZE=32
       - RAG_EMBEDDING_ENGINE=${RAG_EMBED_ENGINE}
       - RAG_EMBEDDING_ENDPOINT=${RAG_EMBED_ENDPOINT}
