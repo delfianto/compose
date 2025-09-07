@@ -4,6 +4,7 @@ include:
   - ./ollama.yaml
   - ./openwebui.yaml
   - ./pgvector.yaml
+  - ./qdrant.yaml
 
 networks:
   proxy:
