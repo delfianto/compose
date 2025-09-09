@@ -15,6 +15,7 @@ services:
       - ${DATA_DIR}/tautulli:/config
     networks:
       - proxy
+      - plex
     labels:
       # Traefik integration
       - "traefik.enable=true"

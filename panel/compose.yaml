@@ -6,3 +6,5 @@ include:
 networks:
   proxy:
     external: true
+  metrics:
+    internal: true

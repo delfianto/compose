@@ -5,6 +5,7 @@ services:
     restart: always
     networks:
       - proxy
+      - llm
     ports:
       - 11434:11434
     environment:
@@ -15,12 +16,6 @@ services:
       - NVIDIA_VISIBLE_DEVICES=${OLLAMA_GPU}
     volumes:
       - ${DATA_DIR}/ollama:/root/.ollama
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.ollama.entrypoints=websecure"
-      - "traefik.http.routers.ollama.rule=Host(`ollama.${TRAEFIK_ACME_DOMAIN}`)"
-      - "traefik.http.routers.ollama.tls.certresolver=cloudflare"
-      - "traefik.http.services.ollama.loadbalancer.server.port=11434"
     deploy:
       resources:
         reservations:

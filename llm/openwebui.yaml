@@ -12,6 +12,7 @@ services:
     restart: always
     networks:
       - proxy
+      - llm
     volumes:
       - ${DATA_DIR}:/app/backend/data
     environment:

@@ -7,6 +7,7 @@ services:
     userns_mode: host
     networks:
       - proxy
+      - metrics
     environment:
       - UID=${UID}
       - GID=${GID}

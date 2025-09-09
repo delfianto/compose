@@ -9,3 +9,5 @@ include:
 networks:
   proxy:
     external: true
+  llm:
+    internal: true

@@ -6,6 +6,7 @@ services:
     restart: always
     networks:
       - proxy
+      - llm
     ports:
       - ${QDRANT_HTTP_PORT}:${QDRANT_HTTP_PORT}
       - ${QDRANT_GRPC_PORT}:${QDRANT_GRPC_PORT}
