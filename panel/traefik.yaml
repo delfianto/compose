@@ -9,6 +9,7 @@ services:
     userns_mode: host
     networks:
       - proxy
+      - metrics
     ports:
       - 80:80
       - 443:443

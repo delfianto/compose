@@ -6,8 +6,7 @@ services:
     restart: always
     networks:
       - proxy
-    ports:
-      - 7990:7990
+      - llm
     environment:
       - DATA_DIR=${DATA_DIR}
       - NVIDIA_VISIBLE_DEVICES=${EMBEDDER_GPU}
@@ -37,8 +36,7 @@ services:
     restart: always
     networks:
       - proxy
-    ports:
-      - 7991:7991
+      - llm
     environment:
       - DATA_DIR=${DATA_DIR}
       - NVIDIA_VISIBLE_DEVICES=${RANKER_GPU}

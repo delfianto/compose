@@ -8,6 +8,7 @@ services:
     restart: always
     networks:
       - proxy
+      - llm
     volumes:
       - ${DATA_DIR}/litellm.yaml:/app/config.yaml
     environment:

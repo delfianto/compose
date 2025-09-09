@@ -5,6 +5,7 @@ services:
     restart: always
     networks:
       - proxy
+      - llm
     volumes:
       - ${DATA_DIR}/postgres:/var/lib/postgresql/data
       - ${PROJ_DIR}/initdb.d:/docker-entrypoint-initdb.d

@@ -5,3 +5,5 @@ include:
 networks:
   proxy:
     external: true
+  plex:
+    internal: true

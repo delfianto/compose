@@ -3,10 +3,10 @@ services:
     image: stashapp/stash:latest
     container_name: stash
     restart: unless-stopped
-    network_mode: host
     user: ${UID}:${GID}
-    ports:
-      - 9999:9999
+    networks:
+      - proxy
+      - stash
     logging:
       driver: json-file
       options:
@@ -33,16 +33,16 @@ services:
     labels:
       # Traefik integration
       - "traefik.enable=true"
-      - "traefik.http.routers.litellm.entrypoints=websecure"
-      - "traefik.http.routers.litellm.rule=Host(`stash.${TRAEFIK_ACME_DOMAIN}`)"
-      - "traefik.http.routers.litellm.tls.certresolver=cloudflare"
-      - "traefik.http.services.litellm.loadbalancer.server.port=4000"
+      - "traefik.http.routers.stash.entrypoints=websecure"
+      - "traefik.http.routers.stash.rule=Host(`stash.${TRAEFIK_ACME_DOMAIN}`)"
+      - "traefik.http.routers.stash.tls.certresolver=cloudflare"
+      - "traefik.http.services.stash.loadbalancer.server.port=9069"
       # Homepage integration
       - "homepage.group=Media"
       - "homepage.name=StashApp"
       - "homepage.icon=stash.svg"
       - "homepage.href=https://stash.${TRAEFIK_ACME_DOMAIN}"
-      - "homepage.description=Adult Media Server"
+      - "homepage.description=Media Server for Cultured Material"
     deploy:
       resources:
         reservations:
@@ -50,3 +50,9 @@ services:
             - driver: nvidia
               capabilities: [gpu]
               count: all
+
+networks:
+  proxy:
+    external: true
+  stash:
+    internal: true
