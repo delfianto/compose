@@ -33,10 +33,6 @@ services:
       - TRAEFIK_ACME_STORAGE=${TRAEFIK_ACME_STORAGE}
       # Traefik authentication and domain name
       - TRAEFIK_ACME_DOMAIN=${TRAEFIK_ACME_DOMAIN}
-      # Traefik log level
-      # Possible values: DEBUG, INFO, WARN, ERROR, FATAL
-      # Default is INFO, but DEBUG is useful for troubleshooting
-      - TRAEFIK_LOG_LEVEL=${TRAEFIK_LOG_LEVEL}
     secrets:
       - cf_dns_api_token
       - traefik_htpasswd
@@ -46,8 +42,10 @@ services:
       - /etc/timezone:/etc/timezone:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
     command:
-      # Set log level
-      - --log.level=DEBUG
+      # Traefik log level
+      # Possible values: DEBUG, INFO, WARN, ERROR, FATAL
+      # Default is INFO, but DEBUG is useful for troubleshooting
+      - --log.level=${TRAEFIK_LOG_LEVEL}
       # Enable Docker as a provider
       - --providers.docker=true
       - --providers.docker.exposedbydefault=false
@@ -58,7 +56,7 @@ services:
       - --entrypoints.websecure.address=:443
       # Enable DNS challenge
       - --certificatesresolvers.cloudflare.acme.dnschallenge=true
-      - --certificatesresolvers.cloudflare.acme.dnschallenge.delayBeforeCheck=45s
+      - --certificatesresolvers.cloudflare.acme.dnschallenge.propagation.delayBeforeChecks=45s
       - --certificatesresolvers.cloudflare.acme.dnschallenge.provider=cloudflare
       # ACME configuration for Let's Encrypt
       - --certificatesresolvers.cloudflare.acme.caserver=${TRAEFIK_ACME_SERVER}
