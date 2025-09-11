@@ -3,7 +3,6 @@ services:
     image: stashapp/stash:latest
     container_name: stash
     restart: unless-stopped
-    user: ${UID}:${GID}
     networks:
       - proxy
       - stash
@@ -13,8 +12,6 @@ services:
         max-file: 10
         max-size: 2m
     environment:
-      - UID=${UID}
-      - GID=${GID}
       - DATA_DIR=${DATA_DIR}
       - FILE_DIR=${FILE_DIR}
       - STASH_CACHE=/cache
