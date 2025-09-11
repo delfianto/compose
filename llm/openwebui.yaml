@@ -3,8 +3,8 @@ services:
     image: ghcr.io/open-webui/open-webui:latest-slim
     container_name: openwebui
     depends_on:
-      - infinity-embed
-      - infinity-rerank
+      - tei-embedder
+      - tei-reranker
       - litellm
       - ollama
       - pgvector
@@ -16,31 +16,50 @@ services:
     volumes:
       - ${DATA_DIR}:/app/backend/data
     environment:
-      - DATA_DIR=${DATA_DIR}
-      - OLLAMA_BASE_URL=http://ollama:11434
       - DATABASE_URL=postgresql://openwebui:${POSTGRES_PASSWORD}@pgvector:5432/openwebui
-      # OpenAI API settings
+      - GLOBAL_LOG_LEVEL=${OPEN_WEBUI_LOG_LEVEL}
+      - CORS_ALLOW_ORIGIN=${OPEN_WEBUI_BASE_URL}
+      - USER_AGENT=${OPEN_WEBUI_USER_AGENT}
+      # Open WebUI Tuneables
+      # https://docs.openwebui.com/getting-started/env-configuration
+      - ENV=${ENV}
+      - MODELS_CACHE_TTL=${MODELS_CACHE_TTL}
+      - CHAT_RESPONSE_STREAM_DELTA_CHUNK_SIZE=${CHAT_RESPONSE_STREAM_DELTA_CHUNK_SIZE}
+      - BYPASS_MODEL_ACCESS_CONTROL=${BYPASS_MODEL_ACCESS_CONTROL}
+      - USE_CUDA_DOCKER=${USE_CUDA_DOCKER}
+      - USE_OLLAMA_DOCKER=${USE_OLLAMA_DOCKER}
+      # Basic settings
+      - OLLAMA_BASE_URL=http://ollama:11434
+      - OLLAMA_API_KEY=${OLLAMA_API_KEY}
       - ENABLE_OPENAI_API=true
+      - OPENAI_API_BASE_URL=${OPENAI_API_BASE_URL}
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       # Vector Database Configuration
       - VECTOR_DB=qdrant
-      - QDRANT_URI=${QDRANT_API_BASE}
+      - QDRANT_URI=${QDRANT_URI}
+      - QDRANT_PREFER_GRPC=${QDRANT_PREFER_GRPC}
+      - QDRANT_GRPC_PORT=${QDRANT_GRPC_PORT}
       - QDRANT_COLLECTION_PREFIX=openwebui
       - ENABLE_QDRANT_MULTITENANCY_MODE=true
       # RAG embedder settings
-      - RAG_EMBEDDING_BATCH_SIZE=32
-      - RAG_EMBEDDING_ENGINE=${RAG_EMBED_ENGINE}
-      - RAG_EMBEDDING_ENDPOINT=${RAG_EMBED_ENDPOINT}
-      - RAG_EMBEDDING_MODEL=${RAG_EMBED_MODEL}
+      - RAG_EMBEDDING_ENGINE=${RAG_EMBEDDING_ENGINE}
+      - RAG_EMBEDDING_MODEL=${RAG_EMBEDDING_MODEL}
+      - RAG_EMBEDDING_BATCH_SIZE=${RAG_EMBEDDING_BATCH_SIZE}
+      - RAG_EMBEDDING_OPENAI_BATCH_SIZE=${RAG_EMBEDDING_OPENAI_BATCH_SIZE}
+      - RAG_OPENAI_API_BASE_URL=${RAG_OPENAI_API_BASE_URL}
+      - RAG_OPENAI_API_KEY=${RAG_OPENAI_API_KEY}
+      - RAG_OLLAMA_BASE_URL=${RAG_OLLAMA_BASE_URL}
+      - RAG_OLLAMA_API_KEY=${RAG_OLLAMA_API_KEY}
       # Reranker settings
-      - ENABLE_RAG_HYBRID_SEARCH=${RAG_HYBRID_SEARCH}
-      - RERANKER_ENDPOINT=${RAG_RERANK_ENDPOINT}
-      - RAG_RERANKING_MODEL=${RAG_RERANK_MODEL}
+      - ENABLE_RAG_HYBRID_SEARCH=${ENABLE_RAG_HYBRID_SEARCH}
+      - RAG_RERANKING_MODEL=${RAG_RERANKING_MODEL}
       # Chunking and search settings
-      - CHUNK_SIZE=${RAG_CHUNK_SIZE}
-      - CHUNK_OVERLAP=${RAG_CHUNK_OVERLAP}
+      - CHUNK_SIZE=${CHUNK_SIZE}
+      - CHUNK_OVERLAP=${CHUNK_OVERLAP}
+      - RAG_TEXT_SPLITTER=${RAG_TEXT_SPLITTER}
+      - RAG_FULL_CONTEXT=${RAG_FULL_CONTEXT}
       - RAG_TOP_K=${RAG_TOP_K}
-      - RAG_TOP_K_RERANKER=${RAG_TOP_K_RERANK}
+      - RAG_TOP_K_RERANKER=${RAG_TOP_K_RERANKER}
       - RAG_HYBRID_BM25_WEIGHT=${RAG_HYBRID_BM25_WEIGHT}
       - RAG_RELEVANCE_THRESHOLD=${RAG_RELEVANCE_THRESHOLD}
     labels:
@@ -55,3 +74,10 @@ services:
       - "homepage.name=Open WebUI"
       - "homepage.icon=open-webui.svg"
       - "homepage.href=https://webui.${TRAEFIK_ACME_DOMAIN}"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]

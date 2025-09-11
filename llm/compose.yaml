@@ -1,5 +1,5 @@
 include:
-  - ./infinity.yaml
+  - ./embeddings.yaml
   - ./litellm.yaml
   - ./ollama.yaml
   - ./openwebui.yaml

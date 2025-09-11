@@ -1,6 +1,6 @@
 services:
   litellm:
-    image: ghcr.io/berriai/litellm:main-latest
+    image: ghcr.io/berriai/litellm:main-dev
     container_name: litellm
     depends_on:
       - ollama
@@ -12,19 +12,24 @@ services:
     volumes:
       - ${DATA_DIR}/litellm.yaml:/app/config.yaml
     environment:
-      - LITELLM_LOG=${LITELLM_LOG}
+      # Base configs
       - LITELLM_HOST=0.0.0.0
       - LITELLM_SALT_KEY=${LITELLM_SALT_KEY}
       - LITELLM_MASTER_KEY=${LITELLM_MASTER_KEY}
+      - DEFAULT_NUM_WORKERS_LITELLM_PROXY=${DEFAULT_NUM_WORKERS_LITELLM_PROXY}
+      - DATABASE_URL=postgresql://litellm:${POSTGRES_PASSWORD}@pgvector:5432/litellm
+      # Logging controls
+      - LITELLM_LOG=${LITELLM_LOG}
+      - LITELLM_PRINT_STANDARD_LOGGING_PAYLOAD=false
       # API keys to various external services
       - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - GEMINI_API_KEY=${GEMINI_API_KEY}
-      # Vector database for semantic caching
-      - QDRANT_API_BASE=${QDRANT_API_BASE}
-      # General database configurations
-      - DATABASE_URL=postgresql://litellm:${POSTGRES_PASSWORD}@pgvector:5432/litellm
+      # Semantic caching
+      - QDRANT_API_BASE=${QDRANT_URI}
+      - SEMANTIC_CACHE_MODEL=openai/${SEMANTIC_CACHE_MODEL}
+      - SEMANTIC_CACHE_BASE_URL=${SEMANTIC_CACHE_BASE_URL}
     command:
       - "--config"
       - "/app/config.yaml"

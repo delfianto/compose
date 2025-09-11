@@ -63,7 +63,7 @@ services:
       - --certificatesresolvers.cloudflare.acme.email=${TRAEFIK_ACME_EMAIL}
       - --certificatesresolvers.cloudflare.acme.storage=${TRAEFIK_ACME_STORAGE}
       # Enable Prometheus metrics
-      - --metrics.prometheus=true
+      - --metrics.prometheus=false
       - --metrics.prometheus.entrypoint=metrics
       # API access from localhost only
       - --api.insecure=true
