@@ -1,8 +1,8 @@
 services:
   stash:
-    image: stashapp/stash:latest
-    container_name: stash
+    image: ghcr.io/feederbox826/stash-s6:hwaccel-develop
     restart: unless-stopped
+    userns_mode: host
     networks:
       - proxy
       - stash
@@ -12,17 +12,22 @@ services:
         max-file: 10
         max-size: 2m
     environment:
+      - PUID=${UID}
+      - PGID=${GID}
       - DATA_DIR=${DATA_DIR}
       - FILE_DIR=${FILE_DIR}
       - STASH_CACHE=/cache
       - STASH_GENERATED=/generated
       - STASH_METADATA=/metadata
+      - SKIP_NVIDIA_PATCH=true
       - STASH_PORT=9069
       - STASH_STASH=/media
+      - MIGRATE=TRUE
     volumes:
       - ${DATA_DIR}/blobs:/blobs
       - ${DATA_DIR}/cache:/cache
       - ${DATA_DIR}/config:/root/.stash
+      - ${DATA_DIR}/config_s6:/config
       - ${DATA_DIR}/generated:/generated
       - ${DATA_DIR}/metadata:/metadata
       - ${FILE_DIR}:/media
