@@ -1,10 +1,12 @@
 services:
   tei-semantic-cache:
-    image: ghcr.io/huggingface/text-embeddings-inference:89-1.8
+    image: ghcr.io/huggingface/text-embeddings-inference:${HF_TEI_TAG}
     container_name: litellm-cache
     networks:
       - llm
       - proxy
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=${SEMANTIC_GPU}
     volumes:
       - ${DATA_DIR}/tei:/data
     command:
@@ -23,13 +25,15 @@ services:
               capabilities: [gpu]
 
   tei-embedder:
-    image: ghcr.io/huggingface/text-embeddings-inference:89-1.8
+    image: ghcr.io/huggingface/text-embeddings-inference:${HF_TEI_TAG}
     container_name: rag-embedder
     networks:
       - llm
       - proxy
     volumes:
       - ${DATA_DIR}/tei:/data
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=${EMBEDDING_GPU}
     command:
       - --hostname=0.0.0.0
       - --port=4000
@@ -46,13 +50,15 @@ services:
               capabilities: [gpu]
 
   tei-reranker:
-    image: ghcr.io/huggingface/text-embeddings-inference:89-1.8
+    image: ghcr.io/huggingface/text-embeddings-inference:${HF_TEI_TAG}
     container_name: rag-reranker
     networks:
       - llm
       - proxy
     volumes:
       - ${DATA_DIR}/tei:/data
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=${RERANKING_GPU}
     command:
       - --hostname=0.0.0.0
       - --port=4000

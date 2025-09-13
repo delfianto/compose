@@ -1,6 +1,6 @@
 services:
   litellm:
-    image: ghcr.io/berriai/litellm:main-dev
+    image: ghcr.io/berriai/litellm:${LITELLM_TAG}
     container_name: litellm
     depends_on:
       - ollama
@@ -16,7 +16,7 @@ services:
       - LITELLM_HOST=0.0.0.0
       - LITELLM_SALT_KEY=${LITELLM_SALT_KEY}
       - LITELLM_MASTER_KEY=${LITELLM_MASTER_KEY}
-      - DEFAULT_NUM_WORKERS_LITELLM_PROXY=${DEFAULT_NUM_WORKERS_LITELLM_PROXY}
+      - DEFAULT_NUM_WORKERS_LITELLM_PROXY=${LITELLM_WORKERS}
       - DATABASE_URL=postgresql://litellm:${POSTGRES_PASSWORD}@pgvector:5432/litellm
       # Logging controls
       - LITELLM_LOG=${LITELLM_LOG}

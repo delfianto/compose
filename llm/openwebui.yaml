@@ -1,6 +1,6 @@
 services:
   openwebui:
-    image: ghcr.io/open-webui/open-webui:latest-slim
+    image: ghcr.io/open-webui/open-webui:${OPEN_WEBUI_TAG}
     container_name: openwebui
     depends_on:
       - tei-embedder
@@ -20,6 +20,7 @@ services:
       - GLOBAL_LOG_LEVEL=${OPEN_WEBUI_LOG_LEVEL}
       - CORS_ALLOW_ORIGIN=${OPEN_WEBUI_BASE_URL}
       - USER_AGENT=${OPEN_WEBUI_USER_AGENT}
+      - NVIDIA_VISIBLE_DEVICES=${OPEN_WEBUI_GPU}
       # Open WebUI Tuneables
       # https://docs.openwebui.com/getting-started/env-configuration
       - ENV=${ENV}
