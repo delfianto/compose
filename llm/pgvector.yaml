@@ -1,6 +1,6 @@
 services:
   pgvector:
-    image: pgvector/pgvector:pg17
+    image: pgvector/pgvector:${PGVECTOR_TAG}
     container_name: pgvector
     restart: always
     networks:

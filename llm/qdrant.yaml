@@ -1,7 +1,7 @@
 services:
   # Qdrant Vector Database
   qdrant:
-    image: qdrant/qdrant:latest
+    image: qdrant/qdrant:${QDRANT_TAG}
     container_name: qdrant
     restart: always
     networks:
