@@ -63,7 +63,7 @@ services:
       - --hostname=0.0.0.0
       - --port=4000
       - --hf-token=${HF_TOKEN}
-      - --model-id=${RAG_EMBEDDING_MODEL}
+      - --model-id=${RAG_RERANKING_MODEL}
       - --dtype=${TEI_RERANKER_DTYPE}
       - --max-batch-tokens=${TEI_RERANKER_BATCH}
     deploy:
