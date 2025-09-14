@@ -7,6 +7,7 @@ services:
       - proxy
     environment:
       - NVIDIA_VISIBLE_DEVICES=${SEMANTIC_GPU}
+      - MAX_CLIENT_BATCH_SIZE=${SEMANTIC_CACHE_CLIENT_BATCH}
     volumes:
       - ${DATA_DIR}/tei:/data
     command:
@@ -34,6 +35,7 @@ services:
       - ${DATA_DIR}/tei:/data
     environment:
       - NVIDIA_VISIBLE_DEVICES=${EMBEDDING_GPU}
+      - MAX_CLIENT_BATCH_SIZE=${TEI_EMBEDDER_CLIENT_BATCH}
     command:
       - --hostname=0.0.0.0
       - --port=4000
@@ -59,6 +61,7 @@ services:
       - ${DATA_DIR}/tei:/data
     environment:
       - NVIDIA_VISIBLE_DEVICES=${RERANKING_GPU}
+      - MAX_CLIENT_BATCH_SIZE=${TEI_RERANKER_CLIENT_BATCH}
     command:
       - --hostname=0.0.0.0
       - --port=4000
@@ -73,3 +76,15 @@ services:
             - driver: nvidia
               count: all
               capabilities: [gpu]
+
+  tei-proxy:
+    image: ${TEI_PROXY_IMG}
+    container_name: rag-proxy
+    networks:
+      - llm
+      - proxy
+    environment:
+      - MAX_CLIENT_BATCH_SIZE=${TEI_RERANKER_CLIENT_BATCH}
+      - TEI_ENDPOINT=${TEI_RERANKER_BASE_URL}
+      - TEI_PROXY_PORT=${TEI_PROXY_PORT}
+      - RUST_LOG=${TEI_PROXY_LOG}
