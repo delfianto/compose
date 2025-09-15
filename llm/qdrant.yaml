@@ -3,7 +3,6 @@ services:
   qdrant:
     image: qdrant/qdrant:${QDRANT_TAG}
     container_name: qdrant
-    restart: always
     networks:
       - proxy
       - llm

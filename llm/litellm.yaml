@@ -3,9 +3,7 @@ services:
     image: ghcr.io/berriai/litellm:${LITELLM_TAG}
     container_name: litellm
     depends_on:
-      - ollama
       - pgvector
-    restart: always
     networks:
       - proxy
       - llm

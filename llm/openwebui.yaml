@@ -3,13 +3,8 @@ services:
     image: ghcr.io/open-webui/open-webui:${OPEN_WEBUI_TAG}
     container_name: openwebui
     depends_on:
-      - tei-embedder
-      - tei-reranker
-      - litellm
-      - ollama
       - pgvector
       - qdrant
-    restart: always
     networks:
       - proxy
       - llm
