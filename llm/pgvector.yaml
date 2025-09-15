@@ -2,7 +2,6 @@ services:
   pgvector:
     image: pgvector/pgvector:${PGVECTOR_TAG}
     container_name: pgvector
-    restart: always
     networks:
       - proxy
       - llm

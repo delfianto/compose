@@ -2,7 +2,6 @@ services:
   ollama:
     image: ollama/ollama:${OLLAMA_TAG}
     container_name: ollama
-    restart: always
     networks:
       - proxy
       - llm
