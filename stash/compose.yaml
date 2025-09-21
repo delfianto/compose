@@ -14,8 +14,6 @@ services:
     environment:
       - PUID=${UID}
       - PGID=${GID}
-      - DATA_DIR=${DATA_DIR}
-      - FILE_DIR=${FILE_DIR}
       - STASH_CACHE=/cache
       - STASH_GENERATED=/generated
       - STASH_METADATA=/metadata
@@ -24,14 +22,15 @@ services:
       - STASH_STASH=/media
       - MIGRATE=TRUE
     volumes:
+      - ${LOCAL_TIME}:${LOCAL_TIME}:ro
       - ${DATA_DIR}/blobs:/blobs
       - ${DATA_DIR}/cache:/cache
       - ${DATA_DIR}/config:/root/.stash
       - ${DATA_DIR}/config_s6:/config
       - ${DATA_DIR}/generated:/generated
       - ${DATA_DIR}/metadata:/metadata
-      - ${FILE_DIR}:/media
-      - /etc/localtime:/etc/localtime:ro
+      - ${SRC1_DIR}:/media1
+      - ${SRC2_DIR}:/media2
     labels:
       # Traefik integration
       - "traefik.enable=true"
