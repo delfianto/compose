@@ -6,6 +6,9 @@ POSTGRES_PASSWORD="${POSTGRES_PASSWORD}"
 POSTGRES_USER="${POSTGRES_USER}"
 POSTGRES_DB="${POSTGRES_DB}"
 
+# Initialize the database
+initdb --data-checksums -D /var/lib/postgresql/data
+
 # Debugging: Print environment variables
 echo "Environment Variables:"
 echo "  - POSTGRES_DB: $POSTGRES_DB"
