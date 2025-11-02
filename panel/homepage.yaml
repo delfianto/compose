@@ -14,7 +14,7 @@ services:
       - HOMEPAGE_ALLOWED_HOSTS=home.${TRAEFIK_ACME_DOMAIN}
     volumes:
       - ${DATA_DIR}/homepage:/app/config
-      - ${DATA_DIR}/homepage/public:/app/public
+      - ${DATA_DIR}/homepage/icons:/app/public/icons
       - /var/run/docker.sock:/var/run/docker.sock:ro
     labels:
       - "traefik.enable=true"

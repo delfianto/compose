@@ -1,10 +1,19 @@
-*.key
-*.pem
-*.crt
-*/certs/**
-*/data/**
-*/mock/**
-*/.env.local
-*/.env.secret
-*/.env.*.local
-*/.env.*.secret
+# SSL/TLS certificates and keys
+**/*.key
+**/*.pem
+**/*.crt
+
+# Certificate directories
+**/certs/
+
+# Data directories
+**/data/
+
+# Mock directories
+**/mock/
+
+# Local environment files
+**/.env.local
+**/.env.secret
+**/.env.*.local
+**/.env.*.secret
