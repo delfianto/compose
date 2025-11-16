@@ -1,0 +1,20 @@
+services:
+  rag-api:
+    container_name: chat-rag
+    image: ghcr.io/danny-avila/librechat-rag-api-dev-lite:latest
+    restart: on-failure:3
+    user: ${UID}:${GID}
+    userns_mode: host
+    environment:
+      - DB_HOST=vectordb
+      - POSTGRES_DB=librechat
+      - POSTGRES_USER=chat
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - RAG_PORT=${RAG_PORT:-8000}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+    networks:
+      - genai
+      - proxy
+    env_file:
+      - .env
+      - .env.local
