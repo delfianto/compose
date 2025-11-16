@@ -1,0 +1,54 @@
+services:
+  mongodb:
+    container_name: chat-mongo
+    image: mongo:8.2-noble
+    restart: on-failure:3
+    user: ${UID}:${GID}
+    userns_mode: host
+    volumes:
+      - ${DATA_DIR}/mongo:/data/db
+    command: mongod --noauth
+    networks:
+      - genai
+      - proxy
+    env_file:
+      - .env
+      - .env.local
+
+  meilisearch:
+    container_name: chat-search
+    image: getmeili/meilisearch:v1.25.0
+    restart: on-failure:3
+    user: ${UID}:${GID}
+    userns_mode: host
+    environment:
+      - MEILI_HOST=http://meilisearch:7700
+      - MEILI_MASTER_KEY=${MEILI_MASTER_KEY}
+      - MEILI_NO_ANALYTICS=true
+    volumes:
+      - ${DATA_DIR}/meili:/meili_data
+    networks:
+      - genai
+      - proxy
+    env_file:
+      - .env
+      - .env.local
+
+  vectordb:
+    container_name: chat-vectordb
+    image: pgvector/pgvector:pg18-trixie
+    restart: on-failure:3
+    user: ${UID}:${GID}
+    userns_mode: host
+    environment:
+      POSTGRES_DB: librechat
+      POSTGRES_USER: chat
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - ${DATA_DIR}/pgvector:/var/lib/postgresql
+    networks:
+      - genai
+      - proxy
+    env_file:
+      - .env
+      - .env.local

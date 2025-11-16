@@ -2,6 +2,7 @@ services:
   stash:
     image: ghcr.io/feederbox826/stash-s6:hwaccel-develop
     restart: unless-stopped
+    container_name: stash
     userns_mode: host
     networks:
       - proxy

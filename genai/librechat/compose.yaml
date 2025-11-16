@@ -1,0 +1,10 @@
+include:
+  - ./chat-api.yaml
+  - ./chat-db.yaml
+  - ./chat-rag.yaml
+
+networks:
+  genai:
+    internal: true
+  proxy:
+    external: true
