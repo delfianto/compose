@@ -5,7 +5,7 @@ services:
     restart: always
     networks:
       - proxy
-      - llm
+      - genai
     volumes:
       - ${DATA_DIR}:/app/save
     labels:
@@ -25,5 +25,5 @@ services:
 networks:
   proxy:
     external: true
-  llm:
+  genai:
     internal: true
