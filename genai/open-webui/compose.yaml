@@ -1,0 +1,60 @@
+services:
+  open-webui:
+    image: ghcr.io/open-webui/open-webui:${OPEN_WEBUI_TAG}
+    container_name: open-webui
+    networks:
+      - genai
+      - proxy
+    volumes:
+      - ${DATA_DIR}:/app/backend/data
+    environment:
+      - DATABASE_URL=postgresql://openwebui:${POSTGRES_PASSWORD}@db-pgvec:5432/openwebui
+      - GLOBAL_LOG_LEVEL=${OPEN_WEBUI_LOG_LEVEL}
+      - CORS_ALLOW_ORIGIN=${OPEN_WEBUI_BASE_URL}
+      - USER_AGENT=${OPEN_WEBUI_USER_AGENT}
+      # Open WebUI Tuneables
+      # https://docs.openwebui.com/getting-started/env-configuration
+      - ENV=${ENV}
+      - MODELS_CACHE_TTL=${MODELS_CACHE_TTL}
+      - CHAT_RESPONSE_STREAM_DELTA_CHUNK_SIZE=${CHAT_RESPONSE_STREAM_DELTA_CHUNK_SIZE}
+      - BYPASS_MODEL_ACCESS_CONTROL=${BYPASS_MODEL_ACCESS_CONTROL}
+      - USE_CUDA_DOCKER=${USE_CUDA_DOCKER}
+      - USE_OLLAMA_DOCKER=${USE_OLLAMA_DOCKER}
+      # Basic settings
+      - OLLAMA_BASE_URL=http://ollama:11434
+      - ENABLE_OPENAI_API=true
+      - OPENAI_API_BASE_URL=${OPENAI_API_BASE_URL}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      # Vector Database Configuration
+      - VECTOR_DB=qdrant
+      - QDRANT_URI=${QDRANT_URI}
+      - QDRANT_PREFER_GRPC=${QDRANT_PREFER_GRPC}
+      - QDRANT_GRPC_PORT=${QDRANT_GRPC_PORT}
+      - QDRANT_COLLECTION_PREFIX=openwebui
+      - ENABLE_QDRANT_MULTITENANCY_MODE=true
+    labels:
+      # Traefik integration
+      - "traefik.enable=true"
+      - "traefik.http.routers.open-webui.entrypoints=websecure"
+      - "traefik.http.routers.open-webui.rule=Host(`webui.${TRAEFIK_ACME_DOMAIN}`)"
+      - "traefik.http.routers.open-webui.tls.certresolver=cloudflare"
+      - "traefik.http.services.open-webui.loadbalancer.server.port=8080"
+      # Homepage integration
+      - "homepage.group=Artificial Intelligence"
+      - "homepage.name=Open WebUI"
+      - "homepage.icon=open-webui.svg"
+      - "homepage.href=https://webui.${TRAEFIK_ACME_DOMAIN}"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
+networks:
+  genai:
+    name: genai
+    internal: true
+  proxy:
+    external: true
