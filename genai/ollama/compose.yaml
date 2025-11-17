@@ -23,6 +23,7 @@ services:
 
 networks:
   genai:
+    name: genai
     internal: true
   proxy:
     external: true
