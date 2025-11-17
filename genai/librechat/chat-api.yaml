@@ -33,10 +33,10 @@ services:
     labels:
       # Traefik integration
       - "traefik.enable=true"
-      - "traefik.http.routers.open-webui.entrypoints=websecure"
-      - "traefik.http.routers.open-webui.rule=Host(`chat.${TRAEFIK_ACME_DOMAIN}`)"
-      - "traefik.http.routers.open-webui.tls.certresolver=cloudflare"
-      - "traefik.http.services.open-webui.loadbalancer.server.port=3080"
+      - "traefik.http.routers.chat.entrypoints=websecure"
+      - "traefik.http.routers.chat.rule=Host(`chat.${TRAEFIK_ACME_DOMAIN}`)"
+      - "traefik.http.routers.chat.tls.certresolver=cloudflare"
+      - "traefik.http.services.chat.loadbalancer.server.port=3080"
       # Homepage integration
       - "homepage.group=Artificial Intelligence"
       - "homepage.name=LibreChat"
