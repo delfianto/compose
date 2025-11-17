@@ -4,9 +4,7 @@ services:
     container_name: db-pgvec
     userns_mode: host
     networks:
-      - devel
       - genai
-      - proxy
     volumes:
       - ${DATA_DIR}/postgres:/var/lib/postgresql/18/docker
       - ${PROJ_DIR}/initdb.d:/docker-entrypoint-initdb.d

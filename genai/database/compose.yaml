@@ -3,8 +3,6 @@ include:
   - ./qdrant.yaml
 
 networks:
-  devel:
-    external: true
   genai:
     internal: true
   proxy:
