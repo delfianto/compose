@@ -17,12 +17,3 @@ services:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
     command: postgres -c 'max_connections=200'
-    labels:
-      # Traefik TCP for Postgres (LLM DB)
-      - "traefik.enable=true"
-      - "traefik.tcp.routers.pgvec.entrypoints=pgvec"
-      - "traefik.tcp.routers.pgvec.rule=HostSNI(`pgvec.${TRAEFIK_ACME_DOMAIN}`)"
-      - "traefik.tcp.routers.pgvec.service=pgvec"
-      - "traefik.tcp.routers.pgvec.tls.certresolver=cloudflare"
-      - "traefik.tcp.routers.pgvec.tls=true"
-      - "traefik.tcp.services.pgvec.loadbalancer.server.port=5432"
