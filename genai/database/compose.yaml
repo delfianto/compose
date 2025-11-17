@@ -1,0 +1,9 @@
+include:
+  - ./pgvector.yaml
+  - ./qdrant.yaml
+
+networks:
+  genai:
+    internal: true
+  proxy:
+    external: true
