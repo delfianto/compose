@@ -6,4 +6,5 @@ networks:
   proxy:
     external: true
   plex:
+    name: plex
     internal: true

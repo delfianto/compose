@@ -6,22 +6,13 @@ services:
     userns_mode: host
     networks:
       - proxy
-      - stash
     logging:
       driver: json-file
       options:
         max-file: 10
         max-size: 2m
-    environment:
-      - PUID=${UID}
-      - PGID=${GID}
-      - STASH_CACHE=/cache
-      - STASH_GENERATED=/generated
-      - STASH_METADATA=/metadata
-      - SKIP_NVIDIA_PATCH=true
-      - STASH_PORT=9069
-      - STASH_STASH=/media
-      - MIGRATE=TRUE
+    env_file:
+      - stash.env
     volumes:
       - ${LOCAL_TIME}:${LOCAL_TIME}:ro
       - ${DATA_DIR}/blobs:/blobs
@@ -56,5 +47,3 @@ services:
 networks:
   proxy:
     external: true
-  stash:
-    internal: true
