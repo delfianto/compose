@@ -3,18 +3,24 @@
 
 import argparse
 import json
-import subprocess
 import sys
 from dataclasses import dataclass
 from typing import Optional
 
-# ANSI color codes
-RED = "\033[0;31m"
-GREEN = "\033[0;32m"
-YELLOW = "\033[1;33m"
-BLUE = "\033[0;34m"
-CYAN = "\033[1;36m"
-NC = "\033[0m"  # No Color
+try:
+    import cli_helper as cli
+except ImportError:
+    import os
+
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    import cli_helper as cli
+
+PLUGIN_METADATA = {
+    "SchemaVersion": "0.1.0",
+    "Vendor": "delfianto",
+    "Version": "1.0.0",
+    "ShortDescription": "Pretty print docker ps with multiple output formats",
+}
 
 
 @dataclass
@@ -35,32 +41,16 @@ class ContainerInfo:
     labels: dict[str, str]
 
 
-def handle_metadata():
-    """Handle Docker CLI plugin metadata requests."""
-
-    if "docker-cli-plugin-metadata" in sys.argv:
-        metadata = {
-            "SchemaVersion": "0.1.0",
-            "Vendor": "Custom",
-            "Version": "1.0.0",
-            "ShortDescription": "Pretty print docker ps with multiple output formats",
-        }
-        print(json.dumps(metadata))
-        sys.exit(0)
-
-
-def run_docker_command(args: list, check: bool = True) -> str:
-    """Run a docker command and return output."""
-    result = subprocess.run(
-        ["docker"] + args, capture_output=True, text=True, check=check
-    )
+def run_docker_command_str(args: list, check: bool = True) -> str:
+    """Run a docker command and return output as string."""
+    result = cli.run_docker_command(args, check=check)
     return result.stdout.strip()
 
 
 def get_container_command(container_id: str) -> str:
     """Get the full command for a container (handles both Cmd and Entrypoint)."""
     try:
-        config_json = run_docker_command(
+        config_json = run_docker_command_str(
             ["inspect", "--format", "{{json .Config}}", container_id]
         )
         config = json.loads(config_json)
@@ -72,19 +62,19 @@ def get_container_command(container_id: str) -> str:
             return " ".join(config["Entrypoint"])
         else:
             return "N/A"
-    except (subprocess.CalledProcessError, json.JSONDecodeError, KeyError):
+    except (json.JSONDecodeError, KeyError):
         return "N/A"
 
 
 def get_container_mounts(container_id: str) -> list[str]:
     """Get container mounts as a sorted list."""
     try:
-        mounts_json = run_docker_command(
+        mounts_json = run_docker_command_str(
             ["inspect", "--format", "{{json .Mounts}}", container_id]
         )
         mounts = json.loads(mounts_json)
-
         mount_list = []
+
         for mount in mounts:
             source = mount.get("Source", "")
             destination = mount.get("Destination", "")
@@ -93,19 +83,19 @@ def get_container_mounts(container_id: str) -> list[str]:
                 mount_list.append(f"{source}:{destination}:{mode}")
 
         return sorted(mount_list)
-    except (subprocess.CalledProcessError, json.JSONDecodeError):
+    except json.JSONDecodeError:
         return []
 
 
 def get_container_labels(container_id: str) -> dict[str, str]:
     """Get container labels as a sorted dictionary."""
     try:
-        labels_json = run_docker_command(
+        labels_json = run_docker_command_str(
             ["inspect", "--format", "{{json .Config.Labels}}", container_id]
         )
         labels = json.loads(labels_json)
         return dict(sorted(labels.items())) if labels else {}
-    except (subprocess.CalledProcessError, json.JSONDecodeError):
+    except json.JSONDecodeError:
         return {}
 
 
@@ -118,7 +108,7 @@ def get_container_info(
     try:
         # Get basic info from docker ps
         ps_format = "{{.Names}}\t{{.ID}}\t{{.Image}}\t{{.Status}}\t{{.CreatedAt}}\t{{.RunningFor}}\t{{.Ports}}\t{{.Networks}}\t{{.Size}}"
-        output = run_docker_command(
+        output = run_docker_command_str(
             ["ps"]
             + all_flag
             + ["--filter", f"id={container_id}", "--format", ps_format]
@@ -152,7 +142,7 @@ def get_container_info(
             mounts=mounts,
             labels=labels,
         )
-    except subprocess.CalledProcessError:
+    except Exception:
         return None
 
 
@@ -173,35 +163,35 @@ def format_json_value(value: str, indent: int = 4) -> str:
 
 def print_container_detail(info: ContainerInfo):
     """Print detailed information about a container."""
-    print(f"\n{CYAN}{'━' * 78}{NC}")
-    print(f"{CYAN}Container Information:{NC}")
-    print(f"  {GREEN}Name:{NC} {info.name}")
-    print(f"  {YELLOW}ID:{NC} {info.id}")
-    print(f"  {CYAN}Image:{NC} {info.image}")
-    print(f"  {BLUE}Command:{NC} {info.command}")
-    print(f"  {RED}Status:{NC} {info.status}")
-    print(f"  {GREEN}Created:{NC} {info.created}")
-    print(f"  {YELLOW}Running For:{NC} {info.running_for}")
-    print(f"  {CYAN}Ports:{NC} {info.ports}")
-    print(f"  {BLUE}Networks:{NC} {info.networks}")
-    print(f"  {YELLOW}Size:{NC} {info.size}")
+    print(f"\n{cli.CYAN}{'━' * 78}{cli.NC}")
+    print(f"{cli.CYAN}Container Information:{cli.NC}")
+    print(f"  {cli.GREEN}Name:{cli.NC} {info.name}")
+    print(f"  {cli.YELLOW}ID:{cli.NC} {info.id}")
+    print(f"  {cli.CYAN}Image:{cli.NC} {info.image}")
+    print(f"  {cli.BLUE}Command:{cli.NC} {info.command}")
+    print(f"  {cli.RED}Status:{cli.NC} {info.status}")
+    print(f"  {cli.GREEN}Created:{cli.NC} {info.created}")
+    print(f"  {cli.YELLOW}Running For:{cli.NC} {info.running_for}")
+    print(f"  {cli.CYAN}Ports:{cli.NC} {info.ports}")
+    print(f"  {cli.BLUE}Networks:{cli.NC} {info.networks}")
+    print(f"  {cli.YELLOW}Size:{cli.NC} {info.size}")
 
     # Print mounts
     if info.mounts:
-        print(f"  {GREEN}Mounts:{NC}")
+        print(f"  {cli.GREEN}Mounts:{cli.NC}")
         for mount in info.mounts:
-            print(f"    {GREEN}•{NC} {mount}")
+            print(f"    {cli.GREEN}•{cli.NC} {mount}")
 
     # Print labels
     if info.labels:
-        print(f"  {CYAN}Labels:{NC}")
+        print(f"  {cli.CYAN}Labels:{cli.NC}")
         for key, value in info.labels.items():
             # Check if value is JSON
             if value.startswith("{") or value.startswith("["):
                 formatted_value = format_json_value(value, indent=6)
-                print(f"    {CYAN}•{NC} {key}={formatted_value}")
+                print(f"    {cli.CYAN}•{cli.NC} {key}={formatted_value}")
             else:
-                print(f"    {CYAN}•{NC} {key}={value}")
+                print(f"    {cli.CYAN}•{cli.NC} {key}={value}")
 
 
 def show_brief_format(show_all: bool = True):
@@ -209,9 +199,8 @@ def show_brief_format(show_all: bool = True):
     all_flag = ["--all"] if show_all else []
 
     try:
-        # Use docker's built-in table formatting
-        result = subprocess.run(
-            ["docker", "ps"]
+        result = cli.run_docker_command(
+            ["ps"]
             + all_flag
             + [
                 "--format",
@@ -220,8 +209,9 @@ def show_brief_format(show_all: bool = True):
             check=True,
         )
         return result.returncode
-    except subprocess.CalledProcessError as e:
-        return e.returncode
+    except Exception as e:
+        cli.print_error(f"Error: {e}")
+        return 1
 
 
 def show_detail_format(container_name: Optional[str] = None, show_all: bool = True):
@@ -231,23 +221,19 @@ def show_detail_format(container_name: Optional[str] = None, show_all: bool = Tr
     try:
         if container_name:
             # Find container by name
-            container_ids = run_docker_command(
+            container_ids = run_docker_command_str(
                 ["ps"]
                 + all_flag
                 + ["--filter", f"name={container_name}", "--format", "{{.ID}}"],
-                check=False,
             ).split("\n")
             container_ids = [cid for cid in container_ids if cid]
 
             if not container_ids:
-                print(
-                    f"{RED}Error: No container found matching '{container_name}'{NC}",
-                    file=sys.stderr,
-                )
+                cli.print_error(f"No container found matching '{container_name}'")
                 return 1
         else:
             # Get all containers sorted by name
-            output = run_docker_command(
+            output = run_docker_command_str(
                 ["ps"] + all_flag + ["--format", "{{.Names}}\t{{.ID}}"]
             )
 
@@ -265,17 +251,18 @@ def show_detail_format(container_name: Optional[str] = None, show_all: bool = Tr
             if info:
                 print_container_detail(info)
 
-        print(f"{CYAN}{'━' * 78}{NC}\n")
+        print(f"{cli.CYAN}{'━' * 78}{cli.NC}\n")
         return 0
 
-    except subprocess.CalledProcessError as e:
-        print(f"{RED}Error running docker command: {e}{NC}", file=sys.stderr)
+    except Exception as e:
+        cli.print_error(f"Error running docker command: {e}")
         return 1
 
 
 def main():
     """Main function."""
-    handle_metadata()
+    # Handle plugin metadata
+    cli.handle_metadata(PLUGIN_METADATA)
 
     # Parse arguments
     parser = argparse.ArgumentParser(
@@ -283,11 +270,11 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  docker pps                    # Brief table format (all containers)
-  docker pps -b                 # Same as above
-  docker pps -v                 # Verbose format for all containers
-  docker pps -v mycontainer     # Verbose format for specific container
-  docker pps --running          # Show only running containers
+  docker pps              # Brief table format (all containers)
+  docker pps -b           # Same as above
+  docker pps -v           # Verbose format for all containers
+  docker pps -v mycontainer  # Verbose format for specific container
+  docker pps --running    # Show only running containers
         """,
     )
 
@@ -304,17 +291,12 @@ Examples:
         action="store_true",
         help="Show only running containers (exclude stopped ones)",
     )
-
     parser.add_argument(
         "container", nargs="?", help="Container name to filter (only with -v/--verbose)"
     )
 
-    # Skip plugin name if passed as first argument
-    args_to_parse = sys.argv[1:]
-    if args_to_parse and args_to_parse[0] in ["pps", "docker-pps"]:
-        args_to_parse = args_to_parse[1:]
-
-    args = parser.parse_args(args_to_parse)
+    # Parse arguments using cli handler
+    args = cli.parse_plugin_args(parser, ["pps", "docker-pps"])
 
     # Determine if we should show all containers
     show_all = not args.running
@@ -325,10 +307,7 @@ Examples:
     else:
         # Verbose format
         if args.container and not args.verbose:
-            print(
-                f"{RED}Error: Container name can only be specified with -v/--verbose{NC}",
-                file=sys.stderr,
-            )
+            cli.print_error("Container name can only be specified with -v/--verbose")
             print("Use 'docker pps --help' for usage information", file=sys.stderr)
             return 1
 

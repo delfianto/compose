@@ -2,20 +2,25 @@
 """Docker CLI plugin to pull updates for all local Docker images."""
 
 import argparse
-import json
-import subprocess
 import sys
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
 from enum import Enum
 
-# ANSI color codes
-RED = "\033[0;31m"
-GREEN = "\033[0;32m"
-YELLOW = "\033[1;33m"
-BLUE = "\033[0;34m"
-CYAN = "\033[1;36m"
-NC = "\033[0m"  # No Color
+try:
+    import cli_helper as cli
+except ImportError:
+    import os
+
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    import cli_helper as cli
+
+PLUGIN_METADATA = {
+    "SchemaVersion": "0.1.0",
+    "Vendor": "delfianto",
+    "Version": "1.0.0",
+    "ShortDescription": "Pull updates for all local Docker images",
+}
 
 
 class PullStatus(Enum):
@@ -35,32 +40,16 @@ class PullResult:
     output: str = ""
 
 
-def handle_metadata():
-    """Handle Docker CLI plugin metadata requests."""
-
-    if "docker-cli-plugin-metadata" in sys.argv:
-        metadata = {
-            "SchemaVersion": "0.1.0",
-            "Vendor": "Custom",
-            "Version": "1.0.0",
-            "ShortDescription": "Pull updates for all local Docker images",
-        }
-        print(json.dumps(metadata))
-        sys.exit(0)
-
-
 def get_all_images():
     """Get all Docker images with repository and tag."""
-    result = subprocess.run(
-        ["docker", "image", "ls", "--format", "{{.Repository}}:{{.Tag}}"],
-        capture_output=True,
-        text=True,
+    result = cli.run_docker_command(
+        ["image", "ls", "--format", "{{.Repository}}:{{.Tag}}"],
         check=True,
     )
 
     images = []
     for line in result.stdout.strip().split("\n"):
-        if line and not line.endswith(":<none>"):
+        if line and not line.endswith(":"):
             images.append(line)
 
     return sorted(images)
@@ -82,13 +71,14 @@ def pull_image(
         PullResult with status and output
     """
     if show_progress:
-        print(f"{CYAN}[{index}/{total}]{NC} Pulling {GREEN}{image}{NC}...")
+        print(
+            f"{cli.CYAN}[{index}/{total}]{cli.NC} Pulling {cli.GREEN}{image}{cli.NC}..."
+        )
 
     try:
-        result = subprocess.run(
-            ["docker", "pull", image],
-            capture_output=True,
-            text=True,
+        result = cli.run_docker_command(
+            ["pull", image],
+            check=False,
             timeout=300,  # 5 minute timeout per image
         )
 
@@ -100,35 +90,31 @@ def pull_image(
                 or "Status: Image is up to date" in output
             ):
                 if show_progress:
-                    print(f"{BLUE} ✓ Already up to date{NC}")
+                    print(f"{cli.BLUE}  ✓ Already up to date{cli.NC}")
                 return PullResult(image, PullStatus.UNCHANGED, output)
             else:
                 if show_progress:
-                    print(f"{GREEN} ✓ Updated successfully{NC}")
+                    print(f"{cli.GREEN}  ✓ Updated successfully{cli.NC}")
                 return PullResult(image, PullStatus.UPDATED, output)
         else:
             if show_progress:
-                print(f"{RED} ✗ Failed to pull{NC}")
+                print(f"{cli.RED}  ✗ Failed to pull{cli.NC}")
                 # Show first 5 lines of error
                 error_lines = output.split("\n")[:5]
                 for line in error_lines:
                     if line.strip():
-                        print(f"  {line}")
+                        print(f"    {line}")
             return PullResult(image, PullStatus.FAILED, output)
 
-    except subprocess.TimeoutExpired:
-        if show_progress:
-            print(f"{RED} ✗ Timeout pulling image{NC}")
-        return PullResult(image, PullStatus.FAILED, "Timeout")
     except Exception as e:
         if show_progress:
-            print(f"{RED} ✗ Error: {e}{NC}")
+            print(f"{cli.RED}  ✗ Error: {e}{cli.NC}")
         return PullResult(image, PullStatus.FAILED, str(e))
 
 
 def pull_images_parallel(images: list, max_workers: int = 4) -> list[PullResult]:
     """Pull images in parallel using ThreadPoolExecutor."""
-    print(f"{YELLOW}Pulling images in parallel (max {max_workers} concurrent)...{NC}\n")
+    cli.print_warning(f"Pulling images in parallel (max {max_workers} concurrent)...\n")
 
     results = []
     total = len(images)
@@ -150,14 +136,17 @@ def pull_images_parallel(images: list, max_workers: int = 4) -> list[PullResult]
                 # Show completion status
                 status_symbol = "✓" if result.status != PullStatus.FAILED else "✗"
                 status_color = (
-                    GREEN
+                    cli.GREEN
                     if result.status == PullStatus.UPDATED
-                    else (BLUE if result.status == PullStatus.UNCHANGED else RED)
+                    else (
+                        cli.BLUE if result.status == PullStatus.UNCHANGED else cli.RED
+                    )
                 )
-                print(f"{status_color}{status_symbol}{NC} [{idx}/{total}] {img}")
+
+                print(f"{status_color}{status_symbol}{cli.NC} [{idx}/{total}] {img}")
 
             except Exception as e:
-                print(f"{RED}✗{NC} [{idx}/{total}] {img} - Error: {e}")
+                print(f"{cli.RED}✗{cli.NC} [{idx}/{total}] {img} - Error: {e}")
                 results.append(PullResult(img, PullStatus.FAILED, str(e)))
 
     return results
@@ -183,25 +172,27 @@ def print_summary(results: list[PullResult], total: int):
     failed = sum(1 for r in results if r.status == PullStatus.FAILED)
 
     print()
-    print(f"{CYAN}{'=' * 40}{NC}")
-    print(f"{CYAN}Summary:{NC}")
-    print(f"  Total images: {BLUE}{total}{NC}")
-    print(f"  {GREEN}Updated: {updated}{NC}")
-    print(f"  {BLUE}Unchanged: {unchanged}{NC}")
+    print(f"{cli.CYAN}{'=' * 40}{cli.NC}")
+    cli.print_info("Summary:")
+    print(f"  Total images: {cli.BLUE}{total}{cli.NC}")
+    print(f"  {cli.GREEN}Updated: {updated}{cli.NC}")
+    print(f"  {cli.BLUE}Unchanged: {unchanged}{cli.NC}")
     if failed > 0:
-        print(f"  {RED}Failed: {failed}{NC}")
-    print(f"{CYAN}{'=' * 40}{NC}")
+        print(f"  {cli.RED}Failed: {failed}{cli.NC}")
+    print(f"{cli.CYAN}{'=' * 40}{cli.NC}")
 
 
 def main():
     """Main function."""
-    handle_metadata()
+    # Handle plugin metadata
+    cli.handle_metadata(PLUGIN_METADATA)
 
     # Parse arguments
     parser = argparse.ArgumentParser(
         description="Pull updates for all local Docker images",
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
+
     parser.add_argument(
         "--dry-run",
         "-n",
@@ -229,12 +220,8 @@ def main():
         help="Number of parallel workers (default: 4)",
     )
 
-    # Skip plugin name if passed as first argument
-    args_to_parse = sys.argv[1:]
-    if args_to_parse and args_to_parse[0] in ["imu", "docker-imu"]:
-        args_to_parse = args_to_parse[1:]
-
-    args = parser.parse_args(args_to_parse)
+    # Parse arguments using cli handler
+    args = cli.parse_plugin_args(parser, ["imu", "docker-imu"])
 
     try:
         # Get all images
@@ -247,24 +234,24 @@ def main():
         total = len(images)
 
         if total == 0:
-            print(f"{YELLOW}No images found to pull{NC}")
+            cli.print_warning("No images found to pull")
             return 0
 
         # Print header
-        print(f"{CYAN}╔{'=' * 38}╗{NC}")
-        print(f"{CYAN}║ Docker Image Update Tool             ║{NC}")
-        print(f"{CYAN}╚{'=' * 38}╝{NC}")
+        print(f"{cli.CYAN}╔{'=' * 38}╗{cli.NC}")
+        print(f"{cli.CYAN}║  Docker Image Update Tool            ║{cli.NC}")
+        print(f"{cli.CYAN}╚{'=' * 38}╝{cli.NC}")
         print()
-        print(f"{BLUE}Found {total} image(s) to update{NC}")
+        print(f"{cli.BLUE}Found {total} image(s) to update{cli.NC}")
         print()
 
         # Dry run mode
         if args.dry_run:
-            print(f"{YELLOW}DRY RUN MODE - No images will be pulled{NC}\n")
+            cli.print_warning("DRY RUN MODE - No images will be pulled\n")
             for image in images:
-                print(f"  {CYAN}→{NC} Would pull: {GREEN}{image}{NC}")
+                print(f"  {cli.CYAN}→{cli.NC} Would pull: {cli.GREEN}{image}{cli.NC}")
             print()
-            print(f"{YELLOW}Run without --dry-run to actually pull images{NC}")
+            cli.print_warning("Run without --dry-run to actually pull images")
             return 0
 
         # Pull images
@@ -280,12 +267,12 @@ def main():
         failed_count = sum(1 for r in results if r.status == PullStatus.FAILED)
         return 1 if failed_count > 0 else 0
 
-    except subprocess.CalledProcessError as e:
-        print(f"{RED}Error running docker command: {e}{NC}", file=sys.stderr)
-        return 1
     except KeyboardInterrupt:
-        print(f"\n{YELLOW}Interrupted{NC}", file=sys.stderr)
+        cli.print_warning("\nInterrupted")
         return 130
+    except Exception as e:
+        cli.print_error(f"Error: {e}")
+        return 1
 
 
 if __name__ == "__main__":
