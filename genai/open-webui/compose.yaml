@@ -6,7 +6,7 @@ services:
       - database
     command: >
       dockerize
-      -wait tcp://db-pgvector:5432 -timeout 60s
+      -wait tcp://${POSTGRES_HOST} -timeout 60s
     restart: "no"
     deploy:
       resources:
@@ -27,7 +27,7 @@ services:
     volumes:
       - ${DATA_DIR}:/app/backend/data
     environment:
-      - DATABASE_URL=postgresql://openwebui:${POSTGRES_PASSWORD}@db-pgvector:5432/openwebui
+      - DATABASE_URL=postgresql://openwebui:${POSTGRES_PASSWORD}@${POSTGRES_HOST}/openwebui
       - GLOBAL_LOG_LEVEL=${OPEN_WEBUI_LOG_LEVEL}
       - CORS_ALLOW_ORIGIN=${OPEN_WEBUI_BASE_URL}
       - USER_AGENT=${OPEN_WEBUI_USER_AGENT}
@@ -39,11 +39,6 @@ services:
       - BYPASS_MODEL_ACCESS_CONTROL=${BYPASS_MODEL_ACCESS_CONTROL}
       - USE_CUDA_DOCKER=${USE_CUDA_DOCKER}
       - USE_OLLAMA_DOCKER=${USE_OLLAMA_DOCKER}
-      # Basic settings
-      - OLLAMA_BASE_URL=http://ollama:11434
-      - ENABLE_OPENAI_API=true
-      - OPENAI_API_BASE_URL=${OPENAI_API_BASE_URL}
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
       # Vector Database Configuration
       - VECTOR_DB=qdrant
       - QDRANT_URI=${QDRANT_URI}
