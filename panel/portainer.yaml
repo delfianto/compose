@@ -10,9 +10,6 @@ services:
     ports:
       - 9000:9000
     environment:
-      # Root working directory on your host
-      # Portainer application data be stored under $DATA_DIR/portainer
-      - DATA_DIR=${DATA_DIR}
       # Group id should match with docker group id on host
       # otherwise Portainer won't be able to access Docker socket
       - UID=${UID}

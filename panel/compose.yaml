@@ -7,4 +7,4 @@ networks:
   proxy:
     external: true
   metrics:
-    internal: true
+    external: true
