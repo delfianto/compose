@@ -1,14 +1,33 @@
 services:
+  wait-for-all:
+    image: jwilder/dockerize:latest
+    container_name: open-webui-wait
+    networks:
+      - database
+    command: >
+      dockerize
+      -wait tcp://db-pgvector:5432 -timeout 60s
+    restart: "no"
+    deploy:
+      resources:
+        limits:
+          cpus: '0.1'
+          memory: 32M
+
   open-webui:
     image: ghcr.io/open-webui/open-webui:${OPEN_WEBUI_TAG}
     container_name: open-webui
+    depends_on:
+      wait-for-all:
+        condition: service_completed_successfully
     networks:
+      - database
       - genai
       - proxy
     volumes:
       - ${DATA_DIR}:/app/backend/data
     environment:
-      - DATABASE_URL=postgresql://openwebui:${POSTGRES_PASSWORD}@db-pgvec:5432/openwebui
+      - DATABASE_URL=postgresql://openwebui:${POSTGRES_PASSWORD}@db-pgvector:5432/openwebui
       - GLOBAL_LOG_LEVEL=${OPEN_WEBUI_LOG_LEVEL}
       - CORS_ALLOW_ORIGIN=${OPEN_WEBUI_BASE_URL}
       - USER_AGENT=${OPEN_WEBUI_USER_AGENT}
@@ -53,8 +72,9 @@ services:
               capabilities: [gpu]
 
 networks:
+  database:
+    external: true
   genai:
-    name: genai
-    internal: true
+    external: true
   proxy:
     external: true

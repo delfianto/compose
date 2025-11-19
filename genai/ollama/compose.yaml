@@ -6,7 +6,7 @@ services:
       - genai
       - proxy
     ports:
-      - 11434:11434
+      - 127.0.0.1:11434:11434
     environment:
       - OLLAMA_CPU_OFFLOAD=1
       - OLLAMA_HOST=0.0.0.0
@@ -23,7 +23,6 @@ services:
 
 networks:
   genai:
-    name: genai
-    internal: true
+    external: true
   proxy:
     external: true
