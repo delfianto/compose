@@ -2,37 +2,27 @@
 """Docker CLI plugin to list images grouped by registry and repository."""
 
 import re
-import subprocess
 import sys
 from collections import defaultdict
-from pathlib import Path
 
-# ANSI color codes
-CYAN = "\033[1;36m"
+try:
+    import cli_helper as cli
+except ImportError:
+    import os
+
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    import cli_helper as cli
+
+PLUGIN_METADATA = {
+    "SchemaVersion": "0.1.0",
+    "Vendor": "delfianto",
+    "Version": "1.0.0",
+    "ShortDescription": "List Docker images grouped by registry and repository",
+}
+
+# Additional color constants
 BOLD = "\033[1m"
 RESET = "\033[0m"
-
-
-def handle_metadata():
-    """Handle Docker CLI plugin metadata requests."""
-    plugin_name = Path(sys.argv[0]).stem
-
-    if "--help" in sys.argv or "-h" in sys.argv:
-        print(f"Usage: docker {plugin_name} [OPTIONS]")
-        print("\nList Docker images grouped by registry and repository")
-        sys.exit(0)
-
-    if sys.argv[1:2] == ["docker-cli-plugin-metadata"]:
-        metadata = {
-            "SchemaVersion": "0.1.0",
-            "Vendor": "Custom",
-            "Version": "1.0.0",
-            "ShortDescription": "List Docker images grouped by registry and repository",
-        }
-        import json
-
-        print(json.dumps(metadata))
-        sys.exit(0)
 
 
 def extract_registry(repo):
@@ -51,21 +41,18 @@ def extract_registry(repo):
 
 def get_repositories():
     """Get all unique repositories from Docker images."""
-    result = subprocess.run(
-        ["docker", "image", "ls", "--format", "{{.Repository}}"],
-        capture_output=True,
-        text=True,
+    result = cli.run_docker_command(
+        ["image", "ls", "--format", "{{.Repository}}"],
         check=True,
     )
+
     return sorted(set(result.stdout.strip().split("\n")))
 
 
 def get_images_for_repo(repo):
     """Get all images for a specific repository."""
-    result = subprocess.run(
-        ["docker", "image", "ls", repo, "--format", "{{.ID}}\t{{.Size}}\t{{.Tag}}"],
-        capture_output=True,
-        text=True,
+    result = cli.run_docker_command(
+        ["image", "ls", repo, "--format", "{{.ID}}\t{{.Size}}\t{{.Tag}}"],
         check=True,
     )
 
@@ -75,17 +62,14 @@ def get_images_for_repo(repo):
             parts = line.split("\t")
             if len(parts) == 3:
                 images.append({"id": parts[0], "size": parts[1], "tag": parts[2]})
+
     return images
 
 
 def main():
     """Main function to list images grouped by registry."""
-    handle_metadata()
-
-    # Skip plugin name if passed as first argument
-    args = sys.argv[1:]
-    if args and args[0] in ["img", "docker-img"]:
-        args = args[1:]
+    # Handle plugin metadata
+    cli.handle_metadata(PLUGIN_METADATA)
 
     try:
         # Group repositories by registry
@@ -97,7 +81,7 @@ def main():
         # Display grouped images
         for registry in sorted(registry_repos.keys()):
             # Print registry header
-            print(f"\n{CYAN}{registry}{RESET}")
+            print(f"\n{cli.CYAN}{registry}{RESET}")
             print("=" * len(registry))
 
             for repo in registry_repos[registry]:
@@ -111,12 +95,12 @@ def main():
 
         print()  # Final newline
 
-    except subprocess.CalledProcessError as e:
-        print(f"Error running docker command: {e}", file=sys.stderr)
-        sys.exit(1)
     except KeyboardInterrupt:
-        print("\nInterrupted", file=sys.stderr)
+        cli.print_warning("\nInterrupted")
         sys.exit(130)
+    except Exception as e:
+        cli.print_error(f"Error: {e}")
+        sys.exit(1)
 
 
 if __name__ == "__main__":
