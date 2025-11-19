@@ -1,4 +1,0 @@
-mod_info:
-  home:
-    - .docker/cli-plugins:cli-plugins
-    - .docker/config.json:config.json
