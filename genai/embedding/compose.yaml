@@ -63,7 +63,6 @@ services:
 
 networks:
   genai:
-    name: genai
-    internal: true
+    external: true
   proxy:
     external: true
