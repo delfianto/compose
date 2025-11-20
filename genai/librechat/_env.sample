@@ -14,14 +14,38 @@
 HOST=localhost
 PORT=3080
 
-MONGO_URI=mongodb://chat-mongo:27017/LibreChat
-NO_INDEX=true
+MONGO_URI=mongodb://127.0.0.1:27017/LibreChat
+#The maximum number of connections in the connection pool. */
+MONGO_MAX_POOL_SIZE=
+#The minimum number of connections in the connection pool. */
+MONGO_MIN_POOL_SIZE=
+#The maximum number of connections that may be in the process of being established concurrently by the connection pool. */
+MONGO_MAX_CONNECTING=
+#The maximum number of milliseconds that a connection can remain idle in the pool before being removed and closed. */
+MONGO_MAX_IDLE_TIME_MS=
+#The maximum time in milliseconds that a thread can wait for a connection to become available. */
+MONGO_WAIT_QUEUE_TIMEOUT_MS=
+# Set to false to disable automatic index creation for all models associated with this connection. */
+MONGO_AUTO_INDEX=
+# Set to `false` to disable Mongoose automatically calling `createCollection()` on every model created on this connection. */
+MONGO_AUTO_CREATE=
 
+DOMAIN_CLIENT=http://localhost:3080
+DOMAIN_SERVER=http://localhost:3080
+
+NO_INDEX=true
 # Use the address that is at most n number of hops away from the Express application.
 # req.socket.remoteAddress is the first hop, and the rest are looked for in the X-Forwarded-For header from right to left.
 # A value of 0 means that the first untrusted address would be req.socket.remoteAddress, i.e. there is no reverse proxy.
 # Defaulted to 1.
 TRUST_PROXY=1
+
+# Minimum password length for user authentication
+# Default: 8
+# Note: When using LDAP authentication, you may want to set this to 1
+# to bypass local password validation, as LDAP servers handle their own
+# password policies.
+# MIN_PASSWORD_LENGTH=8
 
 #===============#
 # JSON Logging  #
@@ -48,6 +72,7 @@ DEBUG_CONSOLE=false
 # Configuration #
 #===============#
 # Use an absolute path, a relative path, or a URL
+
 # CONFIG_PATH="/alternative/path/to/librechat.yaml"
 
 #===================================================#
@@ -55,6 +80,7 @@ DEBUG_CONSOLE=false
 #===================================================#
 
 # ENDPOINTS=openAI,assistants,azureOpenAI,google,anthropic
+
 PROXY=
 
 #===================================#
@@ -82,15 +108,56 @@ PROXY=
 # Anthropic  #
 #============#
 
-# ANTHROPIC_API_KEY=
+ANTHROPIC_API_KEY=user_provided
 # ANTHROPIC_MODELS=claude-opus-4-20250514,claude-sonnet-4-20250514,claude-3-7-sonnet-20250219,claude-3-5-sonnet-20241022,claude-3-5-haiku-20241022,claude-3-opus-20240229,claude-3-sonnet-20240229,claude-3-haiku-20240307
 # ANTHROPIC_REVERSE_PROXY=
+
+#============#
+# Azure      #
+#============#
+
+# Note: these variables are DEPRECATED
+# Use the `librechat.yaml` configuration for `azureOpenAI` instead
+# You may also continue to use them if you opt out of using the `librechat.yaml` configuration
+
+# AZURE_OPENAI_DEFAULT_MODEL=gpt-3.5-turbo # Deprecated
+# AZURE_OPENAI_MODELS=gpt-3.5-turbo,gpt-4 # Deprecated
+# AZURE_USE_MODEL_AS_DEPLOYMENT_NAME=TRUE # Deprecated
+# AZURE_API_KEY= # Deprecated
+# AZURE_OPENAI_API_INSTANCE_NAME= # Deprecated
+# AZURE_OPENAI_API_DEPLOYMENT_NAME= # Deprecated
+# AZURE_OPENAI_API_VERSION= # Deprecated
+# AZURE_OPENAI_API_COMPLETIONS_DEPLOYMENT_NAME= # Deprecated
+# AZURE_OPENAI_API_EMBEDDINGS_DEPLOYMENT_NAME= # Deprecated
+# PLUGINS_USE_AZURE="true" # Deprecated
+
+#=================#
+#   AWS Bedrock   #
+#=================#
+
+# BEDROCK_AWS_DEFAULT_REGION=us-east-1 # A default region must be provided
+# BEDROCK_AWS_ACCESS_KEY_ID=someAccessKey
+# BEDROCK_AWS_SECRET_ACCESS_KEY=someSecretAccessKey
+# BEDROCK_AWS_SESSION_TOKEN=someSessionToken
+
+# Note: This example list is not meant to be exhaustive. If omitted, all known, supported model IDs will be included for you.
+# BEDROCK_AWS_MODELS=anthropic.claude-3-5-sonnet-20240620-v1:0,meta.llama3-1-8b-instruct-v1:0
+
+# See all Bedrock model IDs here: https://docs.aws.amazon.com/bedrock/latest/userguide/model-ids.html#model-ids-arns
+
+# Notes on specific models:
+# The following models are not support due to not supporting streaming:
+# ai21.j2-mid-v1
+
+# The following models are not support due to not supporting conversation history:
+# ai21.j2-ultra-v1, cohere.command-text-v14, cohere.command-light-text-v14
 
 #============#
 # Google     #
 #============#
 
-# GOOGLE_KEY=
+GOOGLE_KEY=user_provided
+
 # GOOGLE_REVERSE_PROXY=
 # Some reverse proxies do not support the X-goog-api-key header, uncomment to pass the API key in Authorization header instead.
 # GOOGLE_AUTH_HEADER=true
@@ -98,11 +165,20 @@ PROXY=
 # Gemini API (AI Studio)
 # GOOGLE_MODELS=gemini-2.5-pro,gemini-2.5-flash,gemini-2.5-flash-lite,gemini-2.0-flash,gemini-2.0-flash-lite
 
+# Vertex AI
+# GOOGLE_MODELS=gemini-2.5-pro,gemini-2.5-flash,gemini-2.5-flash-lite,gemini-2.0-flash-001,gemini-2.0-flash-lite-001
+
 # GOOGLE_TITLE_MODEL=gemini-2.0-flash-lite-001
+
 # GOOGLE_LOC=us-central1
 
 # Google Safety Settings
 # NOTE: These settings apply to both Vertex AI and Gemini API (AI Studio)
+#
+# For Vertex AI:
+# To use the BLOCK_NONE setting, you need either:
+# (a) Access through an allowlist via your Google account team, or
+# (b) Switch to monthly invoiced billing: https://cloud.google.com/billing/docs/how-to/invoiced-billing
 #
 # For Gemini API (AI Studio):
 # BLOCK_NONE is available by default, no special account requirements.
@@ -119,19 +195,21 @@ PROXY=
 # OpenAI     #
 #============#
 
-# OPENAI_API_KEY=
+OPENAI_API_KEY=user_provided
 # OPENAI_MODELS=gpt-5,gpt-5-codex,gpt-5-mini,gpt-5-nano,o3-pro,o3,o4-mini,gpt-4.1,gpt-4.1-mini,gpt-4.1-nano,o3-mini,o1-pro,o1,gpt-4o,gpt-4o-mini
 
 DEBUG_OPENAI=false
 
-TITLE_CONVO=true
-OPENAI_TITLE_MODEL=gpt-4o-mini
+# TITLE_CONVO=false
+# OPENAI_TITLE_MODEL=gpt-4o-mini
 
-OPENAI_SUMMARIZE=true
-OPENAI_SUMMARY_MODEL=gpt-4o-mini
+# OPENAI_SUMMARIZE=true
+# OPENAI_SUMMARY_MODEL=gpt-4o-mini
 
 # OPENAI_FORCE_PROMPT=true
+
 # OPENAI_REVERSE_PROXY=
+
 # OPENAI_ORGANIZATION=
 
 #====================#
@@ -159,8 +237,20 @@ ASSISTANTS_API_KEY=user_provided
 # PLUGIN_MODELS=gpt-4o,gpt-4o-mini,gpt-4,gpt-4-turbo-preview,gpt-4-0125-preview,gpt-4-1106-preview,gpt-4-0613,gpt-3.5-turbo,gpt-3.5-turbo-0125,gpt-3.5-turbo-1106,gpt-3.5-turbo-0613
 
 DEBUG_PLUGINS=true
-CREDS_KEY=
-CREDS_IV=
+
+CREDS_KEY=f34be427ebb29de8d88c107a71546019685ed8b241d8f2ed00c3df97ad2566f0
+CREDS_IV=e2341419ec3dd3d19b13a1a87fafcbfb
+
+# Azure AI Search
+#-----------------
+AZURE_AI_SEARCH_SERVICE_ENDPOINT=
+AZURE_AI_SEARCH_INDEX_NAME=
+AZURE_AI_SEARCH_API_KEY=
+
+AZURE_AI_SEARCH_API_VERSION=
+AZURE_AI_SEARCH_SEARCH_OPTION_QUERY_TYPE=
+AZURE_AI_SEARCH_SEARCH_OPTION_TOP=
+AZURE_AI_SEARCH_SEARCH_OPTION_SELECT=
 
 # OpenAI Image Tools Customization
 #----------------
@@ -234,8 +324,8 @@ ZAPIER_NLA_API_KEY=
 
 SEARCH=true
 MEILI_NO_ANALYTICS=true
-MEILI_HOST=http://chat-search:7700
-MEILI_MASTER_KEY=
+MEILI_HOST=http://0.0.0.0:7700
+MEILI_MASTER_KEY=DrhYf7zENyR6AlUCKmnz0eYASOQdl6zxH7s7MKFSfFCt
 
 # Optional: Disable indexing, useful in a multi-node setup
 # where only one instance should perform an index sync.
@@ -259,23 +349,75 @@ TTS_API_KEY=
 # EMBEDDINGS_PROVIDER=openai
 # EMBEDDINGS_MODEL=text-embedding-3-small
 
+#===================================================#
+#                    User System                    #
+#===================================================#
+
+#========================#
+# Moderation             #
+#========================#
+
+OPENAI_MODERATION=false
+OPENAI_MODERATION_API_KEY=
+# OPENAI_MODERATION_REVERSE_PROXY=
+
+BAN_VIOLATIONS=true
+BAN_DURATION=1000 * 60 * 60 * 2
+BAN_INTERVAL=20
+
+LOGIN_VIOLATION_SCORE=1
+REGISTRATION_VIOLATION_SCORE=1
+CONCURRENT_VIOLATION_SCORE=1
+MESSAGE_VIOLATION_SCORE=1
+NON_BROWSER_VIOLATION_SCORE=20
+TTS_VIOLATION_SCORE=0
+STT_VIOLATION_SCORE=0
+FORK_VIOLATION_SCORE=0
+IMPORT_VIOLATION_SCORE=0
+FILE_UPLOAD_VIOLATION_SCORE=0
+
+LOGIN_MAX=7
+LOGIN_WINDOW=5
+REGISTER_MAX=5
+REGISTER_WINDOW=60
+
+LIMIT_CONCURRENT_MESSAGES=true
+CONCURRENT_MESSAGE_MAX=2
+
+LIMIT_MESSAGE_IP=true
+MESSAGE_IP_MAX=40
+MESSAGE_IP_WINDOW=1
+
+LIMIT_MESSAGE_USER=false
+MESSAGE_USER_MAX=40
+MESSAGE_USER_WINDOW=1
+
+ILLEGAL_MODEL_REQ_SCORE=5
+
+#========================#
+# Balance                #
+#========================#
+
+# CHECK_BALANCE=false
+# START_BALANCE=20000 # note: the number of tokens that will be credited after registration.
+
 #========================#
 # Registration and Login #
 #========================#
 
-ALLOW_EMAIL_LOGIN=false
-ALLOW_REGISTRATION=false
+ALLOW_EMAIL_LOGIN=true
+ALLOW_REGISTRATION=true
 ALLOW_SOCIAL_LOGIN=false
 ALLOW_SOCIAL_REGISTRATION=false
 ALLOW_PASSWORD_RESET=false
-ALLOW_ACCOUNT_DELETION=false
-ALLOW_UNVERIFIED_EMAIL_LOGIN=false
+# ALLOW_ACCOUNT_DELETION=true # note: enabled by default if omitted/commented out
+ALLOW_UNVERIFIED_EMAIL_LOGIN=true
 
 SESSION_EXPIRY=1000 * 60 * 15
 REFRESH_TOKEN_EXPIRY=(1000 * 60 * 60 * 24) * 7
 
-JWT_SECRET=
-JWT_REFRESH_SECRET=
+JWT_SECRET=16f8c0ef4a5d391b26034086c628469d3f9f497f08163ab9b40137092f2909ef
+JWT_REFRESH_SECRET=eaa5191f2914e30b9387fd84e254e4ba6fc51b4654968a9b0803b456a54b8418
 
 # Discord
 DISCORD_CLIENT_ID=
@@ -505,7 +647,8 @@ ALLOW_SHARED_LINKS_PUBLIC=true
 APP_TITLE=LibreChat
 # CUSTOM_FOOTER="My custom footer"
 HELP_AND_FAQ_URL=https://librechat.ai
-SHOW_BIRTHDAY_ICON=true
+
+# SHOW_BIRTHDAY_ICON=true
 
 # Google tag manager id
 #ANALYTICS_GTM_ID=user provided google tag manager id
@@ -514,6 +657,7 @@ SHOW_BIRTHDAY_ICON=true
 # maxing out memory limitations by unremarking this line and supplying a file size in bytes
 # such as the below example of 250 mib
 # CONVERSATION_IMPORT_MAX_FILE_SIZE_BYTES=262144000
+
 
 #===============#
 # REDIS Options #

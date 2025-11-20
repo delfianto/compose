@@ -11,7 +11,7 @@ services:
     networks:
       - database
     ports:
-      - 127.0.0.1:27017:27017
+      - 27017:27017
     volumes:
       - ${DATA_DIR}/mongo:/data/db
 
@@ -28,7 +28,7 @@ services:
     networks:
       - database
     ports:
-      - 127.0.0.1:5432:5432
+      - 5432:5432
     volumes:
       - ${DATA_DIR}/postgres:/var/lib/postgresql/18/docker
       - ${PROJ_DIR}/initdb.d:/docker-entrypoint-initdb.d
@@ -43,8 +43,8 @@ services:
       - database
       - proxy
     ports:
-      - 127.0.0.1:6333:6333
-      - 127.0.0.1:6334:6334
+      - 6333:6333
+      - 6334:6334
     volumes:
       - ${DATA_DIR}/qdrant:/qdrant/storage
     labels:
