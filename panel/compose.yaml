@@ -1,7 +1,138 @@
-include:
-  - ./homepage.yaml
-  - ./portainer.yaml
-  - ./traefik.yaml
+services:
+  homepage:
+    image: ghcr.io/gethomepage/homepage:latest
+    container_name: homepage
+    restart: unless-stopped
+    user: ${UID}:${GID}
+    userns_mode: host
+    environment:
+      - PUID=${UID}
+      - PGID=${GID}
+      - HOMEPAGE_ALLOWED_HOSTS=home.${TRAEFIK_ACME_DOMAIN}
+    networks:
+      - proxy
+      - metrics
+    volumes:
+      - ${DATA_DIR}/homepage:/app/config
+      - ${DATA_DIR}/homepage/icons:/app/public/icons
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.homepage.entrypoints=websecure"
+      - "traefik.http.routers.homepage.rule=Host(`home.${TRAEFIK_ACME_DOMAIN}`)"
+      - "traefik.http.routers.homepage.tls.certresolver=cloudflare"
+      - "traefik.http.services.homepage.loadbalancer.server.port=3000"
+
+  portainer:
+    image: portainer/portainer-ce:alpine-sts
+    container_name: portainer
+    restart: unless-stopped
+    user: ${UID}:${GID_DOCKER}
+    userns_mode: host
+    networks:
+      - proxy
+    ports:
+      - 9000:9000
+    volumes:
+      - ${DATA_DIR}/portainer:/data
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+    labels:
+      # Traefik integration
+      - "traefik.enable=true"
+      - "traefik.http.routers.portainer.entrypoints=websecure"
+      - "traefik.http.routers.portainer.rule=Host(`panel.${TRAEFIK_ACME_DOMAIN}`)"
+      - "traefik.http.routers.portainer.tls.certresolver=cloudflare"
+      - "traefik.http.services.portainer.loadbalancer.server.port=9000"
+      # Homepage integration
+      - "homepage.group=Core"
+      - "homepage.name=Portainer"
+      - "homepage.icon=portainer.svg"
+      - "homepage.href=https://panel.${TRAEFIK_ACME_DOMAIN}"
+      - "homepage.description=Container Management"
+
+  traefik:
+    image: traefik:v3.5
+    container_name: traefik
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    user: ${UID}:${GID_DOCKER}
+    userns_mode: host
+    environment:
+      # Cloudflare Zero DNS API token
+      - CF_DNS_API_TOKEN_FILE=/run/secrets/cf_dns_api_token
+    networks:
+      - proxy
+      - metrics
+    ports:
+      - 80:80
+      - 443:443
+      - 8080:8080
+    secrets:
+      - cf_dns_api_token
+      - traefik_htpasswd
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ${DATA_DIR}/traefik/acme.json:/etc/traefik/acme.json
+    command:
+      # Traefik log level
+      # Possible values: DEBUG, INFO, WARN, ERROR, FATAL
+      # Default is INFO, but DEBUG is useful for troubleshooting
+      - --log.level=${TRAEFIK_LOG_LEVEL}
+      # Enable Docker as a provider
+      - --providers.docker=true
+      - --providers.docker.exposedbydefault=false
+      - --providers.docker.network=proxy
+      # Entry points
+      - --api.dashboard=true
+      - --entrypoints.web.address=:80
+      - --entrypoints.websecure.address=:443
+      # Enable DNS challenge
+      - --certificatesresolvers.cloudflare.acme.dnschallenge=true
+      - --certificatesresolvers.cloudflare.acme.dnschallenge.propagation.delayBeforeChecks=45s
+      - --certificatesresolvers.cloudflare.acme.dnschallenge.provider=cloudflare
+      # ACME configuration for Let's Encrypt
+      - --certificatesresolvers.cloudflare.acme.caserver=${TRAEFIK_ACME_SERVER}
+      - --certificatesresolvers.cloudflare.acme.email=${TRAEFIK_ACME_EMAIL}
+      - --certificatesresolvers.cloudflare.acme.storage=/etc/traefik/acme.json
+      # Enable Prometheus metrics
+      - --metrics.prometheus=false
+      - --metrics.prometheus.entrypoint=metrics
+      # API access from localhost only
+      - --api.insecure=true
+    labels:
+      # Global middleware for HTTP to HTTPS redirect
+      - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
+      - "traefik.http.middlewares.traefik-auth.basicauth.usersfile=/run/secrets/traefik_htpasswd"
+      # Traefik dashboard router
+      - "traefik.enable=true"
+      - "traefik.http.routers.http-catchall.entrypoints=web"
+      - "traefik.http.routers.http-catchall.middlewares=redirect-to-https"
+      - "traefik.http.routers.http-catchall.rule=HostRegexp(`{host:.+}`)"
+      - "traefik.http.routers.traefik-dashboard.entrypoints=websecure"
+      - "traefik.http.routers.traefik-dashboard.middlewares=traefik-auth@docker"
+      - "traefik.http.routers.traefik-dashboard.rule=Host(`traefik.${TRAEFIK_ACME_DOMAIN}`)"
+      - "traefik.http.routers.traefik-dashboard.service=api@internal"
+      - "traefik.http.routers.traefik-dashboard.tls.certresolver=cloudflare"
+      - "traefik.http.routers.traefik-dashboard.tls=true"
+      # Homepage integration
+      - "homepage.group=Core"
+      - "homepage.name=Traefik"
+      - "homepage.icon=traefik.svg"
+      - "homepage.href=https://traefik.${TRAEFIK_ACME_DOMAIN}"
+      - "homepage.description=Reverse Proxy & Dashboard"
+      - "homepage.widget.type=traefik"
+      - "homepage.widget.url=http://traefik:8080"
+
+secrets:
+  cf_dns_api_token:
+    file: ./secret/cf_dns.secret
+  traefik_htpasswd:
+    file: ./secret/htpasswd.secret
 
 networks:
   proxy:
