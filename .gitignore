@@ -12,4 +12,5 @@
 # Local environment files
 **/*.local
 **/*.secret
+**/global.env
 **/*override.yaml
