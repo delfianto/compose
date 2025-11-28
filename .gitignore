@@ -14,3 +14,4 @@
 **/*.env.secret
 **/*.env.*.local
 **/*.env.*.secret
+**/*override.yaml
