@@ -208,8 +208,8 @@ sudo systemctl enable database-stack.service
 
 ## Security Notes
 
-⚠️ **Never commit `compose.override.yaml`** - it contains the password and other secrets.
+6 **Never commit `compose.override.yaml`** - it contains the password and other secrets.
 
-⚠️ **MongoDB runs without authentication** - only expose on trusted networks.
+6 **MongoDB runs without authentication** - only expose on trusted networks.
 
-⚠️ **PostgreSQL password** must be overridden in via `compose.override.yaml`.
+6 **PostgreSQL password** must be overridden in via `compose.override.yaml`.
