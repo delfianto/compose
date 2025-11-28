@@ -1,21 +1,16 @@
 services:
   tei-embedder:
-    image: ghcr.io/huggingface/text-embeddings-inference:${HF_TEI_TAG}
+    image: ghcr.io/huggingface/text-embeddings-inference:${HF_IMAGE_TAG}
     container_name: tei-embed
+    env_file:
+      - ./env/embed.env
     networks:
       - genai
       - proxy
     volumes:
       - ${DATA_DIR}:/data
-    environment:
-      - MAX_CLIENT_BATCH_SIZE=${EMBEDDER_BATCH_SIZE}
-    command:
-      - --hostname=0.0.0.0
-      - --port=4000
-      - --hf-token=${HF_TOKEN}
-      - --model-id=${EMBEDDER_MODEL}
-      - --dtype=${EMBEDDER_DTYPE}
-      - --max-batch-tokens=${EMBEDDER_BATCH_TOKENS}
+    secrets:
+      - hf_token
     deploy:
       resources:
         reservations:
@@ -25,22 +20,17 @@ services:
               capabilities: [gpu]
 
   tei-reranker:
-    image: ghcr.io/huggingface/text-embeddings-inference:${HF_TEI_TAG}
+    image: ghcr.io/huggingface/text-embeddings-inference:${HF_IMAGE_TAG}
     container_name: tei-rerank
+    env_file:
+      - ./env/rerank.env
     networks:
       - genai
       - proxy
     volumes:
       - ${DATA_DIR}:/data
-    environment:
-      - MAX_CLIENT_BATCH_SIZE=${RERANKER_BATCH_SIZE}
-    command:
-      - --hostname=0.0.0.0
-      - --port=4000
-      - --hf-token=${HF_TOKEN}
-      - --model-id=${RERANKER_MODEL}
-      - --dtype=${RERANKER_DTYPE}
-      - --max-batch-tokens=${RERANKER_BATCH_TOKENS}
+    secrets:
+      - hf_token
     deploy:
       resources:
         reservations:
@@ -50,19 +40,20 @@ services:
               capabilities: [gpu]
 
   tei-proxy:
-    image: ${PROXY_IMAGE}
+    image: ghcr.io/delfianto/rerank-proxy:latest
     container_name: tei-proxy
+    env_file:
+      - ./env/proxy.env
     networks:
       - genai
       - proxy
-    environment:
-      - MAX_CLIENT_BATCH_SIZE=${RERANKER_BATCH_SIZE}
-      - TEI_ENDPOINT=http://tei-rerank:4000
-      - TEI_PROXY_PORT=${PROXY_PORT}
-      - RUST_LOG=${PROXY_LOG_LEVEL}
 
 networks:
   genai:
     external: true
   proxy:
     external: true
+
+secrets:
+  hf_token:
+    file: ./secret/hf.secret
