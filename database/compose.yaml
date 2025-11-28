@@ -7,7 +7,7 @@ services:
     userns_mode: host
     command: mongod --noauth
     env_file:
-      - mongodb.env
+      - ./env/mongodb.env
     networks:
       - database
     ports:
@@ -22,9 +22,7 @@ services:
     userns_mode: host
     command: postgres -c 'max_connections=200'
     env_file:
-      - pgvector.env
-    environment:
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - ./env/pgvector.env
     networks:
       - database
     ports:
@@ -32,13 +30,15 @@ services:
     volumes:
       - ${DATA_DIR}/postgres:/var/lib/postgresql/18/docker
       - ${PROJ_DIR}/initdb.d:/docker-entrypoint-initdb.d
+    secrets:
+      - pgvector
 
   qdrant:
     image: qdrant/qdrant:${QDRANT_TAG}
     container_name: qdrant
     restart: on-failure:3
     env_file:
-      - qdrant.env
+      - ./env/qdrant.env
     networks:
       - database
       - proxy
@@ -67,3 +67,7 @@ networks:
     external: true
   proxy:
     external: true
+
+secrets:
+  pgvector:
+    file: ./secret/pgvector.secret
