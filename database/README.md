@@ -208,8 +208,4 @@ sudo systemctl enable database-stack.service
 
 ## Security Notes
 
-⚠️ **Never commit `compose.override.yaml`** - it contains the password and other secrets.
-
-⚠️ **MongoDB runs without authentication** - only expose on trusted networks.
-
-⚠️ **PostgreSQL password** must be overridden in via `compose.override.yaml`.
+⚠️ **Ovveride file `compose.override.yaml`** along with any file inside the `secret/*` are intentionally ignored from git as it contains the password and other secrets. If you clone or fork this repo and modify the `.gitignore` file, **ENSURE** that you do not accidentally commit your credentials to the repository.
