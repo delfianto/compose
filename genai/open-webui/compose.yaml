@@ -15,7 +15,7 @@ services:
           memory: 32M
 
   open-webui:
-    image: ghcr.io/open-webui/open-webui:${OPEN_WEBUI_TAG}
+    image: ghcr.io/open-webui/open-webui:latest-slim
     container_name: open-webui
     depends_on:
       wait-for-all:
@@ -26,14 +26,15 @@ services:
       - proxy
     volumes:
       - ${DATA_DIR}:/app/backend/data
+    secrets:
+      - open_webui_db
     env_file:
-      - path: container.env
+      - path: ./env/open-webui.env
         required: true
-      - path: container.env.local
+      - path: ./env/open-webui.env.local
         required: false
     environment:
-      - DATABASE_URL=postgresql://openwebui:${POSTGRES_PASSWORD}@${POSTGRES_HOST}/openwebui
-      - CORS_ALLOW_ORIGIN=${OPEN_WEBUI_BASE_URL}
+      - CORS_ALLOW_ORIGIN=https://webui.${TRAEFIK_ACME_DOMAIN}
     labels:
       # Traefik integration
       - "traefik.enable=true"
@@ -53,6 +54,10 @@ services:
             - driver: nvidia
               count: all
               capabilities: [gpu]
+
+secrets:
+  open_webui_db:
+    file: ./secret/db.secret
 
 networks:
   database:
