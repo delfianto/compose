@@ -21,8 +21,7 @@ services:
       - ${DATA_DIR}/config_s6:/config
       - ${DATA_DIR}/generated:/generated
       - ${DATA_DIR}/metadata:/metadata
-      - ${SRC1_DIR}:/media1
-      - ${SRC2_DIR}:/media2
+      - ${SRC1_DIR}:/media
     labels:
       # Traefik integration
       - "traefik.enable=true"
