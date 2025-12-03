@@ -12,14 +12,14 @@ RemainAfterExit=yes
 # Load environment variables from config file
 EnvironmentFile=-/etc/systemd/system/docker-compose.env
 
-# Set the compose project name for compose.py to resolve
+# Set the project name for compose to resolve
 Environment="COMPOSE_PROJECT=%i"
 
 # Start the compose stack
-ExecStart=/usr/local/bin/compose.py up
+ExecStart=/usr/local/bin/compose up
 
 # Stop the compose stack
-ExecStop=/usr/local/bin/compose.py down
+ExecStop=/usr/local/bin/compose down
 
 # Timeout for startup (5 minutes)
 TimeoutStartSec=300

@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+
 """
 compose-systemd.py - Docker Compose systemd management tool
 
@@ -8,13 +9,14 @@ running under systemd with template units.
 
 import argparse
 import os
+import re
 import shutil
 import subprocess
 import sys
 from datetime import datetime
 from pathlib import Path
 from string import Template
-from typing import List
+from typing import Dict, List, Optional
 
 
 # ANSI color codes
@@ -24,11 +26,13 @@ class Colors:
     YELLOW = "\033[1;33m"
     BLUE = "\033[0;34m"
     CYAN = "\033[0;36m"
+    MAGENTA = "\033[0;35m"
     NC = "\033[0m"  # No Color
 
 
-# Installation paths
-SCRIPT_DEST = Path("/usr/local/bin/compose.py")
+# Installation paths (without .py extension for cleaner commands)
+COMPOSE_DEST = Path("/usr/local/bin/compose")
+COMPCTL_DEST = Path("/usr/local/bin/composectl")
 SYSTEMD_UNIT_DEST = Path("/etc/systemd/system/docker-compose@.service")
 ENV_FILE_DEST = Path("/etc/systemd/system/docker-compose.env")
 
@@ -66,11 +70,9 @@ def check_root():
 def check_dependencies() -> List[str]:
     """Check for required system dependencies."""
     missing = []
-
     for cmd in ["docker", "systemctl", "python3"]:
         if not shutil.which(cmd):
             missing.append(cmd)
-
     return missing
 
 
@@ -78,7 +80,11 @@ def backup_file(filepath: Path):
     """Backup existing file with timestamp."""
     if filepath.exists():
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        backup_path = filepath.with_suffix(f"{filepath.suffix}.backup.{timestamp}")
+        # Handle files without extension
+        if filepath.suffix:
+            backup_path = filepath.with_suffix(f"{filepath.suffix}.backup.{timestamp}")
+        else:
+            backup_path = Path(f"{filepath}.backup.{timestamp}")
         print_warning(f"Backing up existing file to: {backup_path}")
         shutil.copy2(filepath, backup_path)
 
@@ -88,6 +94,74 @@ def systemctl(*args, check=True) -> subprocess.CompletedProcess:
     return subprocess.run(
         ["systemctl", *args], capture_output=True, text=True, check=check
     )
+
+
+def parse_env_file(env_file: Path) -> Dict[str, str]:
+    """
+    Parse environment file and extract key-value pairs.
+
+    Args:
+        env_file: Path to the environment file
+
+    Returns:
+        Dictionary of environment variables
+    """
+    env_vars = {}
+
+    if not env_file.exists():
+        return env_vars
+
+    try:
+        with env_file.open() as f:
+            for line in f:
+                line = line.strip()
+                # Skip comments and empty lines
+                if not line or line.startswith("#"):
+                    continue
+
+                # Match KEY=VALUE pattern
+                match = re.match(r"^([A-Z_][A-Z0-9_]*)=(.*)$", line)
+                if match:
+                    key, value = match.groups()
+                    # Remove quotes if present
+                    value = value.strip('"').strip("'")
+                    env_vars[key] = value
+
+        return env_vars
+    except Exception as e:
+        print_warning(f"Failed to parse environment file: {e}")
+        return {}
+
+
+def get_existing_config() -> Optional[Dict[str, Optional[str]]]:
+    """
+    Get existing configuration from installed environment file.
+
+    Returns:
+        Dictionary with existing config or None if not found
+    """
+    if not ENV_FILE_DEST.exists():
+        return None
+
+    env_vars = parse_env_file(ENV_FILE_DEST)
+
+    if not env_vars:
+        return None
+
+    # Extract the relevant configuration
+    config = {
+        "acme_domain": env_vars.get("TRAEFIK_ACME_DOMAIN"),
+        "acme_email": env_vars.get("TRAEFIK_ACME_EMAIL"),
+        "acme_server": env_vars.get("TRAEFIK_ACME_SERVER"),
+        "data_base_dir": env_vars.get("DOCKER_DATA_DIR"),
+        "proj_base_dir": env_vars.get("DOCKER_PROJ_DIR"),
+    }
+
+    # Only return if we have at least the essential values
+    if config["acme_domain"] and config["acme_email"]:
+        return config
+
+    return None
 
 
 def get_service_name(project: str) -> str:
@@ -117,7 +191,6 @@ def load_template(filename: str) -> str:
         Template content as string
     """
     template_path = SCRIPT_DIR / filename
-
     if not template_path.exists():
         print_error(f"Template file not found: {template_path}")
         print_info(f"Please ensure {filename} is in the same directory as this script")
@@ -136,27 +209,27 @@ def generate_env_file(args) -> str:
     individual project .env files.
 
     Default directories:
-        DATA_BASE_DIR: /srv/appdata
-            - Where application data (databases, configs, etc.) is stored
-            - Each compose project typically creates a subdirectory here
-            - Example: /srv/appdata/mongodb, /srv/appdata/postgres
+      DATA_BASE_DIR: /srv/appdata
+        - Where application data (databases, configs, etc.) is stored
+        - Each compose project typically creates a subdirectory here
+        - Example: /srv/appdata/mongodb, /srv/appdata/postgres
 
-        PROJ_BASE_DIR: /srv/compose
-            - Where compose project files are located
-            - This is where compose.py will look for projects
-            - Example: /srv/compose/database, /srv/compose/genai-ollama
+      PROJ_BASE_DIR: /srv/compose
+        - Where compose project files are located
+        - This is where compose will look for projects
+        - Example: /srv/compose/database, /srv/compose/genai-ollama
 
     ACME configuration:
-        TRAEFIK_ACME_DOMAIN: Required, no default
-            - Primary domain for Let's Encrypt certificates
-            - Example: example.com or *.example.com for wildcard
+      TRAEFIK_ACME_DOMAIN: Required, no default
+        - Primary domain for Let's Encrypt certificates
+        - Example: example.com or *.example.com for wildcard
 
-        TRAEFIK_ACME_EMAIL: Required, no default
-            - Email for Let's Encrypt notifications (renewals, issues)
+      TRAEFIK_ACME_EMAIL: Required, no default
+        - Email for Let's Encrypt notifications (renewals, issues)
 
-        TRAEFIK_ACME_SERVER: https://acme-v02.api.letsencrypt.org/directory
-            - Let's Encrypt production server
-            - Use https://acme-staging-v02.api.letsencrypt.org/directory for testing
+      TRAEFIK_ACME_SERVER: https://acme-v02.api.letsencrypt.org/directory
+        - Let's Encrypt production server
+        - Use https://acme-staging-v02.api.letsencrypt.org/directory for testing
 
     Args:
         args: Parsed command line arguments
@@ -187,24 +260,59 @@ def generate_env_file(args) -> str:
         sys.exit(1)
 
 
-# Installations
+# Installation
 def cmd_install(args):
-    """Install compose.py and systemd template."""
+    """Install compose, compctl, and systemd template."""
     check_root()
 
-    # Validate required ACME arguments
-    if not args.acme_domain:
-        print_error("--acme-domain is required for installation")
-        print_info("Example: --acme-domain example.com")
-        sys.exit(1)
+    # Check if this is a reinstall by looking for existing config
+    existing_config = get_existing_config()
+    is_reinstall = existing_config is not None
 
-    if not args.acme_email:
-        print_error("--acme-email is required for installation")
-        print_info("Example: --acme-email admin@example.com")
-        sys.exit(1)
+    if is_reinstall:
+        print_section("Docker Compose Systemd Reinstallation")
+        print()
+        print_info("Existing installation detected")
+        print_info(f"  ACME Domain: {existing_config['acme_domain']}")
+        print_info(f"  ACME Email: {existing_config['acme_email']}")
+        print()
 
-    print_section("Docker Compose Systemd Installation")
-    print()
+        # Use existing config as defaults if not provided via args
+        if not args.acme_domain:
+            args.acme_domain = existing_config["acme_domain"]
+            print_info("Using existing ACME domain")
+
+        if not args.acme_email:
+            args.acme_email = existing_config["acme_email"]
+            print_info("Using existing ACME email")
+
+        if not args.acme_server and existing_config["acme_server"]:
+            args.acme_server = existing_config["acme_server"]
+            print_info("Using existing ACME server")
+
+        if not args.data_base_dir and existing_config["data_base_dir"]:
+            args.data_base_dir = existing_config["data_base_dir"]
+
+        if not args.proj_base_dir and existing_config["proj_base_dir"]:
+            args.proj_base_dir = existing_config["proj_base_dir"]
+
+        print()
+    else:
+        print_section("Docker Compose Systemd Installation")
+        print()
+        print_info("Fresh installation detected")
+        print()
+
+        # Validate required ACME arguments for fresh install
+        if not args.acme_domain:
+            print_error("--acme-domain is required for fresh installation")
+            print_info("Example: --acme-domain example.com")
+            sys.exit(1)
+
+        if not args.acme_email:
+            print_error("--acme-email is required for fresh installation")
+            print_info("Example: --acme-email admin@example.com")
+            sys.exit(1)
 
     # Check dependencies
     missing = check_dependencies()
@@ -214,11 +322,13 @@ def cmd_install(args):
 
     # Check for required files
     compose_src = SCRIPT_DIR / "compose.py"
+    compctl_src = SCRIPT_DIR / "compctl.py"
     systemd_template = SCRIPT_DIR / "docker-compose@.service"
     env_template = SCRIPT_DIR / "docker-compose.env.template"
 
     required_files = [
         ("compose.py", compose_src),
+        ("compctl.py", compctl_src),
         ("docker-compose@.service", systemd_template),
         ("docker-compose.env.template", env_template),
     ]
@@ -233,31 +343,48 @@ def cmd_install(args):
         print_info(f"Please ensure all files are in: {SCRIPT_DIR}")
         sys.exit(1)
 
-    # Install compose.py
-    print_info(f"Installing compose.py to {SCRIPT_DEST}")
-    backup_file(SCRIPT_DEST)
-    shutil.copy2(compose_src, SCRIPT_DEST)
-    os.chmod(SCRIPT_DEST, 0o755)
-    print_success("compose.py installed")
+    # Install compose (without .py extension)
+    print_info(f"Installing compose.py to {COMPOSE_DEST}")
+    backup_file(COMPOSE_DEST)
+    shutil.copy2(compose_src, COMPOSE_DEST)
+    os.chmod(COMPOSE_DEST, 0o755)
+    print_success("compose installed (accessible as 'compose' command)")
+
+    # Install compctl (without .py extension)
+    print_info(f"Installing compctl.py to {COMPCTL_DEST}")
+    backup_file(COMPCTL_DEST)
+    shutil.copy2(compctl_src, COMPCTL_DEST)
+    os.chmod(COMPCTL_DEST, 0o755)
+    print_success("compctl installed (accessible as 'compctl' command)")
 
     # Install systemd unit template
     print_info(f"Installing systemd unit template to {SYSTEMD_UNIT_DEST}")
     backup_file(SYSTEMD_UNIT_DEST)
-    shutil.copy2(systemd_template, SYSTEMD_UNIT_DEST)
+
+    # Read and modify the systemd template to use 'compose' instead of 'compose.py'
+    systemd_content = systemd_template.read_text()
+    # Replace /usr/local/bin/compose.py with /usr/local/bin/compose
+    systemd_content = systemd_content.replace(
+        "/usr/local/bin/compose.py", "/usr/local/bin/compose"
+    )
+
+    SYSTEMD_UNIT_DEST.write_text(systemd_content)
     os.chmod(SYSTEMD_UNIT_DEST, 0o644)
     print_success("Systemd unit template installed")
 
     # Generate and install environment file
-    print_info(f"Generating environment file at {ENV_FILE_DEST}")
-    backup_file(ENV_FILE_DEST)
+    if is_reinstall:
+        print_info(f"Updating environment file at {ENV_FILE_DEST}")
+    else:
+        print_info(f"Generating environment file at {ENV_FILE_DEST}")
 
+    backup_file(ENV_FILE_DEST)
     env_content = generate_env_file(args)
     ENV_FILE_DEST.write_text(env_content)
     os.chmod(ENV_FILE_DEST, 0o644)
-
     print_success("Environment file created")
-    print_info(f"ACME domain: {args.acme_domain}")
-    print_info(f"ACME email: {args.acme_email}")
+    print_info(f"  ACME domain: {args.acme_domain}")
+    print_info(f"  ACME email: {args.acme_email}")
 
     # Reload systemd
     print_info("Reloading systemd daemon")
@@ -269,17 +396,28 @@ def cmd_install(args):
         sys.exit(1)
 
     print()
-    print_section("Installation Complete!")
+    if is_reinstall:
+        print_section("Reinstallation Complete!")
+    else:
+        print_section("Installation Complete!")
+
     print()
-    print_info("Next steps:")
-    print("  1. Review environment file: sudo nano", ENV_FILE_DEST)
-    print("  2. Disable restart policies in docker-compose.yml files")
-    print(
-        "  3. Enable services: sudo systemctl enable docker-compose@<project>.service"
-    )
-    print(
-        "  4. Manage dependencies: sudo compose-systemd.py deps add <service> <dependency>"
-    )
+
+    if not is_reinstall:
+        print_info("Next steps:")
+        print("  1. Review environment file: sudo nano", ENV_FILE_DEST)
+        print("  2. Disable restart policies in docker-compose.yml files")
+        print("  3. Enable services: sudo compctl enable <project>")
+        print(
+            "  4. Manage dependencies: sudo compose-systemd.py deps add <service> <dep> requires"
+        )
+        print("  5. Start services: sudo compctl start <project>")
+        print("  6. Check status: compctl status <project>")
+        print()
+
+    print_info("Installed commands:")
+    print("  - compose      : Docker Compose wrapper")
+    print("  - compctl      : Systemctl wrapper for compose services")
     print()
 
 
@@ -290,6 +428,17 @@ def cmd_check_status(args):
 
     # Check if running as root for some checks
     is_root = os.geteuid() == 0
+
+    # Check for existing installation
+    existing_config = get_existing_config()
+    if existing_config:
+        print_info("Installation type: Reinstall mode available")
+        print_info(f"  Existing ACME domain: {existing_config['acme_domain']}")
+        print_info(f"  Existing ACME email: {existing_config['acme_email']}")
+        print()
+    else:
+        print_info("Installation type: Fresh install required")
+        print()
 
     # Check dependencies
     missing_deps = check_dependencies()
@@ -303,6 +452,7 @@ def cmd_check_status(args):
     print_info("Template files (in script directory):")
     template_files = [
         ("compose.py", SCRIPT_DIR / "compose.py"),
+        ("compctl.py", SCRIPT_DIR / "compctl.py"),
         ("systemd template", SCRIPT_DIR / "docker-compose@.service"),
         ("env template", SCRIPT_DIR / "docker-compose.env.template"),
     ]
@@ -317,7 +467,8 @@ def cmd_check_status(args):
     print()
     print_info("Installed files:")
     files_to_check = [
-        ("compose.py", SCRIPT_DEST),
+        ("compose", COMPOSE_DEST),
+        ("compctl", COMPCTL_DEST),
         ("systemd unit template", SYSTEMD_UNIT_DEST),
         ("environment file", ENV_FILE_DEST),
     ]
@@ -346,12 +497,14 @@ def cmd_check_status(args):
             result = systemctl(
                 "list-unit-files", "docker-compose@*.service", check=False
             )
+
             if result.returncode == 0:
                 lines = [
                     line
                     for line in result.stdout.split("\n")
                     if "docker-compose@" in line
                 ]
+
                 if lines:
                     for line in lines:
                         print(f"  {line}")
@@ -415,7 +568,6 @@ def cmd_deps_remove(args):
 
     service = args.service
     dependency = args.dependency
-
     dep_unit = get_service_name(dependency)
     override_file = get_override_file(service)
 
@@ -474,10 +626,8 @@ def cmd_deps_list(args):
         for line in result.stdout.split("\n"):
             if not line.strip():
                 continue
-
             if "=" in line:
                 directive, deps = line.split("=", 1)
-
                 # Filter only docker-compose services
                 compose_deps = [d for d in deps.split() if "docker-compose@" in d]
 
@@ -515,6 +665,7 @@ def cmd_deps_check(args):
         compose_deps = [
             line for line in result.stdout.split("\n") if "docker-compose@" in line
         ]
+
         if compose_deps:
             for dep in compose_deps:
                 clean_dep = (
@@ -573,16 +724,22 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  # Install with required ACME configuration
-  sudo compose-systemd.py --install \\
-    --acme-domain example.com \\
+  # Fresh install with required ACME configuration
+  sudo compose-systemd.py --install \
+    --acme-domain example.com \
     --acme-email admin@example.com
 
+  # Reinstall (reuses existing ACME config)
+  sudo compose-systemd.py --install
+
+  # Reinstall with different ACME domain
+  sudo compose-systemd.py --install --acme-domain newdomain.com
+
   # Install with custom paths
-  sudo compose-systemd.py --install \\
-    --acme-domain example.com \\
-    --acme-email admin@example.com \\
-    --data-base-dir /opt/appdata \\
+  sudo compose-systemd.py --install \
+    --acme-domain example.com \
+    --acme-email admin@example.com \
+    --data-base-dir /opt/appdata \
     --proj-base-dir /opt/compose
 
   # Check installation status
@@ -599,9 +756,8 @@ Examples:
 
     # Global options
     parser.add_argument(
-        "--install", action="store_true", help="Install compose.py and systemd template"
+        "--install", action="store_true", help="Install compose and systemd template"
     )
-
     parser.add_argument(
         "--check-status", action="store_true", help="Check installation status"
     )
@@ -610,27 +766,23 @@ Examples:
     parser.add_argument(
         "--acme-domain",
         metavar="DOMAIN",
-        help="ACME domain for Let's Encrypt SSL (required for --install)",
+        help="ACME domain for Let's Encrypt SSL (required for fresh install, optional for reinstall)",
     )
-
     parser.add_argument(
         "--acme-email",
         metavar="EMAIL",
-        help="ACME email for Let's Encrypt notifications (required for --install)",
+        help="ACME email for Let's Encrypt notifications (required for fresh install, optional for reinstall)",
     )
-
     parser.add_argument(
         "--acme-server",
         metavar="URL",
         help="ACME server URL (default: Let's Encrypt production)",
     )
-
     parser.add_argument(
         "--data-base-dir",
         metavar="PATH",
         help="Base directory for application data (default: /srv/appdata)",
     )
-
     parser.add_argument(
         "--proj-base-dir",
         metavar="PATH",
