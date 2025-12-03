@@ -47,13 +47,6 @@ services:
       - 127.0.0.1:6334:6334
     volumes:
       - ${DATA_DIR}/qdrant:/qdrant/storage
-    labels:
-      # Traefik integration
-      - "traefik.enable=true"
-      - "traefik.http.routers.qdrant.entrypoints=websecure"
-      - "traefik.http.routers.qdrant.rule=Host(`qdrant.${TRAEFIK_ACME_DOMAIN}`)"
-      - "traefik.http.routers.qdrant.tls.certresolver=cloudflare"
-      - "traefik.http.services.qdrant.loadbalancer.server.port=6333"
     deploy:
       resources:
         reservations:
