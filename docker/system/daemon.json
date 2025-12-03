@@ -1,4 +1,5 @@
 {
+  "ipv6": false,
   "userns-remap": "mipan",
   "default-runtime": "nvidia",
   "runtimes": {
