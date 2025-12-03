@@ -11,8 +11,6 @@ services:
     networks:
       - genai
       - proxy
-    ports:
-      - 4001:4000
     volumes:
       - ${DATA_DIR}:/data
     secrets:
@@ -37,8 +35,6 @@ services:
     networks:
       - genai
       - proxy
-    ports:
-      - 4002:4000
     volumes:
       - ${DATA_DIR}:/data
     secrets:
