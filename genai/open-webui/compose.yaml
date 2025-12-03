@@ -24,24 +24,23 @@ services:
       - database
       - genai
       - proxy
+    ports:
+        - 9001:8080
     volumes:
       - ${DATA_DIR}:/app/backend/data
-    secrets:
-      - open_webui_db
     env_file:
-      - path: ./env/open-webui.env
-        required: true
-      - path: ./env/open-webui.env.local
-        required: false
+      - ./env/open-webui.env
+      - ./env/open-webui.env.local
     environment:
+      - WEBUI_URL=https://webui.${TRAEFIK_ACME_DOMAIN}
       - CORS_ALLOW_ORIGIN=https://webui.${TRAEFIK_ACME_DOMAIN}
     labels:
       # Traefik integration
       - "traefik.enable=true"
-      - "traefik.http.routers.open-webui.entrypoints=websecure"
-      - "traefik.http.routers.open-webui.rule=Host(`webui.${TRAEFIK_ACME_DOMAIN}`)"
-      - "traefik.http.routers.open-webui.tls.certresolver=cloudflare"
-      - "traefik.http.services.open-webui.loadbalancer.server.port=8080"
+      - "traefik.http.routers.webui.entrypoints=websecure"
+      - "traefik.http.routers.webui.rule=Host(`webui.${TRAEFIK_ACME_DOMAIN}`)"
+      - "traefik.http.routers.webui.tls.certresolver=cloudflare"
+      - "traefik.http.services.webui.loadbalancer.server.port=8080"
       # Homepage integration
       - "homepage.group=Artificial Intelligence"
       - "homepage.name=Open WebUI"
@@ -54,10 +53,6 @@ services:
             - driver: nvidia
               count: all
               capabilities: [gpu]
-
-secrets:
-  open_webui_db:
-    file: ./secret/db.secret
 
 networks:
   database:
