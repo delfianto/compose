@@ -1,0 +1,32 @@
+[Unit]
+Description=%i Docker Compose Service
+Documentation=https://docs.docker.com/compose/
+After=docker.service network-online.target
+Requires=docker.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+
+# Load environment variables from config file
+EnvironmentFile=-/etc/systemd/system/docker-compose.env
+
+# Set the compose project name for compose.py to resolve
+Environment="COMPOSE_PROJECT=%i"
+
+# Start the compose stack
+ExecStart=/usr/local/bin/compose.py up
+
+# Stop the compose stack
+ExecStop=/usr/local/bin/compose.py down
+
+# Timeout for startup (5 minutes)
+TimeoutStartSec=300
+
+# Restart policy - only on abnormal exit
+Restart=on-failure
+RestartSec=10s
+
+[Install]
+WantedBy=multi-user.target

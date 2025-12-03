@@ -8,6 +8,7 @@ env file discovery, and sensible default flags.
 import os
 import subprocess
 import sys
+from pathlib import Path
 
 DEFAULT_ARGS = {
     "up": ["--remove-orphans", "--detach"],
@@ -24,16 +25,17 @@ DEFAULT_ARGS = {
 
 HELP_CONTENT = """compose - Enhanced Docker Compose wrapper
 
-Usage: compose <command> [args...]
+Usage: compose [args...]
 
 Available commands:
   up, down, ps, build, logs, exec, ...
 
 Smart features:
-• Includes some sensible command-specific default flags
-• Discovers any compose file inside the directory
-• Includes all .env* files as --env-file
-• Prints final command before execution
+  • Includes some sensible command-specific default flags
+  • Discovers any compose file inside the directory
+  • Includes all .env* files as --env-file
+  • Prints final command before execution
+  • Supports hyphenated paths (e.g., genai-ollama → genai/ollama)
 
 Examples:
   compose up              # Start with defaults
@@ -42,6 +44,8 @@ Examples:
   compose down            # Clean shutdown
 
 Environment variables:
+  COMPOSE_PROJECT         # Override project name (e.g., genai-ollama)
+  COMPOSE_BASE            # Base directory (default: current dir)
   DOCKER_PG_FORMAT        # Build progress style
   DOCKER_PS_FORMAT        # Override ps format
 """
@@ -60,10 +64,42 @@ def cat_help():
     print(HELP_CONTENT)
 
 
-def find_compose_file():
-    """Find docker-compose.yml or compose.yaml variants in current directory."""
+def resolve_project_directory():
+    """
+    Resolve the working directory for the compose project.
+
+    If COMPOSE_PROJECT env var contains hyphens (e.g., 'genai-ollama'),
+    treat it as a path with subdirectories (e.g., 'genai/ollama').
+
+    Returns:
+        Path object pointing to the project directory
+    """
+    base_dir = Path(os.getenv("COMPOSE_BASE", "."))
+    project_name = os.getenv("COMPOSE_PROJECT", "")
+
+    if not project_name:
+        # No project specified, use current directory
+        return Path.cwd()
+
+    # Convert hyphens to path separators
+    if "-" in project_name:
+        project_path = project_name.replace("-", os.sep)
+        target_dir = base_dir / project_path
+
+        if target_dir.is_dir():
+            stdout(f"# Resolved project path: {project_name} → {target_dir}")
+            return target_dir
+        else:
+            stderr(f"Warning: Hyphenated path {target_dir} does not exist")
+            stderr(f"Falling back to direct path: {base_dir / project_name}")
+
+    # Fallback: treat as direct subdirectory name
+    return base_dir / project_name
+
+
+def find_compose_file(project_dir):
+    """Find docker-compose.yml or compose.yaml variants in project directory."""
     candidates = []
-    files = os.listdir(".")
     patterns = (
         "docker-compose.yml",
         "docker-compose.yaml",
@@ -71,24 +107,43 @@ def find_compose_file():
         "compose.yaml",
     )
 
+    try:
+        files = os.listdir(project_dir)
+    except FileNotFoundError:
+        stderr(f"Error: Project directory not found: {project_dir}")
+        sys.exit(1)
+    except PermissionError:
+        stderr(f"Error: Permission denied accessing: {project_dir}")
+        sys.exit(1)
+
     for f in files:
         if f in patterns:
             candidates.append(f)
 
     if len(candidates) == 0:
-        stderr("Error: No compose file found inside project directory")
+        stderr(f"Error: No compose file found in {project_dir}")
         sys.exit(1)
+
     if len(candidates) > 1:
         stderr(f"Error: Multiple compose files found: {', '.join(candidates)}")
         stderr("Please remove or rename conflicting files")
         sys.exit(1)
 
-    return candidates[0]
+    return project_dir / candidates[0]
 
 
-def find_env_files():
-    """Return all .env* files in current directory."""
-    return [f for f in os.listdir(".") if f.startswith(".env") and os.path.isfile(f)]
+def find_env_files(project_dir):
+    """Return all .env* files in project directory."""
+    try:
+        files = os.listdir(project_dir)
+        env_files = [
+            str(project_dir / f)
+            for f in files
+            if f.startswith(".env") and (project_dir / f).is_file()
+        ]
+        return env_files
+    except (FileNotFoundError, PermissionError):
+        return []
 
 
 def deduplicate_flags(combined_args):
@@ -98,16 +153,19 @@ def deduplicate_flags(combined_args):
         # Skip if this exact flag was already added
         if flag in all_flags:
             continue
+
         # For flags with values (--format, --tail, etc), check the flag name only
         if "=" in flag:
             flag_name = flag.split("=")[0]
             if any(f.startswith(flag_name) for f in all_flags):
                 continue
+
         all_flags.append(flag)
+
     return all_flags
 
 
-def build_docker_command(cmd, extra_args, compose_file, env_files):
+def build_docker_command(cmd, extra_args, compose_file, env_files, project_dir):
     """
     Build the complete docker compose command with all flags and special case handling.
 
@@ -116,11 +174,12 @@ def build_docker_command(cmd, extra_args, compose_file, env_files):
         extra_args: Additional user-provided arguments
         compose_file: Path to the compose file
         env_files: List of environment files to include
+        project_dir: Working directory for the compose project
 
     Returns:
-        List of command arguments ready for subprocess.run()
+        Tuple of (command_list, working_directory)
     """
-    docker_cmd = ["docker", "compose", "--file", compose_file]
+    docker_cmd = ["docker", "compose", "--file", str(compose_file)]
 
     # Add all env files as --env-file options
     for env_file in env_files:
@@ -152,7 +211,7 @@ def build_docker_command(cmd, extra_args, compose_file, env_files):
     all_flags = deduplicate_flags(combined_args)
     docker_cmd.extend(all_flags)
 
-    return docker_cmd
+    return docker_cmd, project_dir
 
 
 def format_command_for_display(docker_cmd):
@@ -182,20 +241,26 @@ def main():
         stderr("Valid commands: " + ", ".join(sorted(DEFAULT_ARGS.keys())))
         sys.exit(1)
 
+    # Resolve project directory (handles hyphenated paths)
+    project_dir = resolve_project_directory()
+
     # Discover compose and env files
-    compose_file = find_compose_file()
-    env_files = find_env_files()
+    compose_file = find_compose_file(project_dir)
+    env_files = find_env_files(project_dir)
 
     # Build the complete docker command
-    docker_cmd = build_docker_command(cmd, extra_args, compose_file, env_files)
+    docker_cmd, working_dir = build_docker_command(
+        cmd, extra_args, compose_file, env_files, project_dir
+    )
 
     # Print final command for transparency
+    stdout(f"# Working directory: {working_dir}")
     stdout(format_command_for_display(docker_cmd))
     stdout("")
 
     # Execute
     try:
-        subprocess.run(docker_cmd, check=True)
+        subprocess.run(docker_cmd, check=True, cwd=working_dir)
     except subprocess.CalledProcessError as e:
         stderr(f"Command failed with exit code {e.returncode}")
         sys.exit(e.returncode)

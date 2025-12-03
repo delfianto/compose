@@ -2,6 +2,7 @@ services:
   librechat:
     container_name: chat-api
     image: ghcr.io/danny-avila/librechat-dev:latest
+    restart: "no"
     user: ${UID}:${GID}
     userns_mode: host
     networks:
@@ -35,7 +36,7 @@ services:
   meilisearch:
     container_name: chat-search
     image: getmeili/meilisearch:v1.25.0
-    restart: on-failure:3
+    restart: "no"
     user: ${UID}:${GID}
     userns_mode: host
     environment:
