@@ -231,6 +231,12 @@ def main():
         cat_help()
         sys.exit(1)
 
+    # Handle --print-workdir flag
+    if sys.argv[1] == "--print-workdir":
+        project_dir = resolve_project_directory()
+        print(project_dir)
+        sys.exit(0)
+
     # Extract command and extra args
     cmd = sys.argv[1]
     extra_args = sys.argv[2:]
