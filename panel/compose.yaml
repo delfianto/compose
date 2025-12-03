@@ -31,8 +31,6 @@ services:
     userns_mode: host
     networks:
       - proxy
-    ports:
-      - 9000:9000
     volumes:
       - ${DATA_DIR}/portainer:/data
       - /etc/localtime:/etc/localtime:ro
@@ -69,7 +67,6 @@ services:
     ports:
       - 80:80
       - 443:443
-      - 8080:8080
     secrets:
       - cf_dns_api_token
       - traefik_htpasswd
