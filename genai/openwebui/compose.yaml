@@ -7,6 +7,8 @@ services:
       - database
       - genai
       - proxy
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     volumes:
       - ${DATA_DIR}:/app/backend/data
     env_file:

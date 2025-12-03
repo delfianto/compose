@@ -4,10 +4,15 @@ services:
     container_name: tei-embed
     restart: "no"
     env_file:
-      - ./env/embed.env
+      - path: ./env/embed.env
+        required: true
+      - path: ./env/embed.env.local
+        required: false
     networks:
       - genai
       - proxy
+    ports:
+      - 4001:4000
     volumes:
       - ${DATA_DIR}:/data
     secrets:
@@ -25,10 +30,15 @@ services:
     container_name: tei-rerank
     restart: "no"
     env_file:
-      - ./env/rerank.env
+      - path: ./env/rerank.env
+        required: true
+      - path: ./env/rerank.env.local
+        required: false
     networks:
       - genai
       - proxy
+    ports:
+      - 4002:4000
     volumes:
       - ${DATA_DIR}:/data
     secrets:
@@ -42,14 +52,16 @@ services:
               capabilities: [gpu]
 
   tei-proxy:
-    image: ghcr.io/delfianto/rerank-proxy:latest
+    image: ghcr.io/delfianto/tei-proxy:latest
     container_name: tei-proxy
     restart: "no"
     env_file:
-      - ./env/proxy.env
+      - path: ./env/proxy.env
+        required: true
+      - path: ./env/proxy.env.local
+        required: false
     networks:
       - genai
-      - proxy
 
 networks:
   genai:
