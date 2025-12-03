@@ -2,6 +2,7 @@ services:
   ollama:
     image: ollama/ollama:${OLLAMA_TAG}
     container_name: ollama
+    restart: "no"
     networks:
       - genai
       - proxy

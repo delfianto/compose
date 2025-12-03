@@ -1,8 +1,8 @@
 services:
   plex:
     image: lscr.io/linuxserver/plex:latest
-    restart: unless-stopped
     container_name: plex
+    restart: "no"
     user: ${UID}:${GID}
     userns_mode: host
     env_file:

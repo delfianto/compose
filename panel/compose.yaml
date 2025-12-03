@@ -2,7 +2,7 @@ services:
   homepage:
     image: ghcr.io/gethomepage/homepage:latest
     container_name: homepage
-    restart: unless-stopped
+    restart: "no"
     user: ${UID}:${GID}
     userns_mode: host
     environment:
@@ -26,7 +26,7 @@ services:
   portainer:
     image: portainer/portainer-ce:alpine-sts
     container_name: portainer
-    restart: unless-stopped
+    restart: "no"
     user: ${UID}:${GID_DOCKER}
     userns_mode: host
     networks:
@@ -55,7 +55,7 @@ services:
   traefik:
     image: traefik:v3.6
     container_name: traefik
-    restart: unless-stopped
+    restart: "no"
     security_opt:
       - no-new-privileges:true
     user: ${UID}:${GID_DOCKER}

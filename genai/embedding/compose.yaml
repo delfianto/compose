@@ -2,6 +2,7 @@ services:
   tei-embedder:
     image: ghcr.io/huggingface/text-embeddings-inference:${HF_IMAGE_TAG}
     container_name: tei-embed
+    restart: "no"
     env_file:
       - ./env/embed.env
     networks:
@@ -22,6 +23,7 @@ services:
   tei-reranker:
     image: ghcr.io/huggingface/text-embeddings-inference:${HF_IMAGE_TAG}
     container_name: tei-rerank
+    restart: "no"
     env_file:
       - ./env/rerank.env
     networks:
@@ -42,6 +44,7 @@ services:
   tei-proxy:
     image: ghcr.io/delfianto/rerank-proxy:latest
     container_name: tei-proxy
+    restart: "no"
     env_file:
       - ./env/proxy.env
     networks:

@@ -2,12 +2,12 @@ services:
   wait-for-all:
     image: jwilder/dockerize:latest
     container_name: open-webui-wait
+    restart: "no"
     networks:
       - database
     command: >
       dockerize
       -wait tcp://${POSTGRES_HOST} -timeout 60s
-    restart: "no"
     deploy:
       resources:
         limits:
@@ -17,6 +17,7 @@ services:
   open-webui:
     image: ghcr.io/open-webui/open-webui:latest-slim
     container_name: open-webui
+    restart: "no"
     depends_on:
       wait-for-all:
         condition: service_completed_successfully

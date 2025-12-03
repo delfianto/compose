@@ -1,7 +1,7 @@
 services:
   swarmui:
     image: swarmui
-    restart: unless-stopped
+    restart: "no"
     cap_drop:
       - ALL
     build:

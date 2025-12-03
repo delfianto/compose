@@ -2,7 +2,7 @@ services:
   risuai:
     container_name: risuai
     image: ghcr.io/kwaroran/risuai:latest
-    restart: always
+    restart: "no"
     networks:
       - proxy
     volumes:

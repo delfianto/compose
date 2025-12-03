@@ -2,7 +2,7 @@ services:
   mongodb:
     image: mongo:8.2-noble
     container_name: mongodb
-    restart: on-failure:3
+    restart: "no"
     user: ${UID}:${GID}
     userns_mode: host
     command: mongod --noauth
@@ -18,7 +18,7 @@ services:
   pgvector:
     image: pgvector/pgvector:${PGVECTOR_TAG}
     container_name: pgvector
-    restart: on-failure:3
+    restart: "no"
     userns_mode: host
     command: postgres -c 'max_connections=200'
     env_file:
@@ -36,7 +36,7 @@ services:
   qdrant:
     image: qdrant/qdrant:${QDRANT_TAG}
     container_name: qdrant
-    restart: on-failure:3
+    restart: "no"
     env_file:
       - ./env/qdrant.env
     networks:
