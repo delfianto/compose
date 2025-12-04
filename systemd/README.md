@@ -540,8 +540,9 @@ A: No, dependencies must be literal service names.
 ## Security Notes
 
 - Installer requires root for system file installation
-- Environment files are world-readable—avoid storing secrets
-- Use Docker secrets for sensitive data
+- Environment files are world-readable; avoid storing secrets there
+- For sensitive data create the `.env.local` or the `env/service.env.local` file
+- Look into each compose project structure and check for the applicable `.local` files
 - ACME credentials only used for Let's Encrypt registration
 
 ## Files Installed
