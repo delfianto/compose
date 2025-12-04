@@ -1,211 +1,497 @@
-# 🗄️ Database Stack
+# Database Stack
 
-A Docker Compose stack providing essential database services for AI/ML and general application development.
+A comprehensive Docker Compose stack providing essential database services for AI/ML applications and general application development. This stack includes NoSQL document storage, SQL with vector search capabilities, and specialized vector databases for semantic search.
 
-## 🚀 Services
+## What is This Stack?
 
-### 🍃 MongoDB (Port 27017)
+This database stack provides the persistence layer for the compose orchestration project, specifically designed to support:
+
+- **AI/ML Applications**: Vector databases for embeddings, semantic search, and RAG (Retrieval-Augmented Generation)
+- **Chat Services**: Document storage for conversation history, user profiles, and application state
+- **General Applications**: Traditional SQL and NoSQL database needs
+
+## Services
+
+### MongoDB (Port 27017)
 
 - **Image**: `mongo:8.2-noble`
-- **Purpose**: NoSQL document database
-- **Auth**: Runs without authentication (internal network only)
-- **Data**: Persisted to `${DATA_DIR}/mongo`
+- **Purpose**: NoSQL document database for flexible schema storage
+- **Authentication**: Configured with root username (password in `.env.local`)
+- **Use Cases**: Chat history, user profiles, application configurations
+- **Connection Pool**: Optimized for 10 concurrent connections with auto-indexing
+- **Data Persistence**: `${DATA_DIR}/mongo`
+- **Network**: Internal `database` network only
 
-### 🐘 pgvector (Port 5432)
+### pgvector (PostgreSQL with Vector Extension) (Port 5432)
 
-- **Image**: `pgvector/pgvector:${PGVECTOR_TAG}`
-- **Purpose**: PostgreSQL with vector similarity search extension
-- **Config**: Max 200 connections
-- **Data**: Persisted to `${DATA_DIR}/postgres`
-- **Init Scripts**: Place SQL files in `${PROJ_DIR}/initdb.d/` for initialization
+- **Image**: `pgvector/pgvector:${PGVECTOR_TAG}` (PostgreSQL 18 + pgvector)
+- **Purpose**: Relational database with vector similarity search extension for AI/ML
+- **Configuration**: Maximum 200 concurrent connections
+- **Use Cases**:
+    - Structured data with ACID compliance
+    - Vector embeddings storage and similarity search
+    - Full-text search with PostgreSQL's built-in capabilities
+    - Hybrid queries combining SQL and vector operations
+- **Data Persistence**: `${DATA_DIR}/postgres`
+- **Init Scripts**: SQL files in `${PROJ_DIR}/initdb.d/` run automatically on first startup
+- **Network**: Internal `database` network only
 
-### 🔍 Qdrant (Ports 6333, 6334)
+### Qdrant (Vector Database) (Ports 6333, 6334)
 
-- **Image**: `qdrant/qdrant:${QDRANT_TAG}`
-- **Purpose**: Vector database for semantic search and AI applications
-- **GPU**: NVIDIA GPU support enabled
-- **Web UI**: Exposed via Traefik at `qdrant.${TRAEFIK_ACME_DOMAIN}`
-- **Data**: Persisted to `${DATA_DIR}/qdrant`
+- **Image**: `qdrant/qdrant:${QDRANT_TAG}` (v1.15 with NVIDIA GPU support)
+- **Purpose**: Specialized vector database optimized for semantic search and AI applications
+- **GPU Acceleration**: NVIDIA GPU support for accelerated indexing and search
+- **Protocols**:
+    - HTTP API on port 6333
+    - gRPC API on port 6334
+- **Web UI**: Accessible via Traefik reverse proxy at `qdrant.${TRAEFIK_ACME_DOMAIN}`
+- **Use Cases**:
+    - High-performance vector similarity search
+    - Neural search applications
+    - Recommendation systems
+    - RAG (Retrieval-Augmented Generation) pipelines
+- **Data Persistence**: `${DATA_DIR}/qdrant`
+- **Networks**: Both `database` (internal) and `proxy` (Traefik) networks
 
-## ⚙️ Configuration
+## Prerequisites
 
-### 📁 Environment Files
+### Required Knowledge
 
-The stack uses multiple environment files for modular configuration:
+This stack assumes you understand:
 
-| File                    | Purpose                               |
-| ----------------------- | ------------------------------------- |
-| `file.env`              | Base configuration and defaults       |
-| `mongodb.env`           | MongoDB connection pool settings      |
-| `pgvector.env`          | PostgreSQL database and user config   |
-| `qdrant.env`            | Qdrant service ports and GPU settings |
-| `compose.override.yaml` | secrets and overrides                 |
+- Basic database concepts (SQL, NoSQL, vector databases)
+- Docker networking and volumes
+- Linux file permissions
+- Environment variable configuration
 
-### 🔑 Important Variables
+### Platform Support
 
-#### 🏷️ Image Tags
+- **Tested on**: Linux (Arch Linux with kernel 6.17.9)
+- **Untested on**: macOS and Windows
+- **Requirements**:
+    - Docker Engine and Docker Compose V2
+    - (Optional) NVIDIA GPU with Container Toolkit for Qdrant acceleration
+    - Sufficient disk space for database storage
 
-```
-PGVECTOR_TAG=pg18-trixie    # PostgreSQL + pgvector version
-QDRANT_TAG=v1.15-gpu-nvidia # Qdrant with NVIDIA GPU support
-```
+### Network Requirements
 
-#### 💻 System Configuration
+The following Docker networks must exist before starting this stack:
 
-```
-UID=1000 # User ID for file permissions
-GID=1000 # Group ID for file permissions
-GPU_ID=0 # NVIDIA GPU device ID (0, 1, etc.)
-```
+- `database` - Internal network for database communication
+- `proxy` - External network for Traefik reverse proxy (Qdrant web UI)
 
-#### 📂 Directory Paths
+If using the systemd installation method from the main compose project, these networks are created automatically. Otherwise, create them manually:
 
-```
-DATA_DIR=/srv/docker/database  # Persistent data storage location
-PROJ_DIR=/srv/compose/database # Project directory (for init scripts)
-```
-
-#### 🔒 Security
-
-`POSTGRES_PASSWORD=user_provided   # PostgreSQL password (override in compose.override.yaml)`
-
-#### 🌐 Networking
-
-`TRAEFIK_ACME_DOMAIN=mydomain.com  # Domain for Traefik reverse proxy`
-
-## 🔧 Overriding Configuration
-
-For deployment-specific settings (secrets, production domains, GPU IDs, or even custom directories), create a `compose.override.yaml` file:
-
-```compose.override.yaml (DO NOT COMMIT)
-services:
-  pgvector:
-    environment:
-      POSTGRES_PASSWORD: your_database_password_here
-  qdrant:
-    labels:
-      - "traefik.http.routers.qdrant.rule=Host(`your_domain_name_here`)"
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              # Use GPU 1 instead of default GPU 0
-              device_ids: ['1']
-              capabilities: [gpu]
-
+```bash
+docker network create database
+docker network create proxy
 ```
 
-Docker Compose automatically merges `compose.yaml` with `compose.override.yaml` at runtime.
+## Configuration
 
-## 📖 Usage
+### Environment Files
 
-### ▶️ Start the stack
+The stack uses a modular environment file structure with base configuration and local overrides:
 
-`docker compose up -d`
+| File                     | Purpose                                    | Committed |
+| ------------------------ | ------------------------------------------ | --------- |
+| `env/mongodb.env`        | MongoDB connection pool settings           | Yes       |
+| `env/mongodb.env.local`  | Local MongoDB overrides (password)         | No        |
+| `env/pgvector.env`       | PostgreSQL database and user config        | Yes       |
+| `env/pgvector.env.local` | Local PostgreSQL overrides (password)      | No        |
+| `env/qdrant.env`         | Qdrant service ports and GPU settings      | Yes       |
+| `env/qdrant.env.local`   | Local Qdrant overrides                     | No        |
+| `compose.override.yaml`  | Deployment-specific overrides (not in git) | No        |
 
-### 📋 View logs
+**Configuration Pattern**: Base `.env` files contain defaults and are committed to git. Local `.env.local` files contain secrets and machine-specific settings and are gitignored.
 
-`docker compose logs -f [service_name]`
+### Important Variables
 
-### ⏹️ Stop the stack
+#### Image Tags (from systemd global env or local override)
 
-`docker compose down`
+```bash
+PGVECTOR_TAG=pg18-trixie     # PostgreSQL 18 + pgvector extension
+QDRANT_TAG=v1.15-gpu-nvidia  # Qdrant with NVIDIA GPU support
+```
 
-### 🔌 Connect to databases
+#### System Configuration (from systemd global env)
+
+```bash
+UID=1000    # User ID for container file permissions
+GID=1000    # Group ID for container file permissions
+GPU_ID=0    # NVIDIA GPU device ID (0, 1, 2, etc.)
+```
+
+#### Directory Paths (from systemd global env)
+
+```bash
+DATA_DIR=/srv/appdata           # Persistent data storage base
+PROJ_DIR=/srv/compose/database  # Project directory (for init scripts)
+```
+
+Actual data locations:
+
+- MongoDB: `${DATA_DIR}/mongo`
+- PostgreSQL: `${DATA_DIR}/postgres`
+- Qdrant: `${DATA_DIR}/qdrant`
+
+#### Security (in .env.local files)
+
+```bash
+# MongoDB (env/mongodb.env.local)
+MONGO_INITDB_ROOT_PASSWORD=your_secure_password_here
+
+# PostgreSQL (env/pgvector.env.local)
+POSTGRES_PASSWORD=your_secure_password_here
+```
+
+#### Networking (from systemd global env)
+
+```bash
+TRAEFIK_ACME_DOMAIN=yourdomain.com  # Domain for Traefik reverse proxy (Qdrant web UI)
+```
+
+### MongoDB Configuration (env/mongodb.env)
+
+```bash
+MONGO_MAX_POOL_SIZE=10           # Maximum connection pool size
+MONGO_MIN_POOL_SIZE=10           # Minimum connection pool size
+MONGO_MAX_CONNECTING=10          # Max concurrent connections being established
+MONGO_MAX_IDLE_TIME_MS=30000     # Connection idle timeout (30 seconds)
+MONGO_WAIT_QUEUE_TIMEOUT_MS=10000 # Queue timeout for connections
+MONGO_AUTO_INDEX=true            # Automatically create indexes
+MONGO_AUTO_CREATE=true           # Automatically create databases
+MONGO_INITDB_ROOT_USERNAME=mongo # Root username
+```
+
+### PostgreSQL Configuration (env/pgvector.env)
+
+```bash
+POSTGRES_DB=postgres    # Default database name
+POSTGRES_USER=postgres  # Default username
+# POSTGRES_PASSWORD set in env/pgvector.env.local
+```
+
+The PostgreSQL service is configured with:
+
+- Maximum 200 concurrent connections
+- pgvector extension pre-installed for vector operations
+- Auto-initialization from SQL scripts in `initdb.d/`
+
+### Qdrant Configuration (env/qdrant.env)
+
+```bash
+QDRANT__SERVICE__HTTP_PORT=6333  # HTTP API port
+QDRANT__SERVICE__GRPC_PORT=6334  # gRPC API port
+QDRANT__GPU__INDEXING=1          # Enable GPU-accelerated indexing
+```
+
+## Usage
+
+### Recommended: Using Systemd Integration
+
+If you've installed the systemd management framework from the main compose project:
+
+```bash
+# Start the database stack
+sudo composectl start database
+
+# Check status
+composectl status database
+
+# View logs
+composectl logs database
+composectl logs -f database  # Follow logs
+
+# Stop the stack
+sudo composectl stop database
+
+# Enable auto-start on boot
+sudo composectl enable database
+```
+
+### Using compose Helper (Standalone)
+
+The `compose` helper script (installed at `/usr/local/bin/compose`) provides automatic environment file detection and sensible defaults:
+
+```bash
+# Navigate to database directory
+cd /srv/compose/database
+
+# Start all services (automatically detects .env and .env.local)
+compose up
+
+# Start specific service
+compose up mongodb
+
+# View logs (follows last 100 lines by default)
+compose logs
+compose logs pgvector  # Specific service
+
+# Check running containers
+compose ps
+
+# Stop the stack (removes orphans and volumes)
+compose down
+
+# Stop without removing volumes
+compose stop
+
+# Restart services
+compose restart
+compose restart qdrant  # Specific service
+```
+
+### Connecting to Databases
 
 **PostgreSQL:**
-`psql -h localhost -p 5432 -U postgres -d postgres`
+
+```bash
+# Using psql
+psql -h localhost -p 5432 -U postgres -d postgres
+
+# Connection string
+postgresql://postgres:your_password@localhost:5432/postgres
+```
 
 **MongoDB:**
-`mongosh mongodb://localhost:27017`
+
+```bash
+# Using mongosh
+mongosh mongodb://mongo:your_password@localhost:27017
+
+# Connection string format
+mongodb://mongo:your_password@localhost:27017/dbname
+```
 
 **Qdrant:**
 
 - HTTP API: `http://localhost:6333`
 - gRPC: `localhost:6334`
-- Web UI: `https://qdrant.${TRAEFIK_ACME_DOMAIN}` (if Traefik configured)
+- Web UI: `https://qdrant.${TRAEFIK_ACME_DOMAIN}` (via Traefik)
 
-## 🌐 Network Configuration
+**Python Example:**
 
-- **database**: Internal network for database communication
-- **proxy**: External network for Traefik integration (Qdrant only)
+```python
+# Qdrant client
+from qdrant_client import QdrantClient
 
-Both networks must be created before starting the stack:
-
-```
-docker network create database
-docker network create proxy
+client = QdrantClient(host="localhost", port=6333)
 ```
 
-## 💾 Data Persistence
+## Data Persistence
 
-All data is stored under `${DATA_DIR}`:
-
-```
-/srv/docker/database/
-├── mongo/ # MongoDB data
-├── postgres/ # PostgreSQL data
-└── qdrant/ # Qdrant vector storage
-```
-
-## 🎮 GPU Requirements
-
-Qdrant is configured to use NVIDIA GPUs for accelerated indexing. Ensure:
-
-1. NVIDIA drivers are installed on the host
-2. [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html) is installed
-3. `GPU_ID` points to an available GPU (check with `nvidia-smi`)
-
-## 🔄 Auto-Start on Boot
-
-To enable automatic startup after system reboot, use Docker's restart policy (already configured as `restart: on-failure:3`).
-
-For systemd integration, create `/etc/systemd/system/database-stack.service`:
+All database data is persisted to the host filesystem under `${DATA_DIR}`:
 
 ```
-[Unit]
-Description=Database Stack
-Requires=docker.service
-After=docker.service network-online.target
-
-[Service]
-Type=oneshot
-RemainAfterExit=yes
-WorkingDirectory=/srv/compose/database
-ExecStart=/usr/bin/docker compose up -d
-ExecStop=/usr/bin/docker compose down
-
-[Install]
-WantedBy=multi-user.target
+/srv/appdata/  (or ${DATA_DIR})
+├── mongo/         # MongoDB data files
+├── postgres/      # PostgreSQL data files
+└── qdrant/        # Qdrant vector storage
 ```
 
-Then enable:
+**Backup Recommendations:**
 
+- MongoDB: Use `mongodump` for logical backups
+- PostgreSQL: Use `pg_dump` or `pg_basebackup`
+- Qdrant: Backup the entire `${DATA_DIR}/qdrant` directory
+
+## GPU Support
+
+Qdrant is configured with NVIDIA GPU acceleration for faster vector indexing and search operations.
+
+**Requirements:**
+
+1. NVIDIA GPU with compute capability 6.0+ (Pascal or newer)
+2. NVIDIA drivers installed on the host
+3. [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html) installed
+4. `GPU_ID` environment variable set to available GPU (check with `nvidia-smi`)
+
+**Verify GPU access:**
+
+```bash
+# Check GPU availability
+nvidia-smi
+
+# Verify Docker can access GPU
+docker run --rm --gpus all nvidia/cuda:12.0-base nvidia-smi
 ```
-sudo systemctl daemon-reload
-sudo systemctl enable database-stack.service
+
+## Troubleshooting
+
+### Containers fail to start after reboot
+
+**Symptoms**: Services don't start automatically after system reboot
+
+**Solutions**:
+
+- If using systemd integration: `sudo composectl enable database`
+- Verify Docker networks exist: `docker network ls | grep -E 'database|proxy'`
+- Check Qdrant GPU access: `nvidia-smi`
+
+### Permission errors on data volumes
+
+**Symptoms**: "Permission denied" errors in container logs
+
+**Solutions**:
+
+- Verify `UID` and `GID` match your user: `id`
+- Fix data directory permissions: `sudo chown -R 1000:1000 ${DATA_DIR}`
+- Check that user namespaces are not conflicting
+
+### PostgreSQL connection refused
+
+**Symptoms**: "Connection refused" or "FATAL: password authentication failed"
+
+**Solutions using compose helper**:
+
+```bash
+cd /srv/compose/database
+
+# Wait 10-15 seconds for initialization on first start
+sleep 15
+
+# Check logs
+compose logs pgvector
+
+# Verify container is running
+compose ps
 ```
 
-## 🔧 Troubleshooting
+**Solutions using composectl**:
 
-### ❌ Containers fail to start after reboot
+```bash
+# Check service status
+composectl status database
 
-- Ensure `compose.override.yaml` exists with correct values
-- Check that Docker networks (`database`, `proxy`) exist
-- Verify GPU availability with `nvidia-smi`
+# View logs
+composectl logs database
 
-### 🚫 Permission errors on data volumes
+# Restart if needed
+sudo composectl restart database
+```
 
-- Check that `UID` and `GID` in `file.env` match your user
-- Verify data directory permissions: `chown -R 1000:1000 /srv/docker/database`
+Additional checks:
 
-### 🔌 PostgreSQL connection refused
+- Verify password in `env/pgvector.env.local` matches connection attempts
+- Ensure PostgreSQL container is running: `compose ps | grep pgvector`
 
-- Wait 10-15 seconds for initialization on first start
-- Check logs: `docker compose logs pgvector`
-- Verify password in `compose.override.yaml` matches connection string
+### MongoDB authentication failed
 
-## 🔐 Security Notes
+**Symptoms**: "Authentication failed" when connecting
 
-⚠️ **Override file `compose.override.yaml`** along with any file inside the `secret/*` are intentionally ignored from git as it contains the password and other secrets. If you clone or fork this repo and modify the `.gitignore` file, **ENSURE** that you do not accidentally commit your credentials to the repository.
+**Solutions**:
+
+```bash
+# Check logs
+compose logs mongodb
+
+# Verify password in env/mongodb.env.local
+cat env/mongodb.env.local
+
+# Wait for MongoDB initialization (first start takes longer)
+# Then try connecting again
+```
+
+- Use correct username (`mongo` by default)
+- Check that `MONGO_INITDB_ROOT_PASSWORD` is set
+
+### Qdrant GPU not detected
+
+**Symptoms**: Qdrant falls back to CPU, slower performance
+
+**Solutions**:
+
+```bash
+# Check Qdrant logs
+compose logs qdrant
+
+# Verify NVIDIA Container Toolkit
+docker run --rm --gpus all nvidia/cuda:12.0-base nvidia-smi
+
+# Check GPU_ID environment variable
+echo $GPU_ID
+
+# Verify GPU availability
+nvidia-smi
+```
+
+### Init scripts not running (PostgreSQL)
+
+**Symptoms**: Expected tables/databases not created
+
+**Solutions**:
+
+- Place SQL files in `${PROJ_DIR}/initdb.d/` directory
+- Init scripts only run on first startup (empty data volume)
+- !WARNING! the following command will remove any existing postgres data
+- To re-run:
+    ```bash
+    cd /srv/compose/database
+    compose down
+    sudo rm -rf ${DATA_DIR}/postgres
+    compose up
+    ```
+
+## Quick Reference
+
+### Common Commands (with compose helper)
+
+```bash
+cd /srv/compose/database
+
+# Start everything
+compose up
+
+# Start specific service
+compose up mongodb
+
+# View all logs
+compose logs
+
+# View specific service logs
+compose logs -f pgvector
+
+# Check status
+compose ps
+
+# Stop everything
+compose down
+
+# Restart service
+compose restart qdrant
+```
+
+### Common Commands (with composectl)
+
+```bash
+# Start/stop/restart
+sudo composectl start database
+sudo composectl stop database
+sudo composectl restart database
+
+# Status and logs
+composectl status database
+composectl logs database
+composectl logs -f database
+
+# Enable/disable auto-start
+sudo composectl enable database
+sudo composectl disable database
+```
+
+### Connection Strings
+
+```bash
+# PostgreSQL
+postgresql://postgres:PASSWORD@localhost:5432/postgres
+
+# MongoDB
+mongodb://mongo:PASSWORD@localhost:27017/
+
+# Qdrant HTTP
+http://localhost:6333
+
+# Qdrant gRPC
+localhost:6334
+```
