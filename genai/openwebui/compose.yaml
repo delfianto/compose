@@ -1,0 +1,46 @@
+services:
+  open-webui:
+    image: ghcr.io/open-webui/open-webui:latest-slim
+    container_name: open-webui
+    restart: "no"
+    networks:
+      - database
+      - genai
+      - proxy
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ${DATA_DIR}:/app/backend/data
+    env_file:
+      - ./env/open-webui.env
+      - ./env/open-webui.env.local
+    environment:
+      - WEBUI_URL=https://webui.${TRAEFIK_ACME_DOMAIN}
+      - CORS_ALLOW_ORIGIN=https://webui.${TRAEFIK_ACME_DOMAIN}
+    labels:
+      # Traefik integration
+      - "traefik.enable=true"
+      - "traefik.http.routers.webui.entrypoints=websecure"
+      - "traefik.http.routers.webui.rule=Host(`webui.${TRAEFIK_ACME_DOMAIN}`)"
+      - "traefik.http.routers.webui.tls.certresolver=cloudflare"
+      - "traefik.http.services.webui.loadbalancer.server.port=8080"
+      # Homepage integration
+      - "homepage.group=Artificial Intelligence"
+      - "homepage.name=Open WebUI"
+      - "homepage.icon=open-webui.svg"
+      - "homepage.href=https://webui.${TRAEFIK_ACME_DOMAIN}"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
+networks:
+  database:
+    external: true
+  genai:
+    external: true
+  proxy:
+    external: true

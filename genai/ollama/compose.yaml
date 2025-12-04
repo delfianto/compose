@@ -1,0 +1,29 @@
+services:
+  ollama:
+    image: ollama/ollama:${OLLAMA_TAG}
+    container_name: ollama
+    restart: "no"
+    networks:
+      - genai
+      - proxy
+    ports:
+      - 127.0.0.1:11434:11434
+    environment:
+      - OLLAMA_CPU_OFFLOAD=1
+      - OLLAMA_HOST=0.0.0.0
+      - OLLAMA_MODELS=/root/.ollama/models
+    volumes:
+      - ${DATA_DIR}:/root/.ollama
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
+networks:
+  genai:
+    external: true
+  proxy:
+    external: true

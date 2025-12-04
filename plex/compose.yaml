@@ -1,9 +1,77 @@
-include:
-  - ./plex.yaml
-  - ./tautulli.yaml
+services:
+  plex:
+    image: lscr.io/linuxserver/plex:latest
+    container_name: plex
+    restart: "no"
+    user: ${UID}:${GID}
+    userns_mode: host
+    env_file:
+      - ./env/plex.env
+    ports:
+      - "1901:1900/udp" # Workaround for UDP 1900 clashed with Spotify
+      - "3005:3005/tcp"
+      - "8324:8324/tcp"
+      - "32400:32400/tcp"
+      - "32469:32469/tcp"
+      - "32410:32410/udp"
+      - "32412:32412/udp"
+      - "32413:32413/udp"
+      - "32414:32414/udp"
+    networks:
+      - proxy
+    volumes:
+      - ${FILE_DIR}:/media
+      - ${DATA_DIR}/plex/config:/config
+      - ${DATA_DIR}/plex/transcode:/transcode
+    labels:
+      # Traefik integration
+      - "traefik.enable=true"
+      - "traefik.http.routers.plex.entrypoints=websecure"
+      - "traefik.http.routers.plex.rule=Host(`plex.${TRAEFIK_ACME_DOMAIN}`)"
+      - "traefik.http.routers.plex.tls.certresolver=cloudflare"
+      - "traefik.http.services.plex.loadbalancer.server.port=32400"
+      # Homepage integration
+      - "homepage.group=Media"
+      - "homepage.name=Plex"
+      - "homepage.icon=plex.svg"
+      - "homepage.href=https://plex.${TRAEFIK_ACME_DOMAIN}"
+      - "homepage.description=Media Server"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              device_ids: ['1']
+              capabilities: [gpu]
+
+  tautulli:
+    image: lscr.io/linuxserver/tautulli:latest
+    restart: unless-stopped
+    container_name: tautulli
+    user: ${UID}:${GID}
+    userns_mode: host
+    env_file:
+      - ./env/plex.env
+    depends_on:
+      - plex
+    volumes:
+      - ${DATA_DIR}/tautulli:/config
+    networks:
+      - proxy
+    labels:
+      # Traefik integration
+      - "traefik.enable=true"
+      - "traefik.http.routers.tautulli.entrypoints=websecure"
+      - "traefik.http.routers.tautulli.rule=Host(`tautulli.${TRAEFIK_ACME_DOMAIN}`)"
+      - "traefik.http.routers.tautulli.tls.certresolver=cloudflare"
+      - "traefik.http.services.tautulli.loadbalancer.server.port=8181"
+      # Homepage integration
+      - "homepage.group=Media"
+      - "homepage.name=Tautulli"
+      - "homepage.icon=tautulli.svg"
+      - "homepage.href=https://tautulli.${TRAEFIK_ACME_DOMAIN}"
+      - "homepage.description=Plex Monitoring"
 
 networks:
   proxy:
     external: true
-  plex:
-    internal: true

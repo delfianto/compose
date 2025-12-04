@@ -1,19 +1,17 @@
+# Ignored directories
+**/.claude/
+**/__pycache__/
+**/certs/
+**/data/
+**/mock/
+
 # SSL/TLS certificates and keys
 **/*.key
 **/*.pem
 **/*.crt
 
-# Certificate directories
-**/certs/
-
-# Data directories
-**/data/
-
-# Mock directories
-**/mock/
-
 # Local environment files
-**/.env.local
-**/.env.secret
-**/.env.*.local
-**/.env.*.secret
+**/*.local
+**/*.secret
+**/global.env
+**/*override.yaml

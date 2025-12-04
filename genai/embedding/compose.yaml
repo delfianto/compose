@@ -1,0 +1,70 @@
+services:
+  tei-embedder:
+    image: ghcr.io/huggingface/text-embeddings-inference:${HF_IMAGE_TAG}
+    container_name: tei-embed
+    restart: "no"
+    env_file:
+      - path: ./env/embed.env
+        required: true
+      - path: ./env/embed.env.local
+        required: false
+    networks:
+      - genai
+      - proxy
+    volumes:
+      - ${DATA_DIR}:/data
+    secrets:
+      - hf_token
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              device_ids: ['${GPU_ID}']
+              capabilities: [gpu]
+
+  tei-reranker:
+    image: ghcr.io/huggingface/text-embeddings-inference:${HF_IMAGE_TAG}
+    container_name: tei-rerank
+    restart: "no"
+    env_file:
+      - path: ./env/rerank.env
+        required: true
+      - path: ./env/rerank.env.local
+        required: false
+    networks:
+      - genai
+      - proxy
+    volumes:
+      - ${DATA_DIR}:/data
+    secrets:
+      - hf_token
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              device_ids: ['${GPU_ID}']
+              capabilities: [gpu]
+
+  tei-proxy:
+    image: ghcr.io/delfianto/tei-proxy:latest
+    container_name: tei-proxy
+    restart: "no"
+    env_file:
+      - path: ./env/proxy.env
+        required: true
+      - path: ./env/proxy.env.local
+        required: false
+    networks:
+      - genai
+
+networks:
+  genai:
+    external: true
+  proxy:
+    external: true
+
+secrets:
+  hf_token:
+    file: ./secret/hf.secret

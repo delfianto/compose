@@ -1,0 +1,57 @@
+services:
+  swarmui:
+    image: swarmui
+    restart: "no"
+    cap_drop:
+      - ALL
+    build:
+      args:
+        - UID=${UID}
+        - GID=${GID}
+      context: .
+      dockerfile: Dockerfile
+    container_name: swarmui
+    user: ${UID}:${GID}
+    userns_mode: host
+    networks:
+      - proxy
+    environment:
+      - UID=${UID}
+      - GID=${GID}
+      - SWARMUI_PORT=${SWARMUI_PORT}
+      - SWARMUI_ROOT=${SWARMUI_ROOT}
+    volumes:
+      # Stable Diffusion models and outputs
+      - ${DATA_DIR}/models:${SWARMUI_ROOT}/Models
+      - ${DATA_DIR}/output:${SWARMUI_ROOT}/Output
+      # SwarmUI config and data
+      - ${SWARMUI_DATA}/Home:${SWARMUI_ROOT}/Home
+      - ${SWARMUI_DATA}/Data:${SWARMUI_ROOT}/Data
+      - ${SWARMUI_DATA}/Back:${SWARMUI_ROOT}/dlbackend
+      - ${SWARMUI_DATA}/Exts:${SWARMUI_EXTS}
+      - ${SWARMUI_DATA}/Node:${SWARMUI_COMF}/DLNodes
+      - ${SWARMUI_DATA}/Work:${SWARMUI_COMF}/CustomWorkflows
+    labels:
+      # Traefik integration
+      - "traefik.enable=true"
+      - "traefik.http.routers.swarmui.entrypoints=websecure"
+      - "traefik.http.routers.swarmui.rule=Host(`swarmui.${TRAEFIK_ACME_DOMAIN}`)"
+      - "traefik.http.routers.swarmui.tls.certresolver=cloudflare"
+      - "traefik.http.services.swarmui.loadbalancer.server.port=${SWARMUI_PORT}"
+      # Homepage integration
+      - "homepage.group=Artificial Intelligence"
+      - "homepage.name=SwarmUI"
+      - "homepage.icon=/icons/stablediff.png"
+      - "homepage.href=https://swarmui.${TRAEFIK_ACME_DOMAIN}"
+      - "homepage.description=Stable Diffusion SwarmUI"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+networks:
+  proxy:
+    external: true
