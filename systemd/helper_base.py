@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 
 """
-install_helper.py - shared helpers for compose tools
+helper_base.py - Shared base utilities for compose-systemd tools
 """
 
 import os
 import subprocess
+import sys
 from pathlib import Path
 
 
@@ -19,6 +20,7 @@ class Colors:
     NC = "\033[0m"  # No Color
 
 
+# The directory where these scripts are located
 SCRIPT_DIR = Path(__file__).parent.resolve()
 
 
@@ -46,7 +48,7 @@ def check_root():
     """Check if running as root."""
     if os.geteuid() != 0:
         print_error("This operation must be run as root or with sudo")
-        raise SystemExit(1)
+        sys.exit(1)
 
 
 def systemctl(*args, check=True, capture=True) -> subprocess.CompletedProcess:
