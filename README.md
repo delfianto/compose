@@ -52,9 +52,15 @@ This is a **systemd-managed Docker Compose framework** designed to reliably orch
 
 ## Getting Started
 
+### IMPORTANT: Read the Utils Directory README First
+
+**Before proceeding, read [utils/README.md](utils/README.md) for comprehensive installation and usage documentation.**
+
+The utils directory contains the systemd integration framework that is **essential** for proper operation of this project. It provides reliable service orchestration, dependency management, and automatic environment file handling.
+
 ### Recommended Installation Method
 
-**Use the helper script in the `systemd/` folder for proper system integration:**
+**Use the helper script in the `utils/` folder for proper system integration:**
 
 1. **Clone the repository:**
 
@@ -66,7 +72,7 @@ This is a **systemd-managed Docker Compose framework** designed to reliably orch
 2. **Install the systemd management framework:**
 
     ```bash
-    cd systemd
+    cd utils
     sudo python3 systemd.py install \
       --acme-domain yourdomain.com \
       --acme-email your@email.com
@@ -103,16 +109,130 @@ This is a **systemd-managed Docker Compose framework** designed to reliably orch
     sudo composectl enable panel database genai-ollama
     ```
 
-### Manual Docker Compose Usage
+### Manual Docker Compose Usage (NOT RECOMMENDED)
 
-If you prefer not to use the systemd integration:
+**Warning: Manual `docker compose` usage is NOT recommended and should be avoided.**
+
+While technically possible, using `docker compose` directly is:
+
+- **Tedious**: Requires specifying multiple `--env-file` arguments for every command
+- **Error-Prone**: Easy to forget `.env.local` files containing critical secrets
+- **Inconsistent**: No standardized defaults across different services
+- **Unreliable**: No dependency management or reliable auto-restart on reboot
+- **Fragile**: Manual tracking of which env files to include for each service
+
+**Example of what you'd have to type manually:**
 
 ```bash
-cd panel  # or any service directory
-docker compose up -d
+cd /srv/compose/database
+docker compose --env-file .env --env-file .env.local up -d --remove-orphans
+docker compose --env-file .env --env-file .env.local logs -f --tail=100
+docker compose --env-file .env --env-file .env.local down --remove-orphans --volumes
+# Repeat for EVERY service, EVERY time...
 ```
 
-**Note**: Docker does not actually provide dependency management or reliable auto-restart on system reboot. The systemd integration is strongly recommended for actual day to day use.
+**With projects having multiple `.env` files** (root `.env`, `.env.local`, `env/service.env`, `env/service.env.local`), manual management becomes extremely error-prone. Forgetting even one file can lead to containers starting with wrong configurations or missing critical environment variables.
+
+**Instead, use the installed tools:**
+
+```bash
+cd /srv/compose/database
+compose up      # Automatically handles all .env files
+compose logs    # Sensible defaults
+compose down    # Consistent cleanup
+```
+
+**Or use systemd integration:**
+
+```bash
+sudo composectl start database   # Handles everything automatically
+```
+
+**Bottom line**: The systemd integration and compose helper are **essential tools** that make operating with the compose project a lot more simple and easy. Manual docker compose commands defeats the purpose of this orchestration framework (unless one love to type long commands).
+
+### Domain Name and TLS Requirement
+
+**This project assumes you own a domain name for TLS termination.**
+
+#### Why a Domain Name is Required
+
+This project uses **Traefik** as a reverse proxy with automatic SSL/TLS certificate management via Let's Encrypt. This architecture provides:
+
+- **Secure HTTPS access** to all web services (Open WebUI, Qdrant, Portainer, etc.)
+- **Automatic certificate renewal** - no manual certificate management
+- **Centralized access point** - single domain with service-specific subdomains
+- **Professional homelab setup** - proper encryption even for internal services
+
+#### Homelab Deployment Scenario (Recommended)
+
+For homelab deployments, the recommended approach is:
+
+1. **Own a domain name** (e.g., `mydomain.com` from any registrar)
+2. **Use Cloudflare DNS** (free tier is sufficient)
+3. **Configure Traefik with Cloudflare DNS challenge** for automatic Let's Encrypt certificates
+4. **Access services via subdomains**:
+    - `https://webui.mydomain.com` - Open WebUI
+    - `https://qdrant.mydomain.com` - Qdrant vector database
+    - `https://portainer.mydomain.com` - Container management
+    - `https://traefik.mydomain.com` - Traefik dashboard
+
+**Benefits of DNS Challenge with Cloudflare:**
+
+- No need to expose ports 80/443 to the internet
+- Works behind NAT/firewall (perfect for homelabs)
+- Wildcard certificates supported
+- Private homelab with valid SSL certificates
+
+#### Getting Started with Cloudflare ACME
+
+**Step 1: Register Domain and Set Up Cloudflare**
+
+1. Register a domain name at any registrar (Namecheap, Google Domains, etc.)
+2. Create a free [Cloudflare account](https://www.cloudflare.com/)
+3. Add your domain to Cloudflare and update nameservers at your registrar
+4. Wait for DNS propagation (usually 24-48 hours)
+
+**Step 2: Create Cloudflare API Token**
+
+1. Go to Cloudflare Dashboard → Profile → API Tokens
+2. Click "Create Token"
+3. Use "Edit zone DNS" template
+4. Configure:
+    - **Permissions**: Zone → DNS → Edit
+    - **Zone Resources**: Include → Specific zone → your domain
+5. Create token and **save it securely** (shown only once)
+
+**Step 3: Configure This Project**
+
+```bash
+# Store Cloudflare token in secret file (gitignored)
+cd /srv/compose/panel
+echo "your_cloudflare_api_token_here" > secret/cf_dns.secret
+chmod 600 secret/cf_dns.secret
+
+# Install with your domain
+cd /srv/compose/utils
+sudo python3 systemd.py install \
+  --acme-domain yourdomain.com \
+  --acme-email your@email.com
+```
+
+**Recommended Guides:**
+
+- **Cloudflare DNS Setup**: [Cloudflare - Add a Site](https://developers.cloudflare.com/fundamentals/setup/account-setup/add-site/)
+- **API Token Creation**: [Cloudflare - API Tokens](https://developers.cloudflare.com/fundamentals/api/get-started/create-token/)
+- **Traefik + Cloudflare**: [Traefik Cloudflare DNS Challenge](https://doc.traefik.io/traefik/https/acme/#dnschallenge)
+- **Let's Encrypt DNS Challenge**: [Let's Encrypt DNS Validation](https://letsencrypt.org/docs/challenge-types/#dns-01-challenge)
+
+#### Alternative: Local Development Without Domain
+
+If you're testing locally without a domain, you can:
+
+1. **Use HTTP only** (not recommended for production)
+2. **Use self-signed certificates** (browser warnings)
+3. **Access services via localhost:port** (no reverse proxy)
+
+However, the Traefik + Cloudflare approach is **strongly recommended** even for homelab use, as it provides production-grade security without exposing your homelab to the internet.
 
 ## Environment Configuration System
 
@@ -408,12 +528,12 @@ grep -r "VARIABLE_NAME" compose.yaml env/
 
 ```
 /srv/compose/
-├── systemd/              # System integration scripts (RECOMMENDED)
+├── utils/                # System integration scripts (RECOMMENDED)
 ├── panel/                # Traefik, Portainer, Homepage
 ├── database/             # MongoDB, PostgreSQL, Qdrant
 ├── genai/                # AI/ML services (Ollama, WebUI, embeddings, etc.)
 ├── plex/                 # Plex Media Server, Tautulli
-├── stash/                # StashApp content management
+├── stash/                # StashApp content server
 └── docker/               # Docker network and configuration files
 ```
 
