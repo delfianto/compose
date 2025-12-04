@@ -1,213 +1,272 @@
 # Docker Compose Systemd Manager
 
-A reliable systemd-based management system for Docker Compose projects that solves the notorious unreliability of Docker's built-in container auto-start mechanisms.
+A comprehensive systemd-based management system for Docker Compose projects that solves Docker's unreliable container auto-start mechanisms through proper dependency management and service orchestration.
 
 ## The Problem: Why Docker Auto-Start is Unreliable
 
-Docker's built-in restart policies (`restart: always`, `restart: unless-stopped`) suffer from several fundamental issues that make them unsuitable for actual deployments:
+Docker's built-in restart policies (`restart: always`, `restart: unless-stopped`) have fundamental issues:
 
-### 1. Race Conditions at Boot
+### Race Conditions at Boot
 
-Docker starts containers in parallel without understanding dependencies. When your system reboots:
+- Database containers may not be initialized when applications start
+- Networks might not be ready when containers bind
+- Services fail health checks due to unavailable dependencies
 
-- Database containers may not be fully initialized when application containers start
-- Networks might not be ready when containers try to bind to them
-- Services fail health checks because their dependencies aren't available yet
+### No Dependency Management
 
-### 2. No Dependency Management
+Docker can't reliably manage service startup order, the `depends_on` directive only ensures containers start, not that services are ready.
 
-Docker has no reliable way to manage service startup order. The `depends_on` directive in docker-compose only ensures containers _start_ in order, not that services are _ready_.
+### Restart Policy Inconsistencies
 
-### 3. Restart Policy Inconsistencies
+The `always` policy frequently fails after host reboots or gives up after successive failures.
 
-The `always` restart policy is frequently ignored or behaves unpredictably:
+## The Solution: Systemd-Managed Compose
 
-- May not work after host reboots (only after `systemctl restart docker`)
-- Often fails after 3-4 successive reboots for unexplained reasons
-- Restart limits can cause containers to give up and remain stopped
+This toolkit provides:
 
-### 4. Unhealthy State Handling
-
-Docker doesn't automatically restart unhealthy containers by default. Health checks are purely diagnostic—containers can sit in an unhealthy state indefinitely without intervention.
-
-### 5. Single Point of Failure
-
-All containers depend on the Docker daemon. If the daemon crashes, hangs, or requires an update, all containers stop. Systemd, by contrast, runs services directly under its supervision with automatic recovery.
-
-## The Solution: Systemd-Managed Compose Projects
-
-This toolkit leverages systemd's battle-tested service management to provide:
-
-- ✅ **Explicit dependency chains** - Define which services must start before others
-- ✅ **Proper startup ordering** - Services wait for dependencies to be fully ready
-- ✅ **Reliable restart behavior** - Systemd's proven restart mechanisms
-- ✅ **Fine-grained control** - Different restart policies per service
-- ✅ **Better logging** - Integration with journalctl for centralized logs
-- ✅ **Socket activation support** - Start services on-demand
+- ✅ Explicit dependency chains with proper ordering
+- ✅ Reliable restart behavior via systemd
+- ✅ Integration with journalctl for centralized logging
+- ✅ Fine-grained per-service control
 
 ## Components
 
-### 1. compose.py - Enhanced Docker Compose Wrapper
+### 1. compose - Enhanced Docker Compose Wrapper
 
-A Python wrapper around `docker compose` that provides:
+Located at: `/usr/local/bin/compose`
 
-- Automatic environment file discovery
-- Sensible default flags for common commands
-- Support for hyphenated project names (e.g., `genai-ollama` → `genai/ollama`)
-- Transparent command execution with full visibility
+Python wrapper providing:
+
+- Automatic `.env*` file discovery
+- Sensible command defaults
+- Hyphenated path support (`genai-ollama` → `genai/ollama`)
+- Transparent command execution
+
+**Supported Commands:**
+
+- `up` - Start with `--remove-orphans --detach`
+- `down` - Stop with `--remove-orphans --volumes`
+- `logs` - Follow last 100 lines (`-f --tail=100`)
+- `ps` - Pretty table format
+- `build` - No cache (`--no-cache`)
+- `exec` - Default to `/bin/bash`
+- `pull` - Ignore pull failures
+- `restart`, `start`, `stop` - Standard operations
+
+**Environment Variables:**
+
+- `COMPOSE_PROJECT` - Project name (supports hyphens)
+- `COMPOSE_BASE` - Base directory (default: current dir)
+- `DOCKER_PG_FORMAT` - Build progress style
+- `DOCKER_PS_FORMAT` - Override ps format
+
+**Usage:**
 
 ```bash
-# Usage examples
-compose.py up      # Start with sensible defaults
-compose.py logs    # Follow last 100 log lines
-compose.py ps      # Pretty table format
-compose.py down    # Clean shutdown with volume removal
+compose up                    # Start with defaults
+compose logs                  # Follow latest logs
+compose ps                    # View running containers
+compose exec service-name     # Interactive bash shell
 ```
 
-### 2. docker-compose@.service - Systemd Template Unit
+### 2. composectl - Systemd Service Controller
 
-A systemd template that creates service instances for each compose project. Features:
+Located at: `/usr/local/bin/composectl`
 
-- Template-based instantiation (one unit file, multiple instances)
-- Automatic environment loading
-- Project name resolution via `COMPOSE_PROJECT` variable
-- 5-minute startup timeout for complex stacks
-- Restart on failure with 10-second delay
+Systemctl wrapper that simplifies management of `docker-compose@` services.
 
-### 3. compose-systemd.py - Management Tool
-
-Central management utility for installation and dependency configuration:
-
-#### Installation
+**Commands:**
 
 ```bash
-sudo ./compose-systemd.py --install \
+# Service Control (requires root/sudo)
+composectl start <service> [service2...]
+composectl stop <service> [service2...]
+composectl restart <service> [service2...]
+composectl enable <service> [service2...]    # Enable at boot
+composectl disable <service> [service2...]   # Disable at boot
+
+# Status Checking (no root needed)
+composectl status <service> [service2...]
+composectl is-active <service> [service2...]
+composectl is-enabled <service> [service2...]
+composectl list                              # List all services
+
+# Log Viewing
+composectl logs <service> [service2...]
+composectl logs -f <service>                 # Follow logs
+composectl logs -n 50 <service>              # Last 50 lines
+composectl logs --since "1 hour ago" <service>
+```
+
+**Features:**
+
+- Auto-adds `docker-compose@` prefix and `.service` suffix
+- Auto-detects when sudo is required
+- Colored output for better readability
+- Supports batch operations on multiple services
+
+### 3. systemd.py - Installation & Dependency Manager
+
+Main installer script (run as: `python3 systemd.py`)
+
+**Installation Command:**
+
+```bash
+sudo python3 systemd.py install \
   --acme-domain example.com \
-  --acme-email admin@example.com
+  --acme-email admin@example.com \
+  [--acme-server URL] \
+  [--data-base-dir /srv/appdata] \
+  [--proj-base-dir /srv/compose]
 ```
 
-#### Dependency Management
+**Options:**
+
+- `--acme-domain` - Domain for Let's Encrypt SSL (required for fresh install)
+- `--acme-email` - Email for SSL notifications (required for fresh install)
+- `--acme-server` - ACME server URL (default: Let's Encrypt production)
+- `--data-base-dir` - Application data directory (default: `/srv/appdata`)
+- `--proj-base-dir` - Compose projects directory (default: `/srv/compose`)
+
+**Dependency Management:**
 
 ```bash
-# Add hard dependency (service won't start if dependency fails)
-sudo ./compose-systemd.py deps add genai-open-webui database requires
+# Add hard dependency (requires)
+sudo python3 systemd.py deps add <service> <dependency> requires
 
-# Add soft dependency (service starts even if dependency fails)
-sudo ./compose-systemd.py deps add genai-embedding genai-ollama wants
+# Add soft dependency (wants)
+sudo python3 systemd.py deps add <service> <dependency> wants
 
 # List dependencies
-./compose-systemd.py deps list genai-open-webui
+python3 systemd.py deps list <service>
 
 # Check full dependency chain
-./compose-systemd.py deps check genai-open-webui
+python3 systemd.py deps check <service>
 
 # Remove dependency
-sudo ./compose-systemd.py deps remove genai-open-webui database
+sudo python3 systemd.py deps remove <service> <dependency>
 ```
 
-#### Status Checking
+**Check Installation Status:**
 
 ```bash
-./compose-systemd.py --check-status
+python3 systemd.py check-status
 ```
 
-### 4. docker-compose.env.template - Global Environment Template
+### 4. docker-compose@.service - Systemd Template Unit
 
-Template for the global environment file that all compose services inherit:
+Systemd template file installed at: `/etc/systemd/system/docker-compose@.service`
 
-- `DATA_BASE_DIR` - Where application data is stored (default: `/srv/appdata`)
-- `PROJ_BASE_DIR` - Where compose projects live (default: `/srv/compose`)
-- `TRAEFIK_ACME_*` - Let's Encrypt SSL configuration
-- Additional Docker-related environment variables
+**Features:**
+
+- Template-based instantiation (one file, multiple instances)
+- Automatic environment loading from `/etc/systemd/system/docker-compose.env`
+- 5-minute startup timeout
+- Restart on failure with 10-second delay
+- Dependency support through drop-in files
+
+**Service Naming:**
+
+- Instance `database` → `/srv/compose/database`
+- Instance `genai-ollama` → `/srv/compose/genai/ollama`
+
+### 5. Environment Configuration
+
+**Template:** `docker-compose.env.template`  
+**Installed:** `/etc/systemd/system/docker-compose.env`
+
+Global environment variables inherited by all compose services:
+
+- `DOCKER_DATA_DIR` - Application data directory
+- `DOCKER_PROJ_DIR` - Compose projects directory
+- `TRAEFIK_ACME_DOMAIN` - Primary domain for SSL
+- `TRAEFIK_ACME_EMAIL` - Email for certificate notifications
+- `TRAEFIK_ACME_SERVER` - ACME server URL
 
 ## Installation
 
 ### Prerequisites
 
-- Docker and Docker Compose
+- Docker and Docker Compose installed
 - Python 3.6+
 - systemd-based Linux distribution
 - Root/sudo access
 
 ### Setup Steps
 
-1. **Clone or download this repository** with all components:
+**1. Prepare Files**
+Ensure you have all required files:
 
-    ```
-    compose-systemd.py
-    compose.py
-    docker-compose@.service
-    docker-compose.env.template
-    ```
+```
+systemd.py
+compose.py
+composectl.py
+helper_base.py
+helper_deps.py
+helper_inst.py
+docker-compose@.service
+docker-compose.env.template
+```
 
-2. **Run the installer** with your ACME credentials:
+**2. Run Installation**
 
-    ```bash
-    sudo ./compose-systemd.py --install \
-      --acme-domain yourdomain.com \
-      --acme-email your@email.com
-    ```
+```bash
+sudo python3 systemd.py install \
+  --acme-domain yourdomain.com \
+  --acme-email your@email.com
+```
 
-    Optional: Override default directories
+This installs:
 
-    ```bash
-    sudo ./compose-systemd.py --install \
-      --acme-domain yourdomain.com \
-      --acme-email your@email.com \
-      --data-base-dir /opt/appdata \
-      --proj-base-dir /opt/compose
-    ```
+- `/usr/local/bin/compose` - Compose wrapper
+- `/usr/local/bin/composectl` - Service controller
+- `/etc/systemd/system/docker-compose@.service` - Systemd template
+- `/etc/systemd/system/docker-compose.env` - Global environment
 
-3. **Disable Docker's built-in restart policies** in all your docker-compose.yml files:
+**3. Prepare Compose Projects**
+Disable Docker's restart policies:
 
-    ```yaml
-    services:
-        myservice:
-            # Remove or set to "no"
-            restart: "no"
-    ```
+```yaml
+services:
+    myservice:
+        restart: "no" # Or remove the line entirely
+```
 
-4. **Enable your compose projects** as systemd services:
+**4. Enable Services**
 
-    ```bash
-    # For flat projects
-    sudo systemctl enable docker-compose@database.service
+```bash
+sudo systemctl enable docker-compose@database.service
+sudo systemctl enable docker-compose@genai-ollama.service
+```
 
-    # For nested projects (hyphenated paths)
-    sudo systemctl enable docker-compose@genai-ollama.service
-    sudo systemctl enable docker-compose@genai-open-webui.service
-    ```
+**5. Configure Dependencies**
 
-5. **Configure dependencies** between services:
+```bash
+# Example: open-webui requires database and ollama
+sudo python3 systemd.py deps add genai-open-webui database requires
+sudo python3 systemd.py deps add genai-open-webui genai-ollama requires
+```
 
-    ```bash
-    # open-webui requires both database and ollama
-    sudo ./compose-systemd.py deps add genai-open-webui database requires
-    sudo ./compose-systemd.py deps add genai-open-webui genai-ollama requires
+**6. Start Services**
 
-    # embedding wants (soft dependency) ollama
-    sudo ./compose-systemd.py deps add genai-embedding genai-ollama wants
-    ```
+```bash
+# Start individual service (dependencies start automatically)
+sudo composectl start genai-open-webui
 
-6. **Start your services**:
-
-    ```bash
-    # Start individual service (dependencies start automatically)
-    sudo systemctl start docker-compose@genai-open-webui.service
-
-    # Start all enabled services
-    sudo systemctl start docker-compose@*.service
-    ```
+# Or use systemctl directly
+sudo systemctl start docker-compose@genai-open-webui.service
+```
 
 ## Directory Structure
 
-Your compose projects should follow this structure:
+Expected project layout:
 
 ```
-/srv/compose/                    # PROJ_BASE_DIR
+/srv/compose/                    # DOCKER_PROJ_DIR
 ├── database/
-│   └── docker-compose.yml
-├── genai/                       # Prefix for related services
+│   ├── docker-compose.yml
+│   └── .env                     # Optional project-specific env
+├── genai/
 │   ├── ollama/
 │   │   └── docker-compose.yml
 │   ├── open-webui/
@@ -217,251 +276,278 @@ Your compose projects should follow this structure:
 └── panel/
     └── docker-compose.yml
 
-/srv/appdata/                    # DATA_BASE_DIR
-├── mongodb/                     # Application data
+/srv/appdata/                    # DOCKER_DATA_DIR
+├── mongodb/
 ├── postgres/
 └── ollama/
 ```
 
-## How It Works
+## Dependency Management
 
-### Project Name Resolution
+### Dependency Types
 
-The systemd template uses `%i` (instance identifier) to determine which project to run:
+**Requires (Hard Dependency)**
 
-- `docker-compose@database.service` → `/srv/compose/database`
-- `docker-compose@genai-ollama.service` → `/srv/compose/genai/ollama`
+- Service won't start if dependency fails
+- Use for critical dependencies (databases, required APIs)
 
-Hyphens in the service name are automatically converted to directory separators by `compose.py`.
+**Wants (Soft Dependency)**
 
-### Dependency Chain Example
+- Service starts even if dependency fails
+- Use for optional services (monitoring, logging)
 
-When you start `genai-open-webui`:
+### Configuration Files
 
-1. Systemd checks dependencies (database, genai-ollama)
-2. Starts database first, waits for it to be "ready" (RemainAfterExit=yes)
-3. Starts genai-ollama, waits for it to be ready
-4. Finally starts genai-open-webui
-5. All services remain under systemd supervision with automatic restart on failure
-
-### Drop-in Configuration
-
-Dependencies are stored as systemd drop-in files:
+Dependencies are stored as drop-in files:
 
 ```
-/etc/systemd/system/docker-compose@genai-open-webui.service.d/
+/etc/systemd/system/docker-compose@<service>.service.d/
 └── dependencies.conf
 ```
 
-This keeps the base template clean and allows per-service customization.
+Example `dependencies.conf`:
 
-## Managing Services
+```ini
+[Unit]
+Requires=docker-compose@database.service
+Wants=docker-compose@monitoring.service
+After=docker-compose@database.service
+After=docker-compose@monitoring.service
+```
 
-### Start/Stop/Restart
+### Dependency Chain Example
+
+Starting `genai-open-webui` with dependencies:
+
+1. Systemd checks dependencies (database, genai-ollama)
+2. Starts database first, waits for readiness
+3. Starts genai-ollama, waits for readiness
+4. Starts genai-open-webui
+5. All services supervised with automatic restart
+
+## Service Management
+
+### Using composectl (Recommended)
+
+```bash
+# Start/Stop
+sudo composectl start database genai-ollama
+sudo composectl stop database
+sudo composectl restart genai-open-webui
+
+# Status
+composectl status database
+composectl is-active database genai-ollama
+composectl is-enabled database
+
+# List all services
+composectl list
+
+# Logs
+composectl logs database
+composectl logs -f genai-ollama
+composectl logs -n 100 --since "10 minutes ago" database
+
+# Enable/Disable at boot
+sudo composectl enable database genai-ollama
+sudo composectl disable genai-embedding
+```
+
+### Using systemctl (Alternative)
 
 ```bash
 sudo systemctl start docker-compose@database.service
-sudo systemctl stop docker-compose@database.service
-sudo systemctl restart docker-compose@database.service
-```
-
-### Check Status
-
-```bash
 sudo systemctl status docker-compose@database.service
-```
-
-### View Logs
-
-```bash
-# Follow logs
 journalctl -u docker-compose@database.service -f
-
-# Last 100 lines
-journalctl -u docker-compose@database.service -n 100
-
-# Since boot
-journalctl -u docker-compose@database.service -b
-```
-
-### Enable/Disable Auto-start
-
-```bash
-# Enable (start at boot)
 sudo systemctl enable docker-compose@database.service
-
-# Disable (don't start at boot)
-sudo systemctl disable docker-compose@database.service
 ```
-
-## Advantages Over Docker Auto-Restart
-
-| Feature                      | Docker `restart: always`  | Systemd-managed            |
-| ---------------------------- | ------------------------- | -------------------------- |
-| Dependency ordering          | ❌ No                     | ✅ Yes (After=, Requires=) |
-| Waits for dependencies ready | ❌ No                     | ✅ Yes                     |
-| Reliable after reboot        | ⚠️ Inconsistent           | ✅ Reliable                |
-| Single point of failure      | ❌ Docker daemon          | ✅ No (systemd recovery)   |
-| Centralized logging          | ⚠️ Limited                | ✅ journalctl integration  |
-| Fine-grained restart control | ⚠️ Limited                | ✅ Per-service policies    |
-| Startup timeout control      | ❌ No                     | ✅ Configurable            |
-| Health check restart         | ❌ No (manual workaround) | ✅ Via restart policies    |
 
 ## Troubleshooting
 
-### Service fails to start
+### Service Fails to Start
 
 ```bash
-# Check detailed status
-sudo systemctl status docker-compose@project.service
+# Check service status
+sudo composectl status project
 
-# View full logs
-journalctl -u docker-compose@project.service -n 50
+# View detailed logs
+composectl logs -n 100 project
 
-# Check if dependencies are running
-sudo ./compose-systemd.py deps check project
+# Check dependencies
+python3 systemd.py deps check project
+
+# Verify dependency services are running
+composectl list
 ```
 
-### Dependency not working
+### Dependency Issues
 
 ```bash
-# Verify dependency configuration
-sudo ./compose-systemd.py deps list project
+# List configured dependencies
+python3 systemd.py deps list project
 
-# Check drop-in files
+# Check drop-in configuration
 cat /etc/systemd/system/docker-compose@project.service.d/dependencies.conf
 
-# Reload systemd after manual changes
+# Reload after manual changes
 sudo systemctl daemon-reload
 ```
 
-### compose.py not found
+### Installation Problems
 
 ```bash
-# Verify installation
-which compose.py
-ls -l /usr/local/bin/compose.py
+# Check installation status
+python3 systemd.py check-status
 
-# Reinstall if needed
-sudo ./compose-systemd.py --install --acme-domain ... --acme-email ...
+# Verify installed files
+ls -l /usr/local/bin/compose /usr/local/bin/composectl
+ls -l /etc/systemd/system/docker-compose@.service
+cat /etc/systemd/system/docker-compose.env
+
+# Reinstall (preserves existing configuration)
+sudo python3 systemd.py install \
+  --acme-domain yourdomain.com \
+  --acme-email your@email.com
+```
+
+### Compose Command Not Working
+
+```bash
+# Set environment variable for project
+export COMPOSE_PROJECT=database
+compose ps
+
+# Or use full path
+cd /srv/compose/database
+/usr/local/bin/compose ps
+
+# Check compose wrapper
+compose --print-workdir
 ```
 
 ## Advanced Usage
 
-### Using Staging ACME Server
+### Hyphenated Projects
 
-For testing Let's Encrypt integration without hitting rate limits:
+Projects with hyphens in names are treated as nested paths:
 
 ```bash
-sudo ./compose-systemd.py --install \
-  --acme-domain yourdomain.com \
-  --acme-email your@email.com \
+# Service: genai-ollama
+# Maps to: /srv/compose/genai/ollama
+
+sudo composectl start genai-ollama
+```
+
+### Custom ACME Server (Staging)
+
+For testing without rate limits:
+
+```bash
+sudo python3 systemd.py install \
+  --acme-domain test.example.com \
+  --acme-email admin@example.com \
   --acme-server https://acme-staging-v02.api.letsencrypt.org/directory
 ```
 
-### Custom Directory Layouts
+### Service Groups with Targets
 
-If you prefer different directory structures:
+Create systemd targets for related services:
 
-```bash
-sudo ./compose-systemd.py --install \
-  --acme-domain yourdomain.com \
-  --acme-email your@email.com \
-  --data-base-dir /mnt/data/apps \
-  --proj-base-dir /home/user/projects
-```
-
-### Creating Service Groups
-
-Use systemd targets to group related services:
-
-```bash
-# Create a target file
-sudo nano /etc/systemd/system/docker-compose-genai.target
-```
+`/etc/systemd/system/docker-compose-genai.target`:
 
 ```ini
 [Unit]
-Description=All GenAI Docker Compose Services
+Description=All GenAI Services
 Wants=docker-compose@genai-ollama.service
 Wants=docker-compose@genai-open-webui.service
-Wants=docker-compose@genai-embedding.service
 After=docker.service
 
 [Install]
 WantedBy=multi-user.target
 ```
 
-Then control all GenAI services as one unit:
+Control as group:
 
 ```bash
 sudo systemctl enable docker-compose-genai.target
 sudo systemctl start docker-compose-genai.target
 ```
 
-## Environment Variables
+### Override Compose Defaults
 
-The global environment file (`/etc/systemd/system/docker-compose.env`) provides these variables to all compose services:
+Set environment variables to customize behavior:
 
-- `DATA_BASE_DIR` - Base directory for persistent data
-- `PROJ_BASE_DIR` - Base directory for compose project files
-- `TRAEFIK_ACME_DOMAIN` - Primary domain for SSL certificates
-- `TRAEFIK_ACME_EMAIL` - Email for certificate notifications
-- `TRAEFIK_ACME_SERVER` - ACME server URL (Let's Encrypt)
-- `DOCKER_PG_FORMAT` - Docker build progress format (optional)
-- `DOCKER_PS_FORMAT` - Docker ps output format (optional)
+```bash
+# Change docker ps format
+export DOCKER_PS_FORMAT="table {{.Names}}\t{{.Status}}"
+compose ps
 
-Individual compose projects can override these by creating local `.env` files.
+# Change build progress format
+export DOCKER_PG_FORMAT=plain
+compose build
+```
+
+## Comparison: Docker vs Systemd
+
+| Feature                      | Docker `restart: always` | Systemd-managed         |
+| ---------------------------- | ------------------------ | ----------------------- |
+| Dependency ordering          | ❌ No                    | ✅ Yes                  |
+| Wait for dependencies ready  | ❌ No                    | ✅ Yes                  |
+| Reliable after reboot        | ⚠️ Inconsistent          | ✅ Reliable             |
+| Single point of failure      | ❌ Docker daemon         | ✅ Systemd recovery     |
+| Centralized logging          | ⚠️ Limited               | ✅ journalctl           |
+| Fine-grained restart control | ⚠️ Limited               | ✅ Per-service policies |
+| Startup timeout              | ❌ No                    | ✅ Configurable         |
+| Health check restart         | ❌ Manual workaround     | ✅ Via restart policies |
 
 ## Best Practices
 
-1. **Always define dependencies** - Even if services seem independent, explicit dependencies prevent race conditions
-2. **Use `requires` for critical dependencies** - Databases, message queues, etc.
-3. **Use `wants` for optional dependencies** - Monitoring, logging sidecars
-4. **Test with `--check-status`** - Verify installation before enabling services
-5. **Monitor logs during first boot** - Use `journalctl -f` to watch services start
-6. **Document your dependencies** - Keep notes on why each dependency exists
-7. **Regular backups** - Back up `/etc/systemd/system/docker-compose*.{service,env}` files
-
-## Performance Considerations
-
-- **Startup time**: Systemd waits for each dependency sequentially. For large stacks, consider parallelizing independent branches.
-- **Resource usage**: Each service runs as a separate systemd unit with minimal overhead (~100KB memory per service).
-- **Log rotation**: Configure journald to prevent excessive disk usage from verbose containers.
-
-## Security Notes
-
-- The installer requires root access to install files in `/usr/local/bin` and `/etc/systemd/system`
-- Environment files are world-readable by default - avoid storing secrets there
-- Use docker secrets or external secret management for sensitive data
-- ACME credentials in the environment file are used only for Let's Encrypt registration
+1. **Define all dependencies explicitly** - Prevents race conditions
+2. **Use `requires` for critical dependencies** - Databases, APIs
+3. **Use `wants` for optional services** - Monitoring, sidecars
+4. **Test with check-status first** - Verify before enabling
+5. **Monitor logs during first boot** - Watch service startup
+6. **Document dependencies** - Keep notes on relationships
+7. **Regular backups** - Back up systemd configuration files
 
 ## Migration from Docker Auto-Restart
 
-1. **Audit existing services**: List all containers with `docker ps -a --filter "restart-policy=always"`
-2. **Document dependencies**: Map out which services depend on others
-3. **Disable restart policies**: Set `restart: "no"` in all docker-compose.yml files
-4. **Install systemd manager**: Run the installer with your configuration
-5. **Enable services one by one**: Start with independent services (databases), then dependent services
-6. **Add dependencies gradually**: Test each dependency relationship
-7. **Monitor first reboot**: Verify all services start correctly after a full system restart
+1. Audit: `docker ps -a --filter "restart-policy=always"`
+2. Map dependencies between services
+3. Set `restart: "no"` in all compose files
+4. Run installer with configuration
+5. Enable services incrementally
+6. Add dependencies gradually
+7. Test full system reboot
 
 ## FAQ
 
-**Q: Can I mix systemd-managed and Docker-managed containers?**  
-A: Yes, but it's not recommended. Mixing strategies makes troubleshooting difficult.
+**Q: Can I mix systemd and Docker-managed containers?**  
+A: Yes, but not recommended—makes troubleshooting difficult.
 
-**Q: What happens if a dependency fails?**  
-A: With `requires`, the dependent service won't start. With `wants`, it starts anyway.
-
-**Q: Can I use this with Docker Swarm or Kubernetes?**  
-A: No, this is designed for standalone Docker Compose deployments on single hosts.
+**Q: What if a dependency fails?**  
+A: `requires` prevents start; `wants` allows start anyway.
 
 **Q: Does this work with rootless Docker?**  
-A: Yes, but you'll need to install systemd units in user directories and adjust paths.
+A: Yes, install units in user systemd directories.
 
-**Q: How do I update a running service?**  
-A: Use `sudo systemctl restart docker-compose@project.service` after pulling new images or changing compose files.
+**Q: How do I update a service?**  
+A: `sudo composectl restart project` after pulling images.
 
-**Q: Can I use environment variables in dependency definitions?**  
-A: No, systemd dependencies must be literal service names. Use scripting for dynamic dependencies.
+**Q: Can dependencies use environment variables?**  
+A: No, dependencies must be literal service names.
+
+## Security Notes
+
+- Installer requires root for system file installation
+- Environment files are world-readable—avoid storing secrets
+- Use Docker secrets for sensitive data
+- ACME credentials only used for Let's Encrypt registration
+
+## Files Installed
+
+- `/usr/local/bin/compose` - Compose wrapper (755)
+- `/usr/local/bin/composectl` - Service controller (755)
+- `/etc/systemd/system/docker-compose@.service` - Template unit (644)
+- `/etc/systemd/system/docker-compose.env` - Global environment (644)
+- `/etc/systemd/system/docker-compose@*.service.d/` - Drop-in directories
