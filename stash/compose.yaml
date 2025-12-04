@@ -1,26 +1,18 @@
 services:
   stash:
     image: ghcr.io/feederbox826/stash-s6:hwaccel-develop
-    restart: unless-stopped
+    container_name: stash
+    restart: "no"
     userns_mode: host
     networks:
       - proxy
-      - stash
     logging:
       driver: json-file
       options:
         max-file: 10
         max-size: 2m
-    environment:
-      - PUID=${UID}
-      - PGID=${GID}
-      - STASH_CACHE=/cache
-      - STASH_GENERATED=/generated
-      - STASH_METADATA=/metadata
-      - SKIP_NVIDIA_PATCH=true
-      - STASH_PORT=9069
-      - STASH_STASH=/media
-      - MIGRATE=TRUE
+    env_file:
+      - stash.env
     volumes:
       - ${LOCAL_TIME}:${LOCAL_TIME}:ro
       - ${DATA_DIR}/blobs:/blobs
@@ -29,8 +21,7 @@ services:
       - ${DATA_DIR}/config_s6:/config
       - ${DATA_DIR}/generated:/generated
       - ${DATA_DIR}/metadata:/metadata
-      - ${SRC1_DIR}:/media1
-      - ${SRC2_DIR}:/media2
+      - ${SRC1_DIR}:/media
     labels:
       # Traefik integration
       - "traefik.enable=true"
@@ -55,5 +46,3 @@ services:
 networks:
   proxy:
     external: true
-  stash:
-    internal: true

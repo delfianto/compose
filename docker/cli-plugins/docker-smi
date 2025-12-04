@@ -1,0 +1,125 @@
+#!/usr/bin/env python3
+"""Docker CLI plugin to check NVIDIA GPU availability and run nvidia-smi."""
+
+import shutil
+import sys
+
+try:
+    import cli_helper as cli
+except ImportError:
+    import os
+
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    import cli_helper as cli
+
+PLUGIN_METADATA = {
+    "SchemaVersion": "0.1.0",
+    "Vendor": "delfianto",
+    "Version": "1.0.0",
+    "ShortDescription": "Check NVIDIA GPU availability and run nvidia-smi",
+}
+
+
+def check_docker_daemon_smi() -> bool:
+    """Check if Docker daemon is accessible (custom version for SMI)."""
+    print(f"{cli.YELLOW}[1/3]{cli.NC} Checking Docker daemon...")
+
+    try:
+        cli.run_docker_command(["info"], timeout=5)
+        cli.print_success("✓ Docker daemon is running\n")
+        return True
+    except Exception:
+        cli.print_error("✗ Docker daemon is not accessible")
+        return False
+
+
+def check_nvidia_toolkit() -> bool:
+    """Check if NVIDIA Container Toolkit is installed and configured."""
+    print(f"{cli.YELLOW}[2/3]{cli.NC} Checking NVIDIA Container Toolkit...")
+
+    runtime_detected = False
+    toolkit_installed = False
+    runtime_installed = False
+
+    # Method 1: Check for nvidia runtime in docker info
+    try:
+        result = cli.run_docker_command(["info"], check=True, timeout=5)
+
+        if "nvidia" in result.stdout.lower():
+            cli.print_success("✓ NVIDIA runtime detected in Docker runtimes")
+            runtime_detected = True
+    except Exception:
+        pass
+
+    # Method 2: Check if nvidia-container-toolkit is installed
+    if shutil.which("nvidia-container-toolkit"):
+        cli.print_success("✓ nvidia-container-toolkit binary found")
+        toolkit_installed = True
+
+    # Method 3: Check for nvidia-container-runtime
+    if shutil.which("nvidia-container-runtime"):
+        cli.print_success("✓ nvidia-container-runtime found")
+        runtime_installed = True
+
+    # If none of the checks passed
+    if not (runtime_detected or toolkit_installed or runtime_installed):
+        cli.print_error("✗ NVIDIA Container Toolkit not detected")
+        cli.print_warning(
+            "Install it from: https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html\n"
+        )
+        return False
+
+    print()
+    return True
+
+
+def test_gpu_availability(
+    cuda_image: str = "nvidia/cuda:13.0.2-base-ubuntu24.04",
+) -> bool:
+    """Test GPU availability by running nvidia-smi in a container."""
+    print(
+        f"{cli.YELLOW}[3/3]{cli.NC} Testing GPU availability with NVIDIA CUDA container..."
+    )
+
+    command = ["run", "--rm", "--gpus", "all", cuda_image, "nvidia-smi"]
+    print(f"{cli.BLUE}Running: docker {' '.join(command)}{cli.NC}\n")
+
+    try:
+        cli.run_docker_command(command, check=False, capture_output=False, timeout=120)
+        cli.print_success("\n✓ GPU detection successful!")
+        return True
+
+    except Exception:
+        cli.print_error("\n✗ Failed to access GPUs in container")
+        cli.print_warning("Troubleshooting tips:")
+        print("  1. Ensure NVIDIA drivers are installed on the host")
+        print("  2. Verify nvidia-container-toolkit is properly configured")
+        print("  3. Try: sudo systemctl restart docker")
+        print("  4. Check Docker daemon configuration in /etc/docker/daemon.json")
+        return False
+
+
+def main():
+    """Main function."""
+    # Handle plugin metadata
+    cli.handle_metadata(PLUGIN_METADATA)
+
+    print(f"{cli.BLUE}--- Docker SMI - NVIDIA GPU Checker ---{cli.NC}\n")
+
+    # Step 1: Check Docker daemon
+    if not check_docker_daemon_smi():
+        return 1
+
+    # Step 2: Check NVIDIA Container Toolkit
+    if not check_nvidia_toolkit():
+        return 1
+
+    # Step 3: Test GPU availability
+    if not test_gpu_availability():
+        return 1
+
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

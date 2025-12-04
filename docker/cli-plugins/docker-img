@@ -1,0 +1,107 @@
+#!/usr/bin/env python3
+"""Docker CLI plugin to list images grouped by registry and repository."""
+
+import re
+import sys
+from collections import defaultdict
+
+try:
+    import cli_helper as cli
+except ImportError:
+    import os
+
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    import cli_helper as cli
+
+PLUGIN_METADATA = {
+    "SchemaVersion": "0.1.0",
+    "Vendor": "delfianto",
+    "Version": "1.0.0",
+    "ShortDescription": "List Docker images grouped by registry and repository",
+}
+
+# Additional color constants
+BOLD = "\033[1m"
+RESET = "\033[0m"
+
+
+def extract_registry(repo):
+    """Extract the registry domain from a repository name."""
+    # Has domain with dots (e.g., ghcr.io/user/repo or docker.io/library/nginx)
+    if match := re.match(r"^([^/]+\.[^/]+)/", repo):
+        return match.group(1)
+
+    # Three-part without dots (e.g., registry/user/repo)
+    if re.match(r"^([^/]+)/([^/]+)/.+$", repo):
+        return repo.split("/")[0]
+
+    # No domain = Docker Hub official (e.g., nginx, postgres)
+    return "docker.io"
+
+
+def get_repositories():
+    """Get all unique repositories from Docker images."""
+    result = cli.run_docker_command(
+        ["image", "ls", "--format", "{{.Repository}}"],
+        check=True,
+    )
+
+    return sorted(set(result.stdout.strip().split("\n")))
+
+
+def get_images_for_repo(repo):
+    """Get all images for a specific repository."""
+    result = cli.run_docker_command(
+        ["image", "ls", repo, "--format", "{{.ID}}\t{{.Size}}\t{{.Tag}}"],
+        check=True,
+    )
+
+    images = []
+    for line in result.stdout.strip().split("\n"):
+        if line:
+            parts = line.split("\t")
+            if len(parts) == 3:
+                images.append({"id": parts[0], "size": parts[1], "tag": parts[2]})
+
+    return images
+
+
+def main():
+    """Main function to list images grouped by registry."""
+    # Handle plugin metadata
+    cli.handle_metadata(PLUGIN_METADATA)
+
+    try:
+        # Group repositories by registry
+        registry_repos = defaultdict(list)
+        for repo in get_repositories():
+            registry = extract_registry(repo)
+            registry_repos[registry].append(repo)
+
+        # Display grouped images
+        for registry in sorted(registry_repos.keys()):
+            # Print registry header
+            print(f"\n{cli.CYAN}{registry}{RESET}")
+            print("=" * len(registry))
+
+            for repo in registry_repos[registry]:
+                # Print repository name
+                print(f"\n  {BOLD}{repo}:{RESET}")
+
+                # Print images for this repository
+                images = get_images_for_repo(repo)
+                for img in images:
+                    print(f"    {img['id']:<12} {img['size']:<10} {img['tag']}")
+
+        print()  # Final newline
+
+    except KeyboardInterrupt:
+        cli.print_warning("\nInterrupted")
+        sys.exit(130)
+    except Exception as e:
+        cli.print_error(f"Error: {e}")
+        sys.exit(1)
+
+
+if __name__ == "__main__":
+    main()
