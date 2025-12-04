@@ -1,13 +1,9 @@
 #!/usr/bin/env python3
 
 """
-compose_systemd.py - Docker Compose systemd management tool
-
-Installation and dependency management for docker-compose services
-running under systemd with template units.
+helper_inst.py - Installation and status checking logic
 """
 
-import argparse
 import os
 import re
 import shutil
@@ -17,7 +13,7 @@ from pathlib import Path
 from string import Template
 from typing import Dict, List, Optional
 
-from sys_helper import (
+from helper_base import (
     SCRIPT_DIR,
     check_root,
     print_error,
@@ -28,7 +24,7 @@ from sys_helper import (
     systemctl,
 )
 
-# Installation paths (without .py extension for cleaner commands)
+# Installation paths
 COMPOSE_DEST = Path("/usr/local/bin/compose")
 COMPCTL_DEST = Path("/usr/local/bin/composectl")
 COMPOSEDEPS_DEST = Path("/usr/local/bin/compose-deps")
@@ -135,7 +131,7 @@ def generate_env_file(args) -> str:
         sys.exit(1)
 
 
-def cmd_install(args):
+def run_install(args):
     """Install compose, compctl, compose-deps, and systemd template."""
     check_root()
 
@@ -190,16 +186,23 @@ def cmd_install(args):
         print_error(f"Missing required dependencies: {', '.join(missing)}")
         sys.exit(1)
 
+    # NOTE: In this split version, we expect the main orchestrator script
+    # to be what we install as 'compose-systemd'.
+    # We still install the other tools separately.
+
     compose_src = SCRIPT_DIR / "compose.py"
     compctl_src = SCRIPT_DIR / "composectl.py"
-    composedeps_src = SCRIPT_DIR / "composedeps.py"
+    # compose-deps logic is now integrated into the main script or helper_deps
+    # but for compatibility we might want to install the main script as 'compose-deps'
+    # or keep it separate. For this logic, we'll assume we are installing
+    # the tools found in the dir.
+
     systemd_template = SCRIPT_DIR / "docker-compose@.service"
     env_template = SCRIPT_DIR / "docker-compose.env.template"
 
     required_files = [
         ("compose.py", compose_src),
         ("composectl.py", compctl_src),
-        ("composedeps.py", composedeps_src),
         ("docker-compose@.service", systemd_template),
         ("docker-compose.env.template", env_template),
     ]
@@ -226,11 +229,8 @@ def cmd_install(args):
     os.chmod(COMPCTL_DEST, 0o755)
     print_success("composectl installed (accessible as 'composectl' command)")
 
-    print_info(f"Installing composedeps.py to {COMPOSEDEPS_DEST}")
-    backup_file(COMPOSEDEPS_DEST)
-    shutil.copy2(composedeps_src, COMPOSEDEPS_DEST)
-    os.chmod(COMPOSEDEPS_DEST, 0o755)
-    print_success("compose-deps installed (accessible as 'compose-deps' command)")
+    # We skip installing 'composedeps.py' as a standalone since it's now part
+    # of the unified CLI, but we can symlink the main script if needed later.
 
     print_info(f"Installing systemd unit template to {SYSTEMD_UNIT_DEST}")
     backup_file(SYSTEMD_UNIT_DEST)
@@ -278,20 +278,14 @@ def cmd_install(args):
         print(" 2. Disable restart policies in docker-compose.yml files")
         print(" 3. Enable services: sudo composectl enable <project>")
         print(
-            " 4. Manage dependencies: sudo compose-deps add <service> <dependency> [requires|wants]"
+            " 4. Manage dependencies: sudo compose-systemd deps add <service> <dependency> [requires|wants]"
         )
         print(" 5. Start services: sudo composectl start <project>")
         print(" 6. Check status: composectl status <project>")
         print()
 
-    print_info("Installed commands:")
-    print(" - compose      : Docker Compose wrapper")
-    print(" - composectl   : Systemctl wrapper for compose services")
-    print(" - compose-deps : Dependency management for compose services")
-    print()
 
-
-def cmd_check_status(args):
+def run_check_status(args):
     """Check installation status."""
     print_section("Installation Status Check")
     print()
@@ -319,7 +313,6 @@ def cmd_check_status(args):
     template_files = [
         ("compose.py", SCRIPT_DIR / "compose.py"),
         ("composectl.py", SCRIPT_DIR / "composectl.py"),
-        ("composedeps.py", SCRIPT_DIR / "composedeps.py"),
         ("systemd template", SCRIPT_DIR / "docker-compose@.service"),
         ("env template", SCRIPT_DIR / "docker-compose.env.template"),
     ]
@@ -335,7 +328,6 @@ def cmd_check_status(args):
     files_to_check = [
         ("compose", COMPOSE_DEST),
         ("composectl", COMPCTL_DEST),
-        ("compose-deps", COMPOSEDEPS_DEST),
         ("systemd unit template", SYSTEMD_UNIT_DEST),
         ("environment file", ENV_FILE_DEST),
     ]
@@ -379,75 +371,3 @@ def cmd_check_status(args):
             print_warning(f"  Unable to check services: {e}")
 
     print()
-
-
-def main():
-    parser = argparse.ArgumentParser(
-        prog="compose-systemd",
-        description="Docker Compose systemd management tool",
-    )
-
-    parser.add_argument(
-        "--install", action="store_true", help="Install compose and systemd template"
-    )
-
-    parser.add_argument(
-        "--check-status", action="store_true", help="Check installation status"
-    )
-
-    parser.add_argument(
-        "--acme-domain",
-        metavar="DOMAIN",
-        help="ACME domain for Let's Encrypt SSL (required for fresh install, optional for reinstall)",
-    )
-
-    parser.add_argument(
-        "--acme-email",
-        metavar="EMAIL",
-        help="ACME email for Let's Encrypt notifications (required for fresh install, optional for reinstall)",
-    )
-
-    parser.add_argument(
-        "--acme-server",
-        metavar="URL",
-        help="ACME server URL (default: Let's Encrypt production)",
-    )
-
-    parser.add_argument(
-        "--data-base-dir",
-        metavar="PATH",
-        help="Base directory for application data (default: /srv/appdata)",
-    )
-
-    parser.add_argument(
-        "--proj-base-dir",
-        metavar="PATH",
-        help="Base directory for compose projects (default: /srv/compose)",
-    )
-
-    args = parser.parse_args()
-
-    if len(sys.argv) == 1:
-        parser.print_help()
-        sys.exit(0)
-
-    if args.install:
-        cmd_install(args)
-    elif args.check_status:
-        cmd_check_status(args)
-    elif args.command == "deps":
-        args.func(args)
-    else:
-        parser.print_help()
-
-
-if __name__ == "__main__":
-    try:
-        main()
-    except KeyboardInterrupt:
-        print()
-        print_warning("Operation cancelled by user")
-        sys.exit(130)
-    except Exception as e:
-        print_error(f"Unexpected error: {e}")
-        sys.exit(1)

@@ -1,17 +1,14 @@
 #!/usr/bin/env python3
 
 """
-compose-deps.py - Docker Compose systemd dependency management
-
-Manages systemd unit dependencies for docker-compose@ services.
-Creates and maintains override files in /etc/systemd/system/docker-compose@<name>.service.d/
+helper_deps.py - Dependency management logic
 """
 
 import sys
 from pathlib import Path
 from typing import Dict, List, Optional, Set
 
-from sys_helper import (
+from helper_base import (
     check_root,
     get_compose_service_name,
     print_error,
@@ -375,50 +372,3 @@ def detect_cycles(
                 return cycle
 
     return None
-
-
-def main():
-    import argparse
-
-    parser = argparse.ArgumentParser(
-        prog="compose-deps",
-        description="Docker Compose systemd dependency management",
-    )
-
-    subparsers = parser.add_subparsers(dest="command", required=True)
-
-    add_p = subparsers.add_parser("add", help="Add a dependency")
-    add_p.add_argument("service", help="Service name (e.g., genai-open-webui)")
-    add_p.add_argument("dependency", help="Dependency name (e.g., database)")
-    add_p.add_argument(
-        "type",
-        nargs="?",
-        default="wants",
-        choices=["requires", "wants"],
-        help="Dependency type (default: wants)",
-    )
-
-    rm_p = subparsers.add_parser("remove", help="Remove a dependency")
-    rm_p.add_argument("service", help="Service name")
-    rm_p.add_argument("dependency", help="Dependency name")
-
-    ls_p = subparsers.add_parser("list", help="List dependencies for a service")
-    ls_p.add_argument("service", help="Service name")
-
-    chk_p = subparsers.add_parser("check", help="Check dependency chain")
-    chk_p.add_argument("service", help="Service name")
-
-    args = parser.parse_args()
-
-    if args.command == "add":
-        add_dependency(args.service, args.dependency, args.type)
-    elif args.command == "remove":
-        remove_dependency(args.service, args.dependency)
-    elif args.command == "list":
-        list_dependencies(args.service)
-    elif args.command == "check":
-        check_dependency_chain(args.service)
-
-
-if __name__ == "__main__":
-    main()
