@@ -242,19 +242,19 @@ sudo systemctl enable docker-compose@genai-ollama.service
 **5. Configure Dependencies**
 
 ```bash
-# Example: open-webui requires database and ollama
-sudo python3 systemd.py deps add genai-open-webui database requires
-sudo python3 systemd.py deps add genai-open-webui genai-ollama requires
+# Example: openwebui requires database and ollama
+sudo python3 systemd.py deps add genai-openwebui database requires
+sudo python3 systemd.py deps add genai-openwebui genai-ollama requires
 ```
 
 **6. Start Services**
 
 ```bash
 # Start individual service (dependencies start automatically)
-sudo composectl start genai-open-webui
+sudo composectl start genai-openwebui
 
 # Or use systemctl directly
-sudo systemctl start docker-compose@genai-open-webui.service
+sudo systemctl start docker-compose@genai-openwebui.service
 ```
 
 ## Directory Structure
@@ -264,17 +264,17 @@ Expected project layout:
 ```
 /srv/compose/                    # DOCKER_PROJ_DIR
 ├── database/
-│   ├── docker-compose.yml
+│   ├── compose.yml
 │   └── .env                     # Optional project-specific env
 ├── genai/
 │   ├── ollama/
-│   │   └── docker-compose.yml
-│   ├── open-webui/
-│   │   └── docker-compose.yml
+│   │   └── compose.yml
+│   ├── openwebui/
+│   │   └── compose.yml
 │   └── embedding/
-│       └── docker-compose.yml
+│       └── compose.yml
 └── panel/
-    └── docker-compose.yml
+    └── compose.yml
 
 /srv/appdata/                    # DOCKER_DATA_DIR
 ├── mongodb/
@@ -317,12 +317,12 @@ After=docker-compose@monitoring.service
 
 ### Dependency Chain Example
 
-Starting `genai-open-webui` with dependencies:
+Starting `genai-openwebui` with dependencies:
 
 1. Systemd checks dependencies (database, genai-ollama)
 2. Starts database first, waits for readiness
 3. Starts genai-ollama, waits for readiness
-4. Starts genai-open-webui
+4. Starts genai-openwebui
 5. All services supervised with automatic restart
 
 ## Service Management
@@ -333,7 +333,7 @@ Starting `genai-open-webui` with dependencies:
 # Start/Stop
 sudo composectl start database genai-ollama
 sudo composectl stop database
-sudo composectl restart genai-open-webui
+sudo composectl restart genai-openwebui
 
 # Status
 composectl status database
@@ -459,7 +459,7 @@ Create systemd targets for related services:
 [Unit]
 Description=All GenAI Services
 Wants=docker-compose@genai-ollama.service
-Wants=docker-compose@genai-open-webui.service
+Wants=docker-compose@genai-openwebui.service
 After=docker.service
 
 [Install]
