@@ -116,7 +116,7 @@ docker compose up -d
 
 ## Environment Configuration System
 
-This project uses a sophisticated multi-layered environment configuration system to separate concerns between shell interpolation, container environment variables, and deployment-specific secrets.
+This project uses a multi-layered environment configuration system to separate concerns between shell interpolation, container environment variables, and deployment-specific secrets.
 
 ### Understanding .env vs env/\*.env Files
 
