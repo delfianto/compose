@@ -1,4 +1,3 @@
-# networks.toml
 [networks.proxy]
 driver = "bridge"
 internal = false
