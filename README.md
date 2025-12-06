@@ -396,15 +396,6 @@ APP_DEBUG=true  # ← Wins for container environment
 docker compose -e APP_DEBUG=false up  # ← Overrides everything
 ```
 
-### Best Practices
-
-1. **Use .env for structure**: Paths, image tags, UIDs/GIDs, GPU IDs
-2. **Use env/\*.env for app config**: Application-specific settings without secrets
-3. **Use .env.local for secrets**: Passwords, API keys, tokens
-4. **Never commit .local files**: Ensure `.gitignore` includes `*.local`
-5. **Use compose helper**: Install systemd integration for automatic env file handling
-6. **Document required variables**: Add `.env.example` showing required keys (without values)
-
 ### Troubleshooting Environment Issues
 
 **Problem**: "Variable not set" error in compose.yaml
