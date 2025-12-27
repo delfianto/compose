@@ -186,17 +186,8 @@ def run_install(args):
         print_error(f"Missing required dependencies: {', '.join(missing)}")
         sys.exit(1)
 
-    # NOTE: In this split version, we expect the main orchestrator script
-    # to be what we install as 'compose-systemd'.
-    # We still install the other tools separately.
-
     compose_src = SCRIPT_DIR / "compose.py"
     compctl_src = SCRIPT_DIR / "composectl.py"
-    # compose-deps logic is now integrated into the main script or helper_deps
-    # but for compatibility we might want to install the main script as 'compose-deps'
-    # or keep it separate. For this logic, we'll assume we are installing
-    # the tools found in the dir.
-
     systemd_template = SCRIPT_DIR / "docker-compose@.service"
     env_template = SCRIPT_DIR / "docker-compose.env.template"
 
@@ -228,9 +219,6 @@ def run_install(args):
     shutil.copy2(compctl_src, COMPCTL_DEST)
     os.chmod(COMPCTL_DEST, 0o755)
     print_success("composectl installed (accessible as 'composectl' command)")
-
-    # We skip installing 'composedeps.py' as a standalone since it's now part
-    # of the unified CLI, but we can symlink the main script if needed later.
 
     print_info(f"Installing systemd unit template to {SYSTEMD_UNIT_DEST}")
     backup_file(SYSTEMD_UNIT_DEST)

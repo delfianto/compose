@@ -23,7 +23,6 @@ def main():
 
     subparsers = parser.add_subparsers(dest="command", help="Available commands")
 
-    # --- Install Command ---
     install_parser = subparsers.add_parser(
         "install", help="Install compose and systemd template"
     )
@@ -53,14 +52,11 @@ def main():
         help="Base directory for compose projects (default: /srv/compose)",
     )
 
-    # --- Check Status Command ---
     subparsers.add_parser("check-status", help="Check installation status")
 
-    # --- Dependencies Command ---
     deps_parser = subparsers.add_parser("deps", help="Manage service dependencies")
     deps_subs = deps_parser.add_subparsers(dest="deps_command", required=True)
 
-    # deps add
     add_p = deps_subs.add_parser("add", help="Add a dependency")
     add_p.add_argument("service", help="Service name (e.g., genai-open-webui)")
     add_p.add_argument("dependency", help="Dependency name (e.g., database)")
@@ -72,27 +68,22 @@ def main():
         help="Dependency type (default: wants)",
     )
 
-    # deps remove
     rm_p = deps_subs.add_parser("remove", help="Remove a dependency")
     rm_p.add_argument("service", help="Service name")
     rm_p.add_argument("dependency", help="Dependency name")
 
-    # deps list
     ls_p = deps_subs.add_parser("list", help="List dependencies for a service")
     ls_p.add_argument("service", help="Service name")
 
-    # deps check
     chk_p = deps_subs.add_parser("check", help="Check dependency chain")
     chk_p.add_argument("service", help="Service name")
 
-    # Parse arguments
     args = parser.parse_args()
 
     if not args.command:
         parser.print_help()
         sys.exit(0)
 
-    # Dispatch to appropriate helper
     try:
         if args.command == "install":
             helper_inst.run_install(args)

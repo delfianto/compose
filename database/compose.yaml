@@ -10,8 +10,9 @@ services:
       - ./env/mongodb.env.local
     networks:
       - database
+      - proxy
     ports:
-      - 27017:27017
+      - 127.0.0.1:27017:27017
     volumes:
       - ${DATA_DIR}/mongo:/data/db
 
@@ -26,8 +27,9 @@ services:
       - ./env/pgvector.env.local
     networks:
       - database
+      - proxy
     ports:
-      - 5432:5432
+      - 127.0.0.1:5432:5432
     volumes:
       - ${DATA_DIR}/postgres:/var/lib/postgresql/18/docker
       - ${PROJ_DIR}/initdb.d:/docker-entrypoint-initdb.d
