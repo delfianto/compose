@@ -65,7 +65,6 @@ def parse_override_file(override_file: Path) -> Dict[str, List[str]]:
             if current_section != "Unit":
                 continue
 
-            # Parse directives
             if "=" in line:
                 key, value = line.split("=", 1)
                 key = key.strip()

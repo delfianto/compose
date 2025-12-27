@@ -46,13 +46,10 @@ def print_section(msg: str):
 
 def get_service_name(project: str) -> str:
     """Convert project name to systemd service name."""
-    # Handle both with and without .service suffix
     if project.endswith(".service"):
         if project.startswith("docker-compose@"):
             return project
-        else:
-            # Remove .service and add docker-compose@ prefix
-            project = project[:-8]
+        project = project[:-8]
 
     if not project.startswith("docker-compose@"):
         return f"docker-compose@{project}.service"
@@ -67,7 +64,6 @@ def systemctl(*args, check=True, capture=True) -> subprocess.CompletedProcess:
     if capture:
         return subprocess.run(cmd, capture_output=True, text=True, check=check)
     else:
-        # For interactive commands like status, don't capture output
         return subprocess.run(cmd, check=check)
 
 
@@ -93,17 +89,14 @@ def run_systemctl_action(action: str, services: List[str], sudo: bool = False):
         services: List of service names (project names)
         sudo: Whether to use sudo (auto-detected if not specified)
     """
-    # Check if sudo is needed
     needs_sudo = check_sudo_needed(action) and not is_root()
 
     if needs_sudo and not sudo:
         print_warning(f"Action '{action}' requires root privileges")
         print_info("Retrying with sudo...")
 
-    # Convert project names to full service names
     service_names = [get_service_name(svc) for svc in services]
 
-    # Special handling for status - run separately for each service
     if action == "status":
         for svc_name in service_names:
             print_section(f"Status: {svc_name}")
@@ -120,14 +113,12 @@ def run_systemctl_action(action: str, services: List[str], sudo: bool = False):
                 sys.exit(130)
         return
 
-    # For other commands, we can batch them
     cmd = (
         ["sudo", "systemctl", action] + service_names
         if needs_sudo
         else ["systemctl", action] + service_names
     )
 
-    # Print the command we're running
     print_info(f"Running: {' '.join(cmd)}")
 
     try:
@@ -159,7 +150,6 @@ def cmd_list(args):
     print()
 
     try:
-        # List all docker-compose@ services
         result = systemctl(
             "list-units",
             "--all",
@@ -175,7 +165,6 @@ def cmd_list(args):
         else:
             print_warning("No docker-compose services found")
 
-        # Also show which ones are enabled
         print()
         print_section("Enabled at Boot")
         print()
@@ -199,14 +188,11 @@ def cmd_logs(args):
     services = args.services
     service_names = [get_service_name(svc) for svc in services]
 
-    # Build journalctl command
     cmd = ["journalctl"]
 
-    # Add each service as a unit
     for svc_name in service_names:
         cmd.extend(["-u", svc_name])
 
-    # Add common journalctl flags
     if args.follow:
         cmd.append("-f")
     if args.lines:
@@ -332,7 +318,6 @@ Note: The 'docker-compose@' prefix and '.service' suffix are added automatically
 """,
     )
 
-    # Global flags
     parser.add_argument(
         "--sudo",
         action="store_true",
@@ -341,55 +326,45 @@ Note: The 'docker-compose@' prefix and '.service' suffix are added automatically
 
     subparsers = parser.add_subparsers(dest="command", help="Available commands")
 
-    # Start command
     start_parser = subparsers.add_parser("start", help="Start services")
     start_parser.add_argument("services", nargs="+", help="Service names")
     start_parser.set_defaults(func=cmd_action, action="start")
 
-    # Stop command
     stop_parser = subparsers.add_parser("stop", help="Stop services")
     stop_parser.add_argument("services", nargs="+", help="Service names")
     stop_parser.set_defaults(func=cmd_action, action="stop")
 
-    # Restart command
     restart_parser = subparsers.add_parser("restart", help="Restart services")
     restart_parser.add_argument("services", nargs="+", help="Service names")
     restart_parser.set_defaults(func=cmd_action, action="restart")
 
-    # Status command
     status_parser = subparsers.add_parser("status", help="Show service status")
     status_parser.add_argument("services", nargs="+", help="Service names")
     status_parser.set_defaults(func=cmd_action, action="status")
 
-    # Enable command
     enable_parser = subparsers.add_parser("enable", help="Enable services at boot")
     enable_parser.add_argument("services", nargs="+", help="Service names")
     enable_parser.set_defaults(func=cmd_action, action="enable")
 
-    # Disable command
     disable_parser = subparsers.add_parser("disable", help="Disable services at boot")
     disable_parser.add_argument("services", nargs="+", help="Service names")
     disable_parser.set_defaults(func=cmd_action, action="disable")
 
-    # Is-active command
     is_active_parser = subparsers.add_parser(
         "is-active", help="Check if services are active"
     )
     is_active_parser.add_argument("services", nargs="+", help="Service names")
     is_active_parser.set_defaults(func=cmd_is_active)
 
-    # Is-enabled command
     is_enabled_parser = subparsers.add_parser(
         "is-enabled", help="Check if services are enabled"
     )
     is_enabled_parser.add_argument("services", nargs="+", help="Service names")
     is_enabled_parser.set_defaults(func=cmd_is_enabled)
 
-    # List command
     list_parser = subparsers.add_parser("list", help="List all docker-compose services")
     list_parser.set_defaults(func=cmd_list)
 
-    # Logs command
     logs_parser = subparsers.add_parser("logs", help="View service logs (journalctl)")
     logs_parser.add_argument("services", nargs="+", help="Service names")
     logs_parser.add_argument(
@@ -402,15 +377,12 @@ Note: The 'docker-compose@' prefix and '.service' suffix are added automatically
     logs_parser.add_argument("--until", help="Show logs until")
     logs_parser.set_defaults(func=cmd_logs)
 
-    # Parse arguments
     args = parser.parse_args()
 
-    # Show help if no command specified
     if not args.command:
         parser.print_help()
         sys.exit(0)
 
-    # Execute command
     try:
         args.func(args)
     except KeyboardInterrupt:

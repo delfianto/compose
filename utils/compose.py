@@ -78,10 +78,8 @@ def resolve_project_directory():
     project_name = os.getenv("COMPOSE_PROJECT", "")
 
     if not project_name:
-        # No project specified, use current directory
         return Path.cwd()
 
-    # Convert hyphens to path separators
     if "-" in project_name:
         project_path = project_name.replace("-", os.sep)
         target_dir = base_dir / project_path
@@ -93,7 +91,6 @@ def resolve_project_directory():
             stderr(f"Warning: Hyphenated path {target_dir} does not exist")
             stderr(f"Falling back to direct path: {base_dir / project_name}")
 
-    # Fallback: treat as direct subdirectory name
     return base_dir / project_name
 
 
@@ -150,11 +147,9 @@ def deduplicate_flags(combined_args):
     """Deduplicate flags, preserving order and handling --flag=value patterns."""
     all_flags = []
     for flag in combined_args:
-        # Skip if this exact flag was already added
         if flag in all_flags:
             continue
 
-        # For flags with values (--format, --tail, etc), check the flag name only
         if "=" in flag:
             flag_name = flag.split("=")[0]
             if any(f.startswith(flag_name) for f in all_flags):
@@ -181,7 +176,6 @@ def build_docker_command(cmd, extra_args, compose_file, env_files, project_dir):
     """
     docker_cmd = ["docker", "compose", "--file", str(compose_file)]
 
-    # Add all env files as --env-file options
     for env_file in env_files:
         docker_cmd.extend(["--env-file", env_file])
 
@@ -189,15 +183,12 @@ def build_docker_command(cmd, extra_args, compose_file, env_files, project_dir):
     if cmd == "build" and os.getenv("DOCKER_PG_FORMAT"):
         docker_cmd.append(f"--progress={os.getenv('DOCKER_PG_FORMAT')}")
 
-    # Add the main command
     docker_cmd.append(cmd)
 
-    # Get default flags for this command (copy to avoid modifying original)
     default_flags = DEFAULT_ARGS[cmd].copy()
 
     # Special case: ps format override from environment variable
     if cmd == "ps" and os.getenv("DOCKER_PS_FORMAT"):
-        # Remove default --format flags
         default_flags = [f for f in default_flags if f != "--format"]
         default_flags = [
             f
@@ -206,7 +197,6 @@ def build_docker_command(cmd, extra_args, compose_file, env_files, project_dir):
         ]
         default_flags.extend(["--format", os.getenv("DOCKER_PS_FORMAT")])
 
-    # Merge default flags + user args with deduplication
     combined_args = default_flags + extra_args
     all_flags = deduplicate_flags(combined_args)
     docker_cmd.extend(all_flags)
@@ -226,45 +216,35 @@ def format_command_for_display(docker_cmd):
 
 
 def main():
-    # Check for minimum arguments
     if len(sys.argv) < 2:
         cat_help()
         sys.exit(1)
 
-    # Handle --print-workdir flag
     if sys.argv[1] == "--print-workdir":
         project_dir = resolve_project_directory()
         print(project_dir)
         sys.exit(0)
 
-    # Extract command and extra args
     cmd = sys.argv[1]
     extra_args = sys.argv[2:]
 
-    # Validate command
     if cmd not in DEFAULT_ARGS:
         stderr(f"Error: Invalid command '{cmd}'.")
         stderr("Valid commands: " + ", ".join(sorted(DEFAULT_ARGS.keys())))
         sys.exit(1)
 
-    # Resolve project directory (handles hyphenated paths)
     project_dir = resolve_project_directory()
-
-    # Discover compose and env files
     compose_file = find_compose_file(project_dir)
     env_files = find_env_files(project_dir)
 
-    # Build the complete docker command
     docker_cmd, working_dir = build_docker_command(
         cmd, extra_args, compose_file, env_files, project_dir
     )
 
-    # Print final command for transparency
     stdout(f"# Working directory: {working_dir}")
     stdout(format_command_for_display(docker_cmd))
     stdout("")
 
-    # Execute
     try:
         subprocess.run(docker_cmd, check=True, cwd=working_dir)
     except subprocess.CalledProcessError as e:
