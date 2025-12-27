@@ -3,11 +3,11 @@ services:
     image: ghcr.io/gethomepage/homepage:latest
     container_name: homepage
     restart: "no"
-    user: ${UID}:${GID}
+    user: ${UID}:${GID_DOCKER}
     userns_mode: host
     environment:
       - PUID=${UID}
-      - PGID=${GID}
+      - PGID=${GID_DOCKER}
       - HOMEPAGE_ALLOWED_HOSTS=home.${TRAEFIK_ACME_DOMAIN}
     networks:
       - proxy
