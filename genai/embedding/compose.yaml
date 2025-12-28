@@ -1,6 +1,6 @@
 services:
   tei-embedder:
-    image: ghcr.io/huggingface/text-embeddings-inference:${HF_IMAGE_TAG}
+    image: ghcr.io/huggingface/text-embeddings-inference:86-latest
     container_name: tei-embed
     restart: "no"
     env_file:
@@ -17,14 +17,16 @@ services:
       - hf_token
     deploy:
       resources:
+        limits:
+          memory: 12GB
         reservations:
           devices:
             - driver: nvidia
-              device_ids: ['${GPU_ID}']
+              device_ids: ["1"]
               capabilities: [gpu]
 
   tei-reranker:
-    image: ghcr.io/huggingface/text-embeddings-inference:${HF_IMAGE_TAG}
+    image: ghcr.io/huggingface/text-embeddings-inference:86-latest
     container_name: tei-rerank
     restart: "no"
     env_file:
@@ -41,10 +43,12 @@ services:
       - hf_token
     deploy:
       resources:
+        limits:
+          memory: 12GB
         reservations:
           devices:
             - driver: nvidia
-              device_ids: ['${GPU_ID}']
+              device_ids: ["1"]
               capabilities: [gpu]
 
   tei-proxy:
@@ -58,6 +62,10 @@ services:
         required: false
     networks:
       - genai
+    deploy:
+      resources:
+        limits:
+          memory: 128MB
 
 networks:
   genai:

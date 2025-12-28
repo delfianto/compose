@@ -31,11 +31,8 @@ services:
       - "homepage.href=https://webui.${TRAEFIK_ACME_DOMAIN}"
     deploy:
       resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: all
-              capabilities: [gpu]
+        limits:
+          memory: 2GB
 
 networks:
   database:

@@ -37,6 +37,8 @@ services:
       - "homepage.description=Media Server for Cultured Material"
     deploy:
       resources:
+        limits:
+          memory: 1G
         reservations:
           devices:
             - driver: nvidia

@@ -38,10 +38,12 @@ services:
       - "homepage.description=Media Server"
     deploy:
       resources:
+        limits:
+          memory: 1GB
         reservations:
           devices:
             - driver: nvidia
-              device_ids: ['1']
+              device_ids: ["1"]
               capabilities: [gpu]
 
   tautulli:
@@ -54,10 +56,10 @@ services:
       - ./env/plex.env
     depends_on:
       - plex
-    volumes:
-      - ${DATA_DIR}/tautulli:/config
     networks:
       - proxy
+    volumes:
+      - ${DATA_DIR}/tautulli:/config
     labels:
       # Traefik integration
       - "traefik.enable=true"
@@ -71,6 +73,10 @@ services:
       - "homepage.icon=tautulli.svg"
       - "homepage.href=https://tautulli.${TRAEFIK_ACME_DOMAIN}"
       - "homepage.description=Plex Monitoring"
+    deploy:
+      resources:
+        limits:
+          memory: 512MB
 
 networks:
   proxy:

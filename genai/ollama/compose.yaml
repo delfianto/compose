@@ -8,19 +8,56 @@ services:
       - proxy
     ports:
       - 127.0.0.1:11434:11434
-    environment:
-      - OLLAMA_CPU_OFFLOAD=1
-      - OLLAMA_HOST=0.0.0.0
-      - OLLAMA_MODELS=/root/.ollama/models
+    env_file:
+      - ./ollama.env
     volumes:
       - ${DATA_DIR}:/root/.ollama
     deploy:
       resources:
+        limits:
+          memory: 16GB
         reservations:
           devices:
             - driver: nvidia
-              count: all
+              device_ids: ["0", "1"]
               capabilities: [gpu]
+
+  ollama-summarizer:
+    image: ollama/ollama:${OLLAMA_TAG}
+    container_name: ollama-summarizer
+    restart: "no"
+    networks:
+      - genai
+      - proxy
+    ports:
+      - 127.0.0.1:11435:11434
+    env_file:
+      - ./ollama.env
+    environment:
+      - OLLAMA_KEEP_ALIVE=-1
+    volumes:
+      - ${DATA_DIR}:/root/.ollama
+    deploy:
+      resources:
+        limits:
+          memory: 2GB
+        reservations:
+          devices:
+            - driver: nvidia
+              device_ids: ["1"]
+              capabilities: [gpu]
+
+  ollama-summarizer-loader:
+    image: alpine/curl
+    container_name: ollama-summarizer-loader
+    restart: "no"
+    networks:
+      - genai
+    depends_on:
+      - ollama-summarizer
+    volumes:
+      - ./preload.sh:/preload.sh:ro
+    entrypoint: ["/bin/sh", "/preload.sh"]
 
 networks:
   genai:

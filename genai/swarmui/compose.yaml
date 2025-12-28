@@ -46,6 +46,8 @@ services:
       - "homepage.description=Stable Diffusion SwarmUI"
     deploy:
       resources:
+        limits:
+          memory: 1GB
         reservations:
           devices:
             - driver: nvidia

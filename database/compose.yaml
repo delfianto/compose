@@ -15,6 +15,10 @@ services:
       - 127.0.0.1:27017:27017
     volumes:
       - ${DATA_DIR}/mongo:/data/db
+    deploy:
+      resources:
+        limits:
+          memory: 1GB
 
   pgvector:
     image: pgvector/pgvector:${PGVECTOR_TAG}
@@ -33,6 +37,10 @@ services:
     volumes:
       - ${DATA_DIR}/postgres:/var/lib/postgresql/18/docker
       - ${PROJ_DIR}/initdb.d:/docker-entrypoint-initdb.d
+    deploy:
+      resources:
+        limits:
+          memory: 1GB
 
   qdrant:
     image: qdrant/qdrant:${QDRANT_TAG}
@@ -51,10 +59,12 @@ services:
       - ${DATA_DIR}/qdrant:/qdrant/storage
     deploy:
       resources:
+        limits:
+          memory: 4GB
         reservations:
           devices:
             - driver: nvidia
-              device_ids: ['${GPU_ID}']
+              device_ids: ["${GPU_ID}"]
               capabilities: [gpu]
 
 networks:
