@@ -20,6 +20,10 @@ services:
       - "homepage.icon=/icons/risuai.png"
       - "homepage.href=https://risu.${TRAEFIK_ACME_DOMAIN}"
       - "homepage.description=User-friendly software for LLM roleplaying"
+    deploy:
+      resources:
+        limits:
+          memory: 1GB
 
 networks:
   proxy:

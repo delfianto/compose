@@ -14,6 +14,10 @@ services:
       - proxy
     volumes:
       - ${DATA_DIR}:/app/data
+    deploy:
+      resources:
+        limits:
+          memory: 1GB
     labels:
       # Traefik integration
       - "traefik.enable=true"

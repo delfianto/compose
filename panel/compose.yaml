@@ -22,6 +22,10 @@ services:
       - "traefik.http.routers.homepage.rule=Host(`home.${TRAEFIK_ACME_DOMAIN}`)"
       - "traefik.http.routers.homepage.tls.certresolver=cloudflare"
       - "traefik.http.services.homepage.loadbalancer.server.port=3000"
+    deploy:
+      resources:
+        limits:
+          memory: 512MB
 
   portainer:
     image: portainer/portainer-ce:alpine-sts
@@ -49,6 +53,10 @@ services:
       - "homepage.icon=portainer.svg"
       - "homepage.href=https://panel.${TRAEFIK_ACME_DOMAIN}"
       - "homepage.description=Container Management"
+    deploy:
+      resources:
+        limits:
+          memory: 512MB
 
   traefik:
     image: traefik:v3.6
@@ -124,6 +132,10 @@ services:
       - "homepage.description=Reverse Proxy & Dashboard"
       - "homepage.widget.type=traefik"
       - "homepage.widget.url=http://traefik:8080"
+    deploy:
+      resources:
+        limits:
+          memory: 512MB
 
 secrets:
   cf_dns_api_token:

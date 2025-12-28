@@ -32,6 +32,10 @@ services:
       - "homepage.name=LibreChat"
       - "homepage.icon=librechat.svg"
       - "homepage.href=https://chat.${TRAEFIK_ACME_DOMAIN}"
+    deploy:
+      resources:
+        limits:
+          memory: 1GB
 
   meilisearch:
     container_name: chat-search
@@ -47,6 +51,10 @@ services:
       - ${DATA_DIR}/meili:/meili_data
     networks:
       - genai
+    deploy:
+      resources:
+        limits:
+          memory: 1GB
 
 networks:
   database:
