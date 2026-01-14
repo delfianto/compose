@@ -1,6 +1,6 @@
 services:
   bifrost:
-    image: maximhq/bifrost:latest
+    image: maximhq/bifrost:v1.4.0-prerelease9-amd64
     container_name: bifrost
     restart: "no"
     user: ${UID}:${GID}
