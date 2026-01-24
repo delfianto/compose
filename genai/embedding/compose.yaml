@@ -15,15 +15,12 @@ services:
       - ${DATA_DIR}:/data
     secrets:
       - hf_token
+    devices:
+      - nvidia.com/gpu=1
     deploy:
       resources:
         limits:
           memory: 12GB
-        reservations:
-          devices:
-            - driver: nvidia
-              device_ids: ["1"]
-              capabilities: [gpu]
 
   tei-reranker:
     image: ghcr.io/huggingface/text-embeddings-inference:86-latest
@@ -41,15 +38,12 @@ services:
       - ${DATA_DIR}:/data
     secrets:
       - hf_token
+    devices:
+      - nvidia.com/gpu=1
     deploy:
       resources:
         limits:
           memory: 12GB
-        reservations:
-          devices:
-            - driver: nvidia
-              device_ids: ["1"]
-              capabilities: [gpu]
 
   tei-proxy:
     image: ghcr.io/delfianto/tei-proxy:latest

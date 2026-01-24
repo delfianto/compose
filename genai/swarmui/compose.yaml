@@ -11,8 +11,6 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: swarmui
-    user: ${UID}:${GID}
-    userns_mode: host
     networks:
       - proxy
     environment:
@@ -44,15 +42,12 @@ services:
       - "homepage.icon=/icons/stablediff.png"
       - "homepage.href=https://swarmui.${TRAEFIK_ACME_DOMAIN}"
       - "homepage.description=Stable Diffusion SwarmUI"
+    devices:
+      - nvidia.com/gpu=0
     deploy:
       resources:
         limits:
           memory: 1GB
-        reservations:
-          devices:
-            - driver: nvidia
-              count: 1
-              capabilities: [gpu]
 
 networks:
   proxy:
