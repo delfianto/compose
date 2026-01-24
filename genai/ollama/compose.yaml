@@ -12,15 +12,9 @@ services:
       - ./ollama.env
     volumes:
       - ${DATA_DIR}:/root/.ollama
-    deploy:
-      resources:
-        limits:
-          memory: 16GB
-        reservations:
-          devices:
-            - driver: nvidia
-              device_ids: ["0", "1"]
-              capabilities: [gpu]
+    devices:
+      - nvidia.com/gpu=0
+      - nvidia.com/gpu=1
 
   ollama-summarizer:
     image: ollama/ollama:${OLLAMA_TAG}
@@ -37,15 +31,8 @@ services:
       - OLLAMA_KEEP_ALIVE=-1
     volumes:
       - ${DATA_DIR}:/root/.ollama
-    deploy:
-      resources:
-        limits:
-          memory: 2GB
-        reservations:
-          devices:
-            - driver: nvidia
-              device_ids: ["1"]
-              capabilities: [gpu]
+    devices:
+      - nvidia.com/gpu=1
 
   ollama-summarizer-loader:
     image: alpine/curl

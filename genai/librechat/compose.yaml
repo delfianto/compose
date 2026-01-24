@@ -3,8 +3,6 @@ services:
     container_name: chat-api
     image: ghcr.io/danny-avila/librechat-dev:latest
     restart: "no"
-    user: ${UID}:${GID}
-    userns_mode: host
     networks:
       - database
       - genai
@@ -41,8 +39,6 @@ services:
     container_name: chat-search
     image: getmeili/meilisearch:v1.25.0
     restart: "no"
-    user: ${UID}:${GID}
-    userns_mode: host
     environment:
       - MEILI_HOST=http://meilisearch:7700
       - MEILI_MASTER_KEY=${MEILI_MASTER_KEY}

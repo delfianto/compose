@@ -3,7 +3,6 @@ services:
     image: ghcr.io/feederbox826/stash-s6:hwaccel-develop
     container_name: stash
     restart: "no"
-    userns_mode: host
     networks:
       - proxy
     logging:
@@ -35,15 +34,12 @@ services:
       - "homepage.icon=stash.svg"
       - "homepage.href=https://stash.${TRAEFIK_ACME_DOMAIN}"
       - "homepage.description=Media Server for Cultured Material"
+    devices:
+      - nvidia.com/gpu=1
     deploy:
       resources:
         limits:
           memory: 1G
-        reservations:
-          devices:
-            - driver: nvidia
-              capabilities: [gpu]
-              count: all
 
 networks:
   proxy:

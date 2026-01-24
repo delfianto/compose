@@ -1,13 +1,9 @@
 services:
   homepage:
-    image: ghcr.io/gethomepage/homepage:latest
+    image: ghcr.io/gethomepage/homepage:v1
     container_name: homepage
     restart: "no"
-    user: ${UID}:${GID_DOCKER}
-    userns_mode: host
     environment:
-      - PUID=${UID}
-      - PGID=${GID_DOCKER}
       - HOMEPAGE_ALLOWED_HOSTS=home.${TRAEFIK_ACME_DOMAIN}
     networks:
       - proxy
@@ -31,8 +27,6 @@ services:
     image: portainer/portainer-ce:alpine-sts
     container_name: portainer
     restart: "no"
-    user: ${UID}:${GID_DOCKER}
-    userns_mode: host
     networks:
       - proxy
     volumes:
@@ -64,8 +58,6 @@ services:
     restart: "no"
     security_opt:
       - no-new-privileges:true
-    user: ${UID}:${GID_DOCKER}
-    userns_mode: host
     environment:
       # Cloudflare Zero DNS API token
       - CF_DNS_API_TOKEN_FILE=/run/secrets/cf_dns_api_token

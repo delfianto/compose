@@ -1,10 +1,8 @@
 services:
   mongodb:
-    image: mongo:8.2-noble
+    image: mongo:${MONGODB_TAG}
     container_name: mongodb
     restart: "no"
-    user: ${UID}:${GID}
-    userns_mode: host
     env_file:
       - ./env/mongodb.env
       - ./env/mongodb.env.local
@@ -24,7 +22,6 @@ services:
     image: pgvector/pgvector:${PGVECTOR_TAG}
     container_name: pgvector
     restart: "no"
-    userns_mode: host
     command: postgres -c 'max_connections=200'
     env_file:
       - ./env/pgvector.env
@@ -57,15 +54,12 @@ services:
       - 127.0.0.1:6334:6334
     volumes:
       - ${DATA_DIR}/qdrant:/qdrant/storage
+    devices:
+      - nvidia.com/gpu=${GPU_ID}
     deploy:
       resources:
         limits:
           memory: 4GB
-        reservations:
-          devices:
-            - driver: nvidia
-              device_ids: ["${GPU_ID}"]
-              capabilities: [gpu]
 
 networks:
   database:

@@ -1,10 +1,8 @@
 services:
   bifrost:
-    image: maximhq/bifrost:v1.4.0-prerelease9-amd64
+    image: maximhq/bifrost:v1.4.2-amd64
     container_name: bifrost
     restart: "no"
-    user: ${UID}:${GID}
-    userns_mode: host
     env_file:
       - ./env/bifrost.env
       - ./env/bifrost.env.local
