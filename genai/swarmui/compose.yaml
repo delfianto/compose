@@ -43,7 +43,7 @@ services:
       - "homepage.href=https://swarmui.${TRAEFIK_ACME_DOMAIN}"
       - "homepage.description=Stable Diffusion SwarmUI"
     devices:
-      - nvidia.com/gpu=0
+      - nvidia.com/gpu=${GPU_ID}
     deploy:
       resources:
         limits:

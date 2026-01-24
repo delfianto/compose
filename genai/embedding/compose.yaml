@@ -16,7 +16,7 @@ services:
     secrets:
       - hf_token
     devices:
-      - nvidia.com/gpu=1
+      - nvidia.com/gpu=${GPU_ID}
     deploy:
       resources:
         limits:
@@ -39,7 +39,7 @@ services:
     secrets:
       - hf_token
     devices:
-      - nvidia.com/gpu=1
+      - nvidia.com/gpu=${GPU_ID}
     deploy:
       resources:
         limits:
