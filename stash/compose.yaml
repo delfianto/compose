@@ -1,6 +1,6 @@
 services:
   stash:
-    image: ghcr.io/feederbox826/stash-s6:hwaccel-develop
+    image: ghcr.io/feederbox826/stash-s6:hwaccel-alpine-develop
     container_name: stash
     restart: "no"
     networks:
@@ -20,7 +20,7 @@ services:
       - ${DATA_DIR}/config_s6:/config
       - ${DATA_DIR}/generated:/generated
       - ${DATA_DIR}/metadata:/metadata
-      - ${SRC1_DIR}:/media
+      - ${MEDIA_DIR}:/media
     labels:
       # Traefik integration
       - "traefik.enable=true"
@@ -35,7 +35,7 @@ services:
       - "homepage.href=https://stash.${TRAEFIK_ACME_DOMAIN}"
       - "homepage.description=Media Server for Cultured Material"
     devices:
-      - nvidia.com/gpu=1
+      - nvidia.com/gpu=${GPU_ID}
     deploy:
       resources:
         limits:
