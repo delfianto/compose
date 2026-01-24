@@ -35,7 +35,7 @@ services:
       - "homepage.href=https://plex.${TRAEFIK_ACME_DOMAIN}"
       - "homepage.description=Media Server"
     devices:
-      - nvidia.com/gpu=1
+      - nvidia.com/gpu=${GPU_ID}
     deploy:
       resources:
         limits:
