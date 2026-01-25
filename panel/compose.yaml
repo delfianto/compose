@@ -65,8 +65,8 @@ services:
       - proxy
       - metrics
     ports:
-      - 80:80
-      - 443:443
+      - 0.0.0.0:80:80
+      - 0.0.0.0:443:443
     secrets:
       - cf_dns_api_token
       - traefik_htpasswd

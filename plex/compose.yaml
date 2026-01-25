@@ -2,21 +2,10 @@ services:
   plex:
     image: lscr.io/linuxserver/plex:latest
     container_name: plex
+    network_mode: host
     restart: "no"
     env_file:
       - ./env/plex.env
-    ports:
-      - "1901:1900/udp" # Workaround for UDP 1900 clashed with Spotify
-      - "3005:3005/tcp"
-      - "8324:8324/tcp"
-      - "32400:32400/tcp"
-      - "32469:32469/tcp"
-      - "32410:32410/udp"
-      - "32412:32412/udp"
-      - "32413:32413/udp"
-      - "32414:32414/udp"
-    networks:
-      - proxy
     volumes:
       - ${FILE_DIR}:/media
       - ${DATA_DIR}/plex/config:/config
@@ -28,6 +17,7 @@ services:
       - "traefik.http.routers.plex.rule=Host(`plex.${TRAEFIK_ACME_DOMAIN}`)"
       - "traefik.http.routers.plex.tls.certresolver=cloudflare"
       - "traefik.http.services.plex.loadbalancer.server.port=32400"
+      - "traefik.http.services.plex.loadbalancer.server.scheme=http"
       # Homepage integration
       - "homepage.group=Media"
       - "homepage.name=Plex"
@@ -39,7 +29,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 1GB
+          memory: 2GB
 
   tautulli:
     image: lscr.io/linuxserver/tautulli:latest
@@ -53,6 +43,8 @@ services:
       - proxy
     volumes:
       - ${DATA_DIR}/tautulli:/config
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     labels:
       # Traefik integration
       - "traefik.enable=true"
