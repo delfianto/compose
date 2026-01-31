@@ -1,0 +1,46 @@
+services:
+  immich-server:
+    image: ghcr.io/immich-app/immich-server:${IMMICH_VERSION}
+    container_name: immich
+    restart: "no"
+    env_file:
+      - ./env/immich.env
+      - ./env/immich.env.local
+    networks:
+      - database
+      - proxy
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - ${IMMICH_PHOTOS}:/mnt/immich:ro
+      - ${IMMICH_UPLOAD}:/usr/src/app/upload
+    labels:
+      # Traefik integration
+      - "traefik.enable=true"
+      - "traefik.http.routers.webui.entrypoints=websecure"
+      - "traefik.http.routers.webui.rule=Host(`immich.${TRAEFIK_ACME_DOMAIN}`)"
+      - "traefik.http.routers.webui.tls.certresolver=cloudflare"
+      - "traefik.http.services.webui.loadbalancer.server.port=2283"
+      # Homepage integration
+      - "homepage.group=Media"
+      - "homepage.name=Immich"
+      - "homepage.icon=immich.svg"
+      - "homepage.href=https://immich.${TRAEFIK_ACME_DOMAIN}"
+      - "homepage.description=Photo and video management"
+
+  immich-machine-learning:
+    image: ghcr.io/immich-app/immich-machine-learning:${IMMICH_VERSION}
+    container_name: immich-ml
+    restart: "no"
+    networks:
+      - database
+      - proxy
+    volumes:
+      - ${DATA_DIR}:/cache
+    devices:
+      - nvidia.com/gpu=${GPU_ID}
+
+networks:
+  database:
+    external: true
+  proxy:
+    external: true
