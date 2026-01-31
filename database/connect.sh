@@ -30,13 +30,19 @@ fi
 
 # Connect and perform bootstrap
 if [[ ! -z "$BOOTSTRAP_DB" ]]; then
-  BOOTSTRAP_ARGS="--database $BOOTSTRAP_DB"
+  CMD_ARGS=("/docker-entrypoint-initdb.d/bootstrap.sh")
+  CMD_ARGS+=( "--database" "$BOOTSTRAP_DB" )
 
-  if [[ ! -z "$EXTS" ]]; then BOOTSTRAP_ARGS="$BOOTSTRAP_ARGS --extensions \"$EXTS\""; fi
-  if [[ "$SUPER" = true ]]; then BOOTSTRAP_ARGS="$BOOTSTRAP_ARGS --superuser"; fi
+  if [[ ! -z "$EXTS" ]]; then
+    CMD_ARGS+=( "--extensions" "$EXTS" )
+  fi
+
+  if [[ "$SUPER" = true ]]; then
+    CMD_ARGS+=( "--superuser" )
+  fi
 
   echo "--- Triggering Remote Bootstrap for: $BOOTSTRAP_DB ---"
-  docker exec -it vchord /docker-entrypoint-initdb.d/bootstrap.sh $BOOTSTRAP_ARGS
+  docker exec -it vchord "${CMD_ARGS[@]}"
   exit 0
 fi
 

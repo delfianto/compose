@@ -4,33 +4,54 @@
 
 bootstrap_db() {
   local DB_NAME=$1
-  local EXTENSIONS=$2
+  local EXTS_STRING=$2
   local IS_SUPERUSER=$3
-  local PSQL_CMD="psql -v ON_ERROR_STOP=1 -U $POSTGRES_USER -d $DB_NAME"
+
+  # Always perform creation tasks from the default 'postgres' database
+  local SYS_PSQL="psql -v ON_ERROR_STOP=1 -U $POSTGRES_USER -d postgres"
 
   echo "--- Bootstrapping Database: $DB_NAME ---"
 
-  # Create User and Database
-  $PSQL_CMD <<-EOSQL
-    CREATE USER $DB_NAME WITH PASSWORD '$POSTGRES_PASSWORD';
-    CREATE DATABASE $DB_NAME OWNER $DB_NAME;
-    GRANT ALL PRIVILEGES ON DATABASE $DB_NAME TO $DB_NAME;
+  # Create user
+  $SYS_PSQL <<-EOSQL
+    DO \$\$
+    BEGIN
+      IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = '$DB_NAME') THEN
+        CREATE ROLE $DB_NAME WITH LOGIN PASSWORD '$POSTGRES_PASSWORD';
+      END IF;
+    END \$\$;
 EOSQL
 
-  # Handle Superuser status
-  if [ "$IS_SUPERUSER" = true ]; then
+  # Create database
+  $SYS_PSQL -tc "SELECT 1 FROM pg_database WHERE datname = '$DB_NAME'" | grep -q 1 || \
+    $SYS_PSQL -c "CREATE DATABASE $DB_NAME OWNER $DB_NAME;"
+
+  $SYS_PSQL -c "GRANT ALL PRIVILEGES ON DATABASE $DB_NAME TO $DB_NAME;"
+
+  # Switch connection to the target database for extensions
+  local TARGET_PSQL="psql -v ON_ERROR_STOP=1 -U $POSTGRES_USER -d $DB_NAME"
+
+  if [[ "$IS_SUPERUSER" = true ]]; then
     echo "Granting SUPERUSER privileges to $DB_NAME..."
-    $PSQL_CMD -c "ALTER USER $DB_NAME WITH SUPERUSER;"
+    $TARGET_PSQL -c "ALTER USER $DB_NAME WITH SUPERUSER;"
+    echo
   fi
 
   # Enable Extensions
-  local DB_PSQL="psql -v ON_ERROR_STOP=1 -U $POSTGRES_USER -d $DB_NAME"
-  $DB_PSQL -c "CREATE EXTENSION IF NOT EXISTS vector;"
+  echo "Enabling baseline extension: vector"
+  $TARGET_PSQL -c "CREATE EXTENSION IF NOT EXISTS vector;"
+  echo
 
-  if [[ ! -z "$EXTENSIONS" ]]; then
-    for ext in $EXTENSIONS; do
-      echo "Enabling extension: $ext"
-      $DB_PSQL -c "CREATE EXTENSION IF NOT EXISTS $ext CASCADE;"
+  if [[ ! -z "$EXTS_STRING" ]]; then
+    read -ra EXT_ARRAY <<< "$EXTS_STRING"
+
+    for ext in "${EXT_ARRAY[@]}"; do
+      clean_ext=$(echo "$ext" | tr -d '"' | tr -d "'")
+      if [[ ! -z "$clean_ext" ]]; then
+        echo "Enabling extension: $clean_ext"
+        $TARGET_PSQL -c "CREATE EXTENSION IF NOT EXISTS $clean_ext CASCADE;"
+        echo
+      fi
     done
   fi
 }
