@@ -68,9 +68,6 @@ services:
     container_name: valkey
     restart: "no"
     command: valkey-server --save 60 1 --loglevel notice
-    env_file:
-      - ./env/valkey.env
-      - ./env/valkey.env.local
     networks:
       - database
       - proxy
