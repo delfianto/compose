@@ -1,35 +1,22 @@
 #!/bin/bash
 set -e
 
-# These are the environment variables passed to the container
-POSTGRES_PASSWORD="${POSTGRES_PASSWORD}"
-POSTGRES_USER="${POSTGRES_USER}"
-POSTGRES_DB="${POSTGRES_DB}"
+# Initialize with Checksums (if directory is empty)
+if [[ ! -s "$PGDATA/PG_VERSION" ]]; then
+  echo "Initializing blank state with data checksums enabled..."
+  initdb -D "$PGDATA" --data-checksums
+fi
 
-# Initialize the database
-initdb -D /var/lib/postgresql/data --data-checksums
+# Load the bootstrap library
+source "$(dirname "$0")/bootstrap.sh"
 
-# Debugging: Print environment variables
-echo "Environment Variables:"
-echo "  - POSTGRES_DB: $POSTGRES_DB"
-echo "  - POSTGRES_USER: $POSTGRES_USER"
-echo "  - POSTGRES_PASSWORD: $POSTGRES_PASSWORD"
-
-# Enable the vector extension on the default database
+# Initialize cluster-wide extensions on the default DB
 psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-EOSQL
-    CREATE EXTENSION IF NOT EXISTS vector;
+  CREATE EXTENSION IF NOT EXISTS vector;
 EOSQL
 
-# Create a new user and database for OpenWebUI
-psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-EOSQL
-    CREATE USER openwebui WITH PASSWORD '$POSTGRES_PASSWORD';
-    CREATE DATABASE openwebui OWNER openwebui;
-    GRANT ALL PRIVILEGES ON DATABASE openwebui TO openwebui;
-EOSQL
+# Use the bootstrap function for standard setup
+bootstrap_db "openwebui" "" false
+bootstrap_db "immich" "vchord cube earthdistance" true
 
-# Enable vector extension on the openwebui database too
-psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "openwebui" <<-EOSQL
-    CREATE EXTENSION IF NOT EXISTS vector;
-EOSQL
-
-echo "Vector extension enabled on both databases"
+echo "PostgreSQL initialization with checksums and app databases complete."
