@@ -1,0 +1,49 @@
+services:
+  photoprism:
+    image: photoprism/photoprism:latest
+    container_name: photoprism
+    restart: "no"
+    security_opt:
+      - seccomp:unconfined
+      - apparmor:unconfined
+    env_file:
+      - ./photoprism.env
+      - ./photoprism.env.local
+    environment:
+      PHOTOPRISM_INIT: tensorflow-gpu
+      PHOTOPRISM_FFMPEG_ENCODER: nvidia
+      PHOTOPRISM_WORKERS: 16
+      PHOTOPRISM_THUMB_FILTER: lanczos
+      PHOTOPRISM_READONLY: "true"
+      PHOTOPRISM_UPLOAD_NSFW: "true"
+    networks:
+      - database
+      - proxy
+    volumes:
+      - ${STORAGE_DIR}:/photoprism/storage
+      - ${ORIGINALS_DIR}:/photoprism/originals:ro
+    labels:
+      # Traefik integration
+      - "traefik.enable=true"
+      - "traefik.http.routers.prism.entrypoints=websecure"
+      - "traefik.http.routers.prism.rule=Host(`prism.${TRAEFIK_ACME_DOMAIN}`)"
+      - "traefik.http.routers.prism.tls.certresolver=cloudflare"
+      - "traefik.http.services.prism.loadbalancer.server.port=2342"
+      # Homepage integration
+      - "homepage.group=Media"
+      - "homepage.name=PhotoPrism"
+      - "homepage.icon=PhotoPrism.svg"
+      - "homepage.href=https://prism.${TRAEFIK_ACME_DOMAIN}"
+      - "homepage.description=Photo and video management"
+    devices:
+      - nvidia.com/gpu=${GPU_ID}
+    deploy:
+      resources:
+        limits:
+          memory: 8G
+
+networks:
+  database:
+    external: true
+  proxy:
+    external: true

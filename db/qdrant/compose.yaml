@@ -1,0 +1,30 @@
+services:
+  qdrant:
+    image: qdrant/qdrant:v1.16-gpu-nvidia
+    container_name: qdrant
+    restart: "no"
+    env_file:
+      - path: ./qdrant.env
+        required: true
+      - path: ./qdrant.env.local
+        required: false
+    networks:
+      - database
+      - proxy
+    ports:
+      - 127.0.0.1:6333:6333
+      - 127.0.0.1:6334:6334
+    volumes:
+      - ${DATA_DIR}/qdrant:/qdrant/storage
+    devices:
+      - nvidia.com/gpu=${GPU_ID}
+    deploy:
+      resources:
+        limits:
+          memory: 4GB
+
+networks:
+  database:
+    external: true
+  proxy:
+    external: true

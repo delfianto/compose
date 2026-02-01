@@ -18,10 +18,10 @@ services:
     labels:
       # Traefik integration
       - "traefik.enable=true"
-      - "traefik.http.routers.webui.entrypoints=websecure"
-      - "traefik.http.routers.webui.rule=Host(`immich.${TRAEFIK_ACME_DOMAIN}`)"
-      - "traefik.http.routers.webui.tls.certresolver=cloudflare"
-      - "traefik.http.services.webui.loadbalancer.server.port=2283"
+      - "traefik.http.routers.immich.entrypoints=websecure"
+      - "traefik.http.routers.immich.rule=Host(`immich.${TRAEFIK_ACME_DOMAIN}`)"
+      - "traefik.http.routers.immich.tls.certresolver=cloudflare"
+      - "traefik.http.services.immich.loadbalancer.server.port=2283"
       # Homepage integration
       - "homepage.group=Media"
       - "homepage.name=Immich"
