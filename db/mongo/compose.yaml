@@ -1,0 +1,23 @@
+services:
+  mongodb:
+    image: mongo:8.2-noble
+    container_name: mongodb
+    restart: "no"
+    env_file:
+      - ./mongodb.env
+      - ./mongodb.env.local
+    networks:
+      - database
+      - proxy
+    ports:
+      - 127.0.0.1:27017:27017
+    volumes:
+      - ${DATA_DIR}/mongo:/data/db
+    deploy:
+      resources:
+        limits:
+          memory: 1GB
+
+networks:
+  database:
+    external: true
