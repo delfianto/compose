@@ -1,0 +1,171 @@
+#!/bin/bash
+
+# pgtools - Simple database management utility for Postgres
+#
+# Usage:
+#   ./pgtools connect <db_name>
+#   ./pgtools bootstrap --database <name> --password <pass> [--extensions "ext1 ext2"]
+#   ./pgtools maintain --database "db1 db2"
+
+# Safety & Environment
+set -euo pipefail
+source .env
+
+# Configuration Defaults
+CONTAINER_NAME="${CONTAINER_NAME:-vchord}"
+POSTGRES_USER="${POSTGRES_USER:-postgres}"
+
+# Path to the secret file on the HOST (derived from .env DATA_DIR)
+# By default secret is mapped from ${DATA_DIR}/db_password.txt
+HOST_SECRET_FILE=${HOST_SECRET_FILE:-"${DATA_DIR}/db_password.txt"}
+ROOT_PASS=$(<"$HOST_SECRET_FILE")
+
+# Pre-flight Checks
+if ! docker ps --format '{{.Names}}' | grep -q "^${CONTAINER_NAME}$"; then
+    echo "Error: Container '${CONTAINER_NAME}' is not running."
+    exit 1
+fi
+
+if [[ ! -f "$HOST_SECRET_FILE" ]]; then
+    echo "Error: Root password file not found at: $HOST_SECRET_FILE"
+    exit 1
+fi
+
+# --- Core Functions ---
+
+cmd_connect() {
+    local TARGET_DB=$1
+    if [[ -z "$TARGET_DB" ]]; then
+        echo "Usage: ./pgtools connect <database_name>"
+        exit 1
+    fi
+    echo "--- Connecting to Database Shell: $TARGET_DB ---"
+    docker exec -it "$CONTAINER_NAME" psql -U "$POSTGRES_USER" -d "$TARGET_DB"
+}
+
+cmd_bootstrap() {
+    local DB_NAME=""
+    local DB_PASS=""
+    local EXTS=""
+    local SUPER="false"
+
+    while [[ "$#" -gt 0 ]]; do
+        case $1 in
+            --database | -d) DB_NAME="$2"; shift ;;
+            --password | -p) DB_PASS="$2"; shift ;;
+            --extensions | -e ) EXTS="$2"; shift ;;
+            --superuser | -s) SUPER="true" ;;
+            *) echo "Unknown parameter: $1"; exit 1 ;;
+        esac
+        shift
+    done
+
+    if [[ -z "$DB_NAME" ]]; then echo "Error: --database is required"; exit 1; fi
+
+    # If no password provided, fallback to the Root Password
+    if [[ -z "$DB_PASS" ]]; then
+        echo "Info: No --password provided. Using root password for new user."
+        DB_PASS="$ROOT_PASS"
+    fi
+
+    echo "--- Bootstrapping Database: $DB_NAME ---"
+
+    # Check if DB exists
+    local EXISTS
+    EXISTS=$(docker exec -i "$CONTAINER_NAME" psql -U "$POSTGRES_USER" -tAc "SELECT 1 FROM pg_database WHERE datname='$DB_NAME'")
+
+    if [[ "$EXISTS" == "1" ]]; then
+        echo "Database '$DB_NAME' already exists. Skipping creation."
+    else
+        # Create User and Database
+        # Pipe the SQL into the container.
+        # Use -v (variables) to inject data safely, preventing some shell injection issues.
+        cat <<EOF | docker exec -i "$CONTAINER_NAME" psql -U "$POSTGRES_USER" -d postgres -v db_user="$DB_NAME" -v db_pass="$DB_PASS" -v db_name="$DB_NAME"
+
+        -- Create Role (Idempotent-ish check)
+        DO \$\$
+        BEGIN
+            IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = :'db_user') THEN
+                CREATE ROLE :"db_user" WITH LOGIN PASSWORD :'db_pass';
+            END IF;
+        END \$\$;
+
+        -- Create Database
+        CREATE DATABASE :"db_name" OWNER :"db_user";
+
+        -- Grant Permissions
+        GRANT ALL PRIVILEGES ON DATABASE :"db_name" TO :"db_user";
+EOF
+        echo "User '$DB_NAME' and Database '$DB_NAME' created."
+    fi
+
+    # Apply superuser if requested
+    if [[ "$SUPER" == "true" ]]; then
+        echo "Granting SUPERUSER to $DB_NAME..."
+        docker exec -i "$CONTAINER_NAME" psql -U "$POSTGRES_USER" -c "ALTER USER \"$DB_NAME\" WITH SUPERUSER;"
+    fi
+
+    # Install extensions to the new database
+    echo "Installing extensions on database: $DB_NAME..."
+    local EXT_SQL="CREATE EXTENSION IF NOT EXISTS vector;"
+
+    # Process additional extension list
+    if [[ -n "$EXTS" ]]; then
+        for ext in $EXTS; do
+            EXT_SQL="${EXT_SQL} CREATE EXTENSION IF NOT EXISTS \"${ext}\" CASCADE;"
+        done
+    fi
+
+    echo "$EXT_SQL" | docker exec -i "$CONTAINER_NAME" psql -U "$POSTGRES_USER" -d "$DB_NAME"
+    echo "Bootstrap complete."
+}
+
+cmd_maintenance() {
+    local DB_LIST=""
+    while [[ "$#" -gt 0 ]]; do
+        case $1 in
+            --database) DB_LIST="$2"; shift ;;
+            *) echo "Unknown parameter: $1"; exit 1 ;;
+        esac
+        shift
+    done
+
+    if [[ -z "$DB_LIST" ]]; then echo "Error: --database \"name1 name2\" required"; exit 1; fi
+
+    for db in $DB_LIST; do
+        echo "--- [LIVE] Maintenance for: $db ---"
+        # Using Here-String (<<<) to pipe commands
+        cat <<EOF | docker exec -i "$CONTAINER_NAME" psql -U "$POSTGRES_USER" -d "$db"
+            REINDEX DATABASE "$db";
+            ALTER DATABASE "$db" REFRESH COLLATION VERSION;
+EOF
+    done
+    echo "Maintenance complete."
+}
+
+# --- Dispatcher ---
+
+if [[ "$#" -eq 0 ]]; then
+    echo "Usage: $0 {connect|bootstrap|maintain}"
+    exit 1
+fi
+
+COMMAND=$1
+shift
+
+case "$COMMAND" in
+    connect)
+        cmd_connect "$@"
+        ;;
+    bootstrap)
+        cmd_bootstrap "$@"
+        ;;
+    maintain|maintenance)
+        cmd_maintenance "$@"
+        ;;
+    *)
+        echo "Unknown command: $COMMAND"
+        echo "Usage: $0 {connect|bootstrap|maintain}"
+        exit 1
+        ;;
+esac
