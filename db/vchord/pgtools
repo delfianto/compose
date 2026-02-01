@@ -64,7 +64,8 @@ cmd_bootstrap() {
 
     # If no password provided, fallback to the Root Password
     if [[ -z "$DB_PASS" ]]; then
-        echo "Info: No --password provided. Using root password for new user."
+        echo "Info: No password provided. Using root password for new user."
+        echo
         DB_PASS="$ROOT_PASS"
     fi
 
@@ -76,6 +77,7 @@ cmd_bootstrap() {
 
     if [[ "$EXISTS" == "1" ]]; then
         echo "Database '$DB_NAME' already exists. Skipping creation."
+        echo
     else
         # Create User and Database
         # Pipe the SQL into the container.
@@ -97,12 +99,14 @@ cmd_bootstrap() {
         GRANT ALL PRIVILEGES ON DATABASE :"db_name" TO :"db_user";
 EOF
         echo "User '$DB_NAME' and Database '$DB_NAME' created."
+        echo
     fi
 
     # Apply superuser if requested
     if [[ "$SUPER" == "true" ]]; then
         echo "Granting SUPERUSER to $DB_NAME..."
         docker exec -i "$CONTAINER_NAME" psql -U "$POSTGRES_USER" -c "ALTER USER \"$DB_NAME\" WITH SUPERUSER;"
+        echo
     fi
 
     # Install extensions to the new database
@@ -117,6 +121,7 @@ EOF
     fi
 
     echo "$EXT_SQL" | docker exec -i "$CONTAINER_NAME" psql -U "$POSTGRES_USER" -d "$DB_NAME"
+    echo
     echo "Bootstrap complete."
 }
 
