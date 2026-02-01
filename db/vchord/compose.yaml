@@ -6,11 +6,13 @@ services:
     command: postgres -c "shared_preload_libraries=vchord" -c "max_connections=200"
     env_file:
       - ./vchord.env
-      - ./vchord.env.local
     networks:
       - database
+      - default
     ports:
       - 127.0.0.1:5432:5432
+    secrets:
+      - db_password
     volumes:
       - ${DATA_DIR}/postgres:/var/lib/postgresql/18/docker
       - ${PROJ_DIR}/initdb.d:/docker-entrypoint-initdb.d
@@ -22,3 +24,7 @@ services:
 networks:
   database:
     external: true
+
+secrets:
+  db_password:
+    file: ${DATA_DIR}/db_password.txt
