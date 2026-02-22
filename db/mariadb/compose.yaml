@@ -11,24 +11,23 @@ services:
     security_opt:
       - seccomp:unconfined
       - apparmor:unconfined
-    # Performance Tuning (64GB RAM & Ryzen 9550X)
     command:
-          # I/O & Storage Tuning (NVMe Optimized)
-          - --innodb-io-capacity=20000        # NVMe can handle high IOPS
+      # I/O & Storage Tuning (NVMe Optimized)
+      - --innodb-io-capacity=20000        # NVMe can handle high IOPS
 
-          # Memory & Cache
-          - --innodb-buffer-pool-size=12G     # Pushed to 12GB for large metadata
-          - --innodb-log-file-size=2G         # Larger logs for massive bulk indexing
-          - --aria-pagecache-buffer-size=1G   # Boosts internal temp table speed
+      # Memory & Cache
+      - --innodb-buffer-pool-size=12G     # Pushed to 12GB for large metadata
+      - --innodb-log-file-size=2G         # Larger logs for massive bulk indexing
+      - --aria-pagecache-buffer-size=1G   # Boosts internal temp table speed
 
-          # High Core Count Optimizations
-          - --thread-handling=pool-of-threads # Better for 16 cores / 32 threads
-          - --innodb-read-io-threads=16       # Matching with physical cores
-          - --innodb-write-io-threads=16
+      # High Core Count Optimizations
+      - --thread-handling=pool-of-threads # Better for 16 cores / 32 threads
+      - --innodb-read-io-threads=16       # Matching with physical cores
+      - --innodb-write-io-threads=16
 
-          # Modern Stuff
-          - --character-set-server=utf8mb4
-          - --collation-server=utf8mb4_unicode_ci
+      # Modern Stuff
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
     networks:
       - database
     ports:
