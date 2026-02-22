@@ -22,13 +22,11 @@ services:
       - ${DATA_DIR}/metadata:/metadata
       - ${MEDIA_DIR}:/media
     labels:
-      # Traefik integration
       - "traefik.enable=true"
       - "traefik.http.routers.stash.entrypoints=websecure"
       - "traefik.http.routers.stash.rule=Host(`stash.${TRAEFIK_ACME_DOMAIN}`)"
       - "traefik.http.routers.stash.tls.certresolver=cloudflare"
       - "traefik.http.services.stash.loadbalancer.server.port=9069"
-      # Homepage integration
       - "homepage.group=Media"
       - "homepage.name=StashApp"
       - "homepage.icon=stash.svg"

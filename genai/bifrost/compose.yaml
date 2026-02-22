@@ -17,13 +17,11 @@ services:
         limits:
           memory: 1GB
     labels:
-      # Traefik integration
       - "traefik.enable=true"
       - "traefik.http.routers.bifrost.entrypoints=websecure"
       - "traefik.http.routers.bifrost.rule=Host(`bifrost.${TRAEFIK_ACME_DOMAIN}`)"
       - "traefik.http.routers.bifrost.tls.certresolver=cloudflare"
       - "traefik.http.services.bifrost.loadbalancer.server.port=8080"
-      # Homepage integration
       - "homepage.group=Artificial Intelligence"
       - "homepage.name=Bifrost"
       - "homepage.icon=/icons/bifrost.png"

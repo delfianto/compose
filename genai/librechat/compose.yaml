@@ -19,13 +19,11 @@ services:
       - ${DATA_DIR}/uploads:/app/uploads
       - ${DATA_DIR}/logs:/app/logs
     labels:
-      # Traefik integration
       - "traefik.enable=true"
-      - "traefik.http.routers.chat.entrypoints=websecure"
-      - "traefik.http.routers.chat.rule=Host(`chat.${TRAEFIK_ACME_DOMAIN}`)"
-      - "traefik.http.routers.chat.tls.certresolver=cloudflare"
-      - "traefik.http.services.chat.loadbalancer.server.port=${PORT}"
-      # Homepage integration
+      - "traefik.http.routers.librechat.entrypoints=websecure"
+      - "traefik.http.routers.librechat.rule=Host(`librechat.${TRAEFIK_ACME_DOMAIN}`)"
+      - "traefik.http.routers.librechat.tls.certresolver=cloudflare"
+      - "traefik.http.services.librechat.loadbalancer.server.port=${PORT}"
       - "homepage.group=Artificial Intelligence"
       - "homepage.name=LibreChat"
       - "homepage.icon=librechat.svg"

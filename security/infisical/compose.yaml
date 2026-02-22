@@ -1,0 +1,54 @@
+services:
+  infisical:
+    image: infisical/infisical:latest
+    container_name: infisical
+    restart: "no"
+    networks:
+      - database
+      - proxy
+    ports:
+      - 127.0.0.1:8080:8080
+    env_file:
+      - ./infisical.env
+    environment:
+      - SITE_URL=https://infisical.${TRAEFIK_ACME_DOMAIN}
+    entrypoint: >
+      /bin/sh -c "
+      export DB_CONNECTION_URI=\$(cat /run/secrets/infisical_db_uri);
+      export AUTH_SECRET=\$(cat /run/secrets/infisical_auth_secret);
+      export ENCRYPTION_KEY=\$(cat /run/secrets/infisical_encryption_key);
+      exec ./standalone-entrypoint.sh
+      "
+    secrets:
+      - infisical_db_uri
+      - infisical_encryption_key
+      - infisical_auth_secret
+    deploy:
+      resources:
+        limits:
+          memory: 1GB
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.infisical.entrypoints=websecure"
+      - "traefik.http.routers.infisical.rule=Host(`infisical.${TRAEFIK_ACME_DOMAIN}`)"
+      - "traefik.http.routers.infisical.tls.certresolver=cloudflare"
+      - "traefik.http.services.infisical.loadbalancer.server.port=8080"
+      - "homepage.group=Security"
+      - "homepage.name=Infisical"
+      - "homepage.icon=infisical.svg"
+      - "homepage.href=https://infisical.${TRAEFIK_ACME_DOMAIN}"
+      - "homepage.description=Open Source Secret Management"
+
+networks:
+  database:
+    external: true
+  proxy:
+    external: true
+
+secrets:
+  infisical_db_uri:
+    file: ${DATA_DIR}/infisical/db_uri.txt
+  infisical_encryption_key:
+    file: ${DATA_DIR}/infisical/encryption_key.txt
+  infisical_auth_secret:
+    file: ${DATA_DIR}/infisical/auth_secret.txt
