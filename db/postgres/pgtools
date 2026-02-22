@@ -79,25 +79,25 @@ cmd_bootstrap() {
         echo "Database '$DB_NAME' already exists. Skipping creation."
         echo
     else
-        # Create User and Database
-        # Pipe the SQL into the container.
-        # Use -v (variables) to inject data safely, preventing some shell injection issues.
-        cat <<EOF | docker exec -i "$CONTAINER_NAME" psql -U "$POSTGRES_USER" -d postgres -v db_user="$DB_NAME" -v db_pass="$DB_PASS" -v db_name="$DB_NAME"
+        # Check if User/Role exists
+        local ROLE_EXISTS
+        ROLE_EXISTS=$(docker exec -i "$CONTAINER_NAME" psql -U "$POSTGRES_USER" -tAc "SELECT 1 FROM pg_roles WHERE rolname='$DB_NAME'")
 
-        -- Create Role (Idempotent-ish check)
-        DO \$\$
-        BEGIN
-            IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = :'db_user') THEN
-                CREATE ROLE :"db_user" WITH LOGIN PASSWORD :'db_pass';
-            END IF;
-        END \$\$;
+        if [[ "$ROLE_EXISTS" == "1" ]]; then
+             echo "User '$DB_NAME' already exists. Skipping user creation."
+        else
+             echo "Creating User '$DB_NAME'..."
+             docker exec -i "$CONTAINER_NAME" psql -U "$POSTGRES_USER" -c "CREATE ROLE \"$DB_NAME\" WITH LOGIN PASSWORD '$DB_PASS';"
+        fi
 
-        -- Create Database
-        CREATE DATABASE :"db_name" OWNER :"db_user";
+        # Create Database
+        echo "Creating Database '$DB_NAME'..."
+        docker exec -i "$CONTAINER_NAME" psql -U "$POSTGRES_USER" -c "CREATE DATABASE \"$DB_NAME\" OWNER \"$DB_NAME\";"
 
-        -- Grant Permissions
-        GRANT ALL PRIVILEGES ON DATABASE :"db_name" TO :"db_user";
-EOF
+        # Grant Permissions
+        echo "Granting permissions..."
+        docker exec -i "$CONTAINER_NAME" psql -U "$POSTGRES_USER" -c "GRANT ALL PRIVILEGES ON DATABASE \"$DB_NAME\" TO \"$DB_NAME\";"
+
         echo "User '$DB_NAME' and Database '$DB_NAME' created."
         echo
     fi

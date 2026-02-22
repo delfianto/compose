@@ -23,13 +23,11 @@ services:
       - ${STORAGE_DIR}:/photoprism/storage
       - ${ORIGINALS_DIR}:/photoprism/originals:ro
     labels:
-      # Traefik integration
       - "traefik.enable=true"
       - "traefik.http.routers.prism.entrypoints=websecure"
       - "traefik.http.routers.prism.rule=Host(`prism.${TRAEFIK_ACME_DOMAIN}`)"
       - "traefik.http.routers.prism.tls.certresolver=cloudflare"
       - "traefik.http.services.prism.loadbalancer.server.port=2342"
-      # Homepage integration
       - "homepage.group=Media"
       - "homepage.name=PhotoPrism"
       - "homepage.icon=PhotoPrism.svg"

@@ -8,13 +8,11 @@ services:
     volumes:
       - ${DATA_DIR}:/app/save
     labels:
-      # Traefik integration
       - "traefik.enable=true"
       - "traefik.http.routers.risu.entrypoints=websecure"
       - "traefik.http.routers.risu.rule=Host(`risu.${TRAEFIK_ACME_DOMAIN}`)"
       - "traefik.http.routers.risu.tls.certresolver=cloudflare"
       - "traefik.http.services.risu.loadbalancer.server.port=6001"
-      # Homepage integration
       - "homepage.group=Artificial Intelligence"
       - "homepage.name=RisuAI"
       - "homepage.icon=/icons/risuai.png"

@@ -16,13 +16,11 @@ services:
       - ${IMMICH_PHOTOS}:/mnt/immich:ro
       - ${IMMICH_UPLOAD}:/usr/src/app/upload
     labels:
-      # Traefik integration
       - "traefik.enable=true"
       - "traefik.http.routers.immich.entrypoints=websecure"
       - "traefik.http.routers.immich.rule=Host(`immich.${TRAEFIK_ACME_DOMAIN}`)"
       - "traefik.http.routers.immich.tls.certresolver=cloudflare"
       - "traefik.http.services.immich.loadbalancer.server.port=2283"
-      # Homepage integration
       - "homepage.group=Media"
       - "homepage.name=Immich"
       - "homepage.icon=immich.svg"

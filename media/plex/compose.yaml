@@ -22,13 +22,11 @@ services:
       - ${DATA_DIR}/plex/config:/config
       - ${DATA_DIR}/plex/transcode:/transcode
     labels:
-      # Traefik integration
       - "traefik.enable=true"
       - "traefik.http.routers.plex.entrypoints=websecure"
       - "traefik.http.routers.plex.rule=Host(`plex.${TRAEFIK_ACME_DOMAIN}`)"
       - "traefik.http.routers.plex.tls.certresolver=cloudflare"
       - "traefik.http.services.plex.loadbalancer.server.port=32400"
-      # Homepage integration
       - "homepage.group=Media"
       - "homepage.name=Plex"
       - "homepage.icon=plex.svg"

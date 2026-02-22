@@ -1,0 +1,13 @@
+[deps.security-infisical]
+requires = ["db-postgres", "db-valkey"]
+
+[deps.genai-bifrost]
+requires = ["db-postgres", "security-infisical"]
+
+[deps.genai-openwebui]
+requires = ["db-postgres", "security-infisical"]
+wants = ["genai-bifrost", "genai-embedding", "genai-ollama"]
+
+[deps.genai-librechat]
+requires = ["db-postgres", "security-infisical"]
+wants = ["genai-bifrost", "genai-embedding", "genai-ollama"]
