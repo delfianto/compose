@@ -1,0 +1,17 @@
+services:
+  qdrant-mcp:
+    image: mcp/qdrant-server:latest
+    container_name: qdrant-mcp
+    restart: "no"
+    environment:
+      - QDRANT_URL=http://qdrant:6333
+      - EMBEDDING_API_URL=http://tei-embedder:4000
+    networks:
+      - database
+      - genai
+
+networks:
+  database:
+    external: true
+  genai:
+    external: true

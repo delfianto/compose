@@ -1,6 +1,6 @@
 services:
   qdrant:
-    image: qdrant/qdrant:v1.16-gpu-nvidia
+    image: qdrant/qdrant:v1.17-gpu-nvidia
     container_name: qdrant
     restart: "no"
     env_file:

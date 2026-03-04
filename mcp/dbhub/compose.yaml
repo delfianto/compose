@@ -1,0 +1,15 @@
+services:
+  dbhub-mcp:
+    image: dbhub/mcp-server:latest
+    container_name: dbhub-mcp
+    restart: "no"
+    environment:
+      - MARIADB_URL=mysql://mariadb:3306/
+      - POSTGRES_URL=postgres://vchord:5432/
+      - MONGODB_URL=mongodb://mongodb:27017/
+    networks:
+      - database
+
+networks:
+  database:
+    external: true

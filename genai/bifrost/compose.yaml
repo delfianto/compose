@@ -1,11 +1,11 @@
 services:
   bifrost:
-    image: maximhq/bifrost:v1.4.2-amd64
+    image: maximhq/bifrost:v1.4.7-amd64
     container_name: bifrost
     restart: "no"
     env_file:
-      - ./env/bifrost.env
-      - ./env/bifrost.env.local
+      - ./bifrost.env
+      - ./bifrost.env.local
     networks:
       - database
       - genai

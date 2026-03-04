@@ -19,7 +19,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 1GB
+          memory: 2GB
 
 networks:
   database:
@@ -27,4 +27,4 @@ networks:
 
 secrets:
   db_password:
-    file: ${DATA_DIR}/db_password.txt
+    file: ${DATA_DIR}/postgres_password.txt

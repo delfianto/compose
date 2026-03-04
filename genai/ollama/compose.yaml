@@ -1,6 +1,6 @@
 services:
   ollama:
-    image: ollama/ollama:${OLLAMA_TAG}
+    image: ollama/ollama:latest
     container_name: ollama
     restart: "no"
     networks:
@@ -10,15 +10,16 @@ services:
       - 127.0.0.1:11434:11434
     env_file:
       - ./ollama.env
+      - ./main.env
     volumes:
       - ${DATA_DIR}:/root/.ollama
     devices:
       - nvidia.com/gpu=0
       - nvidia.com/gpu=1
 
-  ollama-summarizer:
-    image: ollama/ollama:${OLLAMA_TAG}
-    container_name: ollama-summarizer
+  ollama-helper:
+    image: ollama/ollama:latest
+    container_name: ollama-helper
     restart: "no"
     networks:
       - genai
@@ -34,14 +35,14 @@ services:
     devices:
       - nvidia.com/gpu=1
 
-  ollama-summarizer-loader:
+  ollama-loader:
     image: alpine/curl
-    container_name: ollama-summarizer-loader
+    container_name: ollama-loader
     restart: "no"
     networks:
       - genai
     depends_on:
-      - ollama-summarizer
+      - ollama-helper
     volumes:
       - ./preload.sh:/preload.sh:ro
     entrypoint: ["/bin/sh", "/preload.sh"]

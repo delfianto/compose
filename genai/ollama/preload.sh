@@ -1,6 +1,6 @@
 #!/bin/sh
-OLLAMA_URL="http://ollama-summarizer:11434"
-MODEL_NAME="qwen2.5:3b-instruct"
+OLLAMA_URL="http://ollama-helper:11434"
+MODEL_NAME="huihui_ai/qwen3.5-abliterated:0.8b"
 
 echo "Waiting for Ollama at $OLLAMA_URL..."
 until curl -s "$OLLAMA_URL/api/tags" > /dev/null; do
