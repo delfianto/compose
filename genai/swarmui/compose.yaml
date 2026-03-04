@@ -1,27 +1,31 @@
 services:
   swarmui:
-    image: swarmui
+    image: ${GHCR_IMAGE}:${SWARMUI_VERSION}
     restart: "no"
     cap_drop:
       - ALL
     build:
       args:
-        - UID=${UID}
-        - GID=${GID}
+        - SWARMUI_UID=${SWARMUI_UID}
+        - SWARMUI_GID=${SWARMUI_GID}
+        - SWARMUI_VERSION=${SWARMUI_VERSION}
+        - SWARMUI_PORT=${SWARMUI_PORT:-7801}
       context: .
       dockerfile: Dockerfile
     container_name: swarmui
     networks:
       - proxy
     environment:
-      - UID=${UID}
-      - GID=${GID}
+      - SWARMUI_UID=${SWARMUI_UID}
+      - SWARMUI_GID=${SWARMUI_GID}
       - SWARMUI_PORT=${SWARMUI_PORT}
       - SWARMUI_ROOT=${SWARMUI_ROOT}
     volumes:
       # Stable Diffusion models and outputs
       - ${DATA_DIR}/models:${SWARMUI_ROOT}/Models
       - ${DATA_DIR}/output:${SWARMUI_ROOT}/Output
+      # SwarmUI persistent source code
+      - ${SWARMUI_SRC}:${SWARMUI_ROOT}
       # SwarmUI config and data
       - ${SWARMUI_DATA}/Home:${SWARMUI_ROOT}/Home
       - ${SWARMUI_DATA}/Data:${SWARMUI_ROOT}/Data
