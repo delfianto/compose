@@ -24,8 +24,6 @@ services:
       # Stable Diffusion models and outputs
       - ${DATA_DIR}/models:${SWARMUI_ROOT}/Models
       - ${DATA_DIR}/output:${SWARMUI_ROOT}/Output
-      # SwarmUI persistent source code
-      - ${SWARMUI_SRC}:${SWARMUI_ROOT}
       # SwarmUI config and data
       - ${SWARMUI_DATA}/Home:${SWARMUI_ROOT}/Home
       - ${SWARMUI_DATA}/Data:${SWARMUI_ROOT}/Data
