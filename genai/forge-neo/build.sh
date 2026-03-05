@@ -31,18 +31,11 @@ if [[ -f .env ]]; then
   source .env
 fi
 
-GHCR_IMG=${GHCR_IMG:-"ghcr.io/delfianto/compose/forge-neo"}
-GHCR_VER=${GHCR_VER:-"latest"}
-
-if [[ "$GHCR_IMG" == *"your_github_username"* ]] || [[ "$GHCR_IMG" == *"username"* ]]; then
-  echo "WARNING: GHCR_IMG is set to a placeholder ($GHCR_IMG)."
-  echo "Please set GHCR_IMG in your .env file to your actual GitHub Container Registry path."
+if [[ -z "$GHCR_IMG" ]] || [[ -z "$GHCR_VER" ]]; then
+  echo "Please set GHCR_IMG and GHCR_VER in your .env file to GitHub Container Registry path."
   echo "Example: GHCR_IMG=ghcr.io/octocat/forge-neo"
-
-  if [ "$ACTION_PUSH" = true ]; then
-      echo "ERROR: Cannot push with a placeholder registry. Exiting."
-      exit 1
-  fi
+  echo "Example: GHCR_VER=latest"
+  exit 1
 fi
 
 if [[ "$ACTION_BUILD" = true ]]; then
