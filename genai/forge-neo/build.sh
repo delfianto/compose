@@ -31,13 +31,13 @@ if [[ -f .env ]]; then
   source .env
 fi
 
-GHCR_IMAGE=${GHCR_IMAGE:-"ghcr.io/username/swarmui"}
-SWARMUI_VERSION=${SWARMUI_VERSION:-"latest"}
+GHCR_IMG=${GHCR_IMG:-"ghcr.io/delfianto/compose/forge-neo"}
+GHCR_VER=${GHCR_VER:-"latest"}
 
-if [[ "$GHCR_IMAGE" == *"your_github_username"* ]] || [[ "$GHCR_IMAGE" == *"username"* ]]; then
-  echo "WARNING: GHCR_IMAGE is set to a placeholder ($GHCR_IMAGE)."
-  echo "Please set GHCR_IMAGE in your .env file to your actual GitHub Container Registry path."
-  echo "Example: GHCR_IMAGE=ghcr.io/octocat/swarmui"
+if [[ "$GHCR_IMG" == *"your_github_username"* ]] || [[ "$GHCR_IMG" == *"username"* ]]; then
+  echo "WARNING: GHCR_IMG is set to a placeholder ($GHCR_IMG)."
+  echo "Please set GHCR_IMG in your .env file to your actual GitHub Container Registry path."
+  echo "Example: GHCR_IMG=ghcr.io/octocat/forge-neo"
 
   if [ "$ACTION_PUSH" = true ]; then
       echo "ERROR: Cannot push with a placeholder registry. Exiting."
@@ -46,14 +46,14 @@ if [[ "$GHCR_IMAGE" == *"your_github_username"* ]] || [[ "$GHCR_IMAGE" == *"user
 fi
 
 if [[ "$ACTION_BUILD" = true ]]; then
-    echo "Building SwarmUI image: ${GHCR_IMAGE}:${SWARMUI_VERSION}"
-    docker compose build swarmui
+    echo "Building Forge Neo image: ${GHCR_IMG}:${GHCR_VER}"
+    docker compose build forge-neo
 fi
 
 if [[ "$ACTION_PUSH" = true ]]; then
-    echo "Pushing image to ${GHCR_IMAGE}:${SWARMUI_VERSION}..."
-    docker compose push swarmui
+    echo "Pushing image to ${GHCR_IMG}:${GHCR_VER}..."
+    docker compose push forge-neo
 
     echo "Done! You can now pull this image using:"
-    echo "  docker pull ${GHCR_IMAGE}:${SWARMUI_VERSION}"
+    echo "  docker pull ${GHCR_IMG}:${GHCR_VER}"
 fi
