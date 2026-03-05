@@ -23,7 +23,7 @@ services:
       - "traefik.http.services.forge.loadbalancer.server.port=7860"
       - "homepage.group=Artificial Intelligence"
       - "homepage.name=Forge Neo"
-      - "homepage.icon=forge.svg"
+      - "homepage.icon=docker.svg"
       - "homepage.href=https://forge.${TRAEFIK_ACME_DOMAIN}"
 
 networks:

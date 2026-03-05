@@ -35,13 +35,11 @@ services:
       - /etc/localtime:/etc/localtime:ro
       - /etc/timezone:/etc/timezone:ro
     labels:
-      # Traefik integration
       - "traefik.enable=true"
       - "traefik.http.routers.portainer.entrypoints=websecure"
       - "traefik.http.routers.portainer.rule=Host(`panel.${TRAEFIK_ACME_DOMAIN}`)"
       - "traefik.http.routers.portainer.tls.certresolver=cloudflare"
       - "traefik.http.services.portainer.loadbalancer.server.port=9000"
-      # Homepage integration
       - "homepage.group=Core"
       - "homepage.name=Portainer"
       - "homepage.icon=portainer.svg"
@@ -104,10 +102,8 @@ services:
       # API access from localhost only
       - --api.insecure=true
     labels:
-      # Global middleware for HTTP to HTTPS redirect
       - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
       - "traefik.http.middlewares.traefik-auth.basicauth.usersfile=/run/secrets/traefik_htpasswd"
-      # Traefik dashboard router
       - "traefik.enable=true"
       - "traefik.http.routers.http-catchall.entrypoints=web"
       - "traefik.http.routers.http-catchall.middlewares=redirect-to-https"
@@ -118,7 +114,6 @@ services:
       - "traefik.http.routers.traefik-dashboard.service=api@internal"
       - "traefik.http.routers.traefik-dashboard.tls.certresolver=cloudflare"
       - "traefik.http.routers.traefik-dashboard.tls=true"
-      # Homepage integration
       - "homepage.group=Core"
       - "homepage.name=Traefik"
       - "homepage.icon=traefik.svg"
@@ -145,19 +140,16 @@ services:
       - /etc/localtime:/etc/localtime:ro
       - /etc/timezone:/etc/timezone:ro
     labels:
-      # Traefik integration
       - "traefik.enable=true"
       - "traefik.http.routers.tugtainer.entrypoints=websecure"
       - "traefik.http.routers.tugtainer.rule=Host(`updates.${TRAEFIK_ACME_DOMAIN}`)"
       - "traefik.http.routers.tugtainer.tls.certresolver=cloudflare"
       - "traefik.http.services.tugtainer.loadbalancer.server.port=80"
-      # Homepage integration
       - "homepage.group=Core"
       - "homepage.name=Tugtainer"
-      - "homepage.icon=tugtainer.svg"
+      - "homepage.icon=docker.svg"
       - "homepage.href=https://updates.${TRAEFIK_ACME_DOMAIN}"
       - "homepage.description=Container Update Manager"
-      # Tugtainer specific labels
       - "dev.quenary.tugtainer.protected=true"
     deploy:
       resources:
