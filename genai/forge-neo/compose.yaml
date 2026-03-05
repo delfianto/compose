@@ -1,0 +1,31 @@
+services:
+  forge-neo:
+    build: .
+    image: ${GHCR_IMG}:${GHCR_VER}
+    container_name: forge-neo
+    restart: "no"
+    networks:
+      - proxy
+    environment:
+      - COMMANDLINE_ARGS=--listen --enable-insecure-extension-access --cuda-malloc
+      - UV_LINK_MODE=copy
+    volumes:
+      - ${DATA_DIR}/forge:/app/.venv
+      - ${DATA_DIR}/models:/app/models
+      - ${HOME}/Pictures/StableDiffusion:/app/output
+    devices:
+      - nvidia.com/gpu=${GPU_ID}
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.forge.entrypoints=websecure"
+      - "traefik.http.routers.forge.rule=Host(`forge.${TRAEFIK_ACME_DOMAIN}`)"
+      - "traefik.http.routers.forge.tls.certresolver=cloudflare"
+      - "traefik.http.services.forge.loadbalancer.server.port=7860"
+      - "homepage.group=Artificial Intelligence"
+      - "homepage.name=Forge Neo"
+      - "homepage.icon=forge.svg"
+      - "homepage.href=https://forge.${TRAEFIK_ACME_DOMAIN}"
+
+networks:
+  proxy:
+    external: true
