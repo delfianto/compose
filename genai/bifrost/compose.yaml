@@ -1,6 +1,6 @@
 services:
   bifrost:
-    image: maximhq/bifrost:v1.4.7-amd64
+    image: maximhq/bifrost:v1.4.11-amd64
     container_name: bifrost
     restart: "no"
     env_file:

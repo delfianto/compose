@@ -39,21 +39,6 @@ services:
       - "homepage.href=https://infisical.${TRAEFIK_ACME_DOMAIN}"
       - "homepage.description=Open Source Secret Management"
 
-  # infisical-agent:
-  #   image: infisical/cli:latest
-  #   container_name: infisical-agent
-  #   depends_on:
-  #     - infisical
-  #   networks:
-  #     - agent-net
-  #   volumes:
-  #     - ./infisical-agent.yaml:/etc/infisical/config.yaml
-  #     - shared-secrets:/shared
-  #   secrets:
-  #     - infisical_client_id
-  #     - infisical_client_secret
-  #   command: agent --config /etc/infisical/config.yaml
-
 networks:
   database:
     external: true
@@ -62,12 +47,8 @@ networks:
 
 secrets:
   infisical_db_uri:
-    file: ${DATA_DIR}/infisical/db_uri.txt
+    file: ${DATA_DIR}/db_uri.txt
   infisical_encryption_key:
-    file: ${DATA_DIR}/infisical/encryption_key.txt
+    file: ${DATA_DIR}/encryption_key.txt
   infisical_auth_secret:
-    file: ${DATA_DIR}/infisical/auth_secret.txt
-  # infisical_client_id:
-  #   file: ${DATA_DIR}/infisical/agent_client_id.txt
-  # infisical_client_secret:
-  #   file: ${DATA_DIR}/infisical/agent_client_secret.txt
+    file: ${DATA_DIR}/auth_secret.txt

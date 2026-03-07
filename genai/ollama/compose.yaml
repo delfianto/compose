@@ -16,10 +16,14 @@ services:
     devices:
       - nvidia.com/gpu=0
       - nvidia.com/gpu=1
+    deploy:
+      resources:
+        limits:
+          memory: 24GB
 
   ollama-helper:
     image: ollama/ollama:latest
-    container_name: ollama-helper
+    container_name: ollama-smol
     restart: "no"
     networks:
       - genai
@@ -34,6 +38,10 @@ services:
       - ${DATA_DIR}:/root/.ollama
     devices:
       - nvidia.com/gpu=1
+    deploy:
+      resources:
+        limits:
+          memory: 2GB
 
   ollama-loader:
     image: alpine/curl
@@ -46,6 +54,10 @@ services:
     volumes:
       - ./preload.sh:/preload.sh:ro
     entrypoint: ["/bin/sh", "/preload.sh"]
+    deploy:
+      resources:
+        limits:
+          memory: 100MB
 
 networks:
   genai:
