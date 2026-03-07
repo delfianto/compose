@@ -7,10 +7,10 @@ from qdrant_client import QdrantClient
 from qdrant_client.models import Distance, PointStruct, VectorParams
 
 # --- Configuration ---
-TEI_EMBED_URL = "http://localhost:4000"
-TEI_RERANK_URL = "http://localhost:4001"
+TEI_EMBED_URL = "http://localhost:4001"
+TEI_RERANK_URL = "http://localhost:4000"
 QDRANT_URL = "http://localhost:6333"
-COLLECTION_NAME = "tei_test_collection"
+COLLECTION_NAME = "openwebui_knowledge"
 VECTOR_SIZE = 1024
 
 client = QdrantClient(url=QDRANT_URL)
@@ -30,10 +30,9 @@ def get_embedding(text):
 
 def rerank(query, documents):
     """Fetch reranked results from TEI /rerank endpoint."""
-    # The error message explicitly asked for 'texts' instead of 'documents'
     payload = {
         "query": query,
-        "texts": documents,  # Changed from 'documents' to 'texts'
+        "texts": documents,
         "top_n": 5,
     }
 
