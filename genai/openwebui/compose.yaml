@@ -1,7 +1,7 @@
 services:
   open-webui:
     image: ghcr.io/open-webui/open-webui:latest-slim
-    container_name: open-webui
+    container_name: openwebui
     restart: "no"
     networks:
       - database
@@ -12,8 +12,8 @@ services:
     volumes:
       - ${DATA_DIR}:/app/backend/data
     env_file:
-      - ./env/open-webui.env
-      - ./env/open-webui.env.local
+      - webui.env
+      - webui.env.local
     environment:
       - WEBUI_URL=https://webui.${TRAEFIK_ACME_DOMAIN}
       - CORS_ALLOW_ORIGIN=https://webui.${TRAEFIK_ACME_DOMAIN}

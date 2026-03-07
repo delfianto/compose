@@ -4,13 +4,14 @@ services:
     container_name: tei-embed
     restart: "no"
     env_file:
-      - path: ./env/embed.env
-        required: true
-      - path: ./env/embed.env.local
-        required: false
+      - ./hf.env
+    environment:
+      - MODEL_ID=${EMBEDDER_MODEL}
     networks:
       - genai
       - proxy
+    ports:
+      - 127.0.0.1:4000:4000
     volumes:
       - ${DATA_DIR}:/data
     secrets:
@@ -27,13 +28,14 @@ services:
     container_name: tei-rerank
     restart: "no"
     env_file:
-      - path: ./env/rerank.env
-        required: true
-      - path: ./env/rerank.env.local
-        required: false
+      - ./hf.env
+    environment:
+      - MODEL_ID=${RERANKER_MODEL}
     networks:
       - genai
       - proxy
+    ports:
+      - 127.0.0.1:4001:4000
     volumes:
       - ${DATA_DIR}:/data
     secrets:
@@ -50,12 +52,12 @@ services:
     container_name: tei-proxy
     restart: "no"
     env_file:
-      - path: ./env/proxy.env
-        required: true
-      - path: ./env/proxy.env.local
-        required: false
+      - ./proxy.env
     networks:
       - genai
+      - proxy
+    ports:
+      - 127.0.0.1:4002:4000
     deploy:
       resources:
         limits:
