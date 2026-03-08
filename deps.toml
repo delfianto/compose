@@ -5,7 +5,7 @@ requires = ["db-postgres", "db-valkey"]
 requires = ["db-postgres"]
 
 [genai-openwebui]
-requires = ["db-postgres"]
+requires = ["db-postgres", "db-qdrant"]
 wants = ["genai-bifrost", "genai-embedding", "genai-ollama"]
 
 [genai-librechat]
