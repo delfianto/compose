@@ -6,8 +6,8 @@ services:
     container_name: immich
     restart: "no"
     env_file:
-      - ./env/immich.env
-      - ./env/immich.env.local
+      - ./immich.env
+      - ./immich.env.local
     networks:
       - database
       - proxy
