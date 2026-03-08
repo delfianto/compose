@@ -13,6 +13,11 @@ services:
       - ./main.env
     volumes:
       - ${DATA_DIR}:/root/.ollama
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     devices:
       - nvidia.com/gpu=0
       - nvidia.com/gpu=1
@@ -36,6 +41,11 @@ services:
       - OLLAMA_KEEP_ALIVE=-1
     volumes:
       - ${DATA_DIR}:/root/.ollama
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     devices:
       - nvidia.com/gpu=1
     deploy:
@@ -44,16 +54,18 @@ services:
           memory: 2GB
 
   ollama-loader:
-    image: alpine/curl
+    image: ollama/ollama:latest
     container_name: ollama-loader
     restart: "no"
     networks:
       - genai
     depends_on:
-      - ollama-helper
+      ollama-helper:
+        condition: service_healthy
     volumes:
+      - ./.env:/.env:ro
       - ./preload.sh:/preload.sh:ro
-    entrypoint: ["/bin/sh", "/preload.sh"]
+    entrypoint: ["/bin/bash", "/preload.sh", "--run"]
     deploy:
       resources:
         limits:
