@@ -1,8 +1,8 @@
 services:
-  forge-neo:
+  forge-classic:
     build: .
     image: ${GHCR_IMG}:${GHCR_VER}
-    container_name: forge-neo
+    container_name: forge-classic
     restart: "no"
     networks:
       - proxy
@@ -22,8 +22,8 @@ services:
       - "traefik.http.routers.forge.tls.certresolver=cloudflare"
       - "traefik.http.services.forge.loadbalancer.server.port=7860"
       - "homepage.group=Artificial Intelligence"
-      - "homepage.name=Forge Neo"
-      - "homepage.icon=docker.svg"
+      - "homepage.name=Forge Classic"
+      - "homepage.icon=/icons/stablediff.png"
       - "homepage.href=https://forge.${TRAEFIK_ACME_DOMAIN}"
 
 networks:

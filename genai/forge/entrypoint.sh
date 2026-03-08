@@ -15,5 +15,5 @@ else
 fi
 
 # Launch Forge
-echo "Starting Forge Neo..."
+echo "Starting Forge Classic..."
 exec "$VENV_DIR/bin/python3" launch.py "$@"
