@@ -1,6 +1,6 @@
 #!/bin/sh
 OLLAMA_URL="http://ollama-smol:11434"
-MODEL_NAME="hf.co/mradermacher/survival-uncensored-gemma-270m-GGUF:Q4_K_M"
+MODEL_NAME="hf.co/mradermacher/Human-Like-Qwen2.5-1.5B-Instruct-i1-GGUF:Q4_K_M"
 
 echo "Waiting for Ollama at $OLLAMA_URL..."
 until curl -s "$OLLAMA_URL/api/tags" > /dev/null; do

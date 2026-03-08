@@ -4,6 +4,11 @@ services:
     container_name: pgsql
     restart: "no"
     command: postgres -c "shared_preload_libraries=vchord" -c "max_connections=200"
+    healthcheck:
+      test: ["CMD-SHELL", "psql -U postgres -d postgres -c \"SELECT 1 FROM pg_extension WHERE extname = 'vchord';\" || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     env_file:
       - ./postgres.env
     networks:

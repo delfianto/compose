@@ -13,13 +13,12 @@ services:
     env_file:
       - stash.env
     volumes:
-      - ${LOCAL_TIME}:${LOCAL_TIME}:ro
+      - ${DATA_DIR}/config_s6:/config
       - ${DATA_DIR}/blobs:/blobs
       - ${DATA_DIR}/cache:/cache
-      - ${DATA_DIR}/config:/root/.stash
-      - ${DATA_DIR}/config_s6:/config
       - ${DATA_DIR}/generated:/generated
       - ${DATA_DIR}/metadata:/metadata
+      - ${DATA_DIR}/python:/pip-install
       - ${MEDIA_DIR}:/media
     labels:
       - "traefik.enable=true"
