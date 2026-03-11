@@ -6,8 +6,8 @@ requires = ["db-postgres"]
 
 [genai-openwebui]
 requires = ["db-postgres", "db-qdrant"]
-wants = ["genai-bifrost", "genai-embedding", "genai-ollama"]
+wants = ["genai-bifrost", "genai-embedding"]
 
 [genai-librechat]
 requires = ["db-postgres"]
-wants = ["genai-bifrost", "genai-embedding", "genai-ollama"]
+wants = ["genai-bifrost", "genai-embedding"]

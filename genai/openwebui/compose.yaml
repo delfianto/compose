@@ -1,5 +1,5 @@
 services:
-  open-webui:
+  openwebui:
     image: ghcr.io/open-webui/open-webui:latest-slim
     container_name: openwebui
     restart: "no"
@@ -30,7 +30,29 @@ services:
     deploy:
       resources:
         limits:
-          memory: 2GB
+          memory: ${MEM_LIMIT}
+
+  sidecar:
+    image: ghcr.io/ggml-org/llama.cpp:full-cuda13
+    container_name: sidecar
+    restart: "no"
+    networks:
+      - genai
+    volumes:
+      - ${DATA_DIR}:/models:ro
+    command: >
+      --server
+      --model /models/${SIDECAR_MODEL}.gguf
+      --ctx-size 2048
+      --n-gpu-layers -1
+      --host 0.0.0.0
+      --port 8080
+    devices:
+      - nvidia.com/gpu=1
+    deploy:
+      resources:
+        limits:
+          memory: ${MEM_LIMIT}
 
 networks:
   database:
