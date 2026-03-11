@@ -4,10 +4,7 @@ services:
     container_name: qdrant
     restart: "no"
     env_file:
-      - path: ./qdrant.env
-        required: true
-      - path: ./qdrant.env.local
-        required: false
+      - ./qdrant.env
     networks:
       - database
       - proxy
@@ -21,7 +18,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 4GB
+          memory: ${MEM_LIMIT}
 
 networks:
   database:

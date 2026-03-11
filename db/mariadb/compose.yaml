@@ -1,6 +1,6 @@
 services:
   mariadb:
-    image: mariadb:11.8
+    image: mariadb:12-ubi10
     container_name: mariadb
     restart: "no"
     env_file:
