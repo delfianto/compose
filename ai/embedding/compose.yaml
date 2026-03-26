@@ -71,4 +71,4 @@ networks:
 
 secrets:
   hf_token:
-    file: ./secret/hf.secret
+    file: ${DATA_DIR}/hf_token

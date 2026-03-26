@@ -1,0 +1,32 @@
+services:
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama
+    restart: "no"
+    networks:
+      - genai
+      - proxy
+    ports:
+      - 127.0.0.1:11434:11434
+    env_file:
+      - ./ollama.env
+    volumes:
+      - ${DATA_DIR}:/root/.ollama
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    devices:
+      - nvidia.com/gpu=0
+      - nvidia.com/gpu=1
+    deploy:
+      resources:
+        limits:
+          memory: 24GB
+
+networks:
+  genai:
+    external: true
+  proxy:
+    external: true
