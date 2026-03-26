@@ -1,13 +1,13 @@
 [security-infisical]
 requires = ["db-postgres", "db-valkey"]
 
-[genai-bifrost]
+[ai-bifrost]
 requires = ["db-postgres"]
 
-[genai-openwebui]
+[ai-openwebui]
 requires = ["db-postgres", "db-qdrant"]
 wants = ["ai-bifrost", "ai-embedding"]
 
-[genai-librechat]
+[ai-librechat]
 requires = ["db-postgres"]
 wants = ["ai-bifrost", "ai-embedding"]
