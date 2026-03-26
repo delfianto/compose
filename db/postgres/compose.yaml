@@ -20,7 +20,7 @@ services:
       - db_password
     volumes:
       - ${DATA_DIR}/postgres:/var/lib/postgresql/18/docker
-      - ${PROJ_DIR}/initdb.d:/docker-entrypoint-initdb.d
+      - ${PROJ_DIR}/postgres/initdb.d:/docker-entrypoint-initdb.d
     deploy:
       resources:
         limits:
