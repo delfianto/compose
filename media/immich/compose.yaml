@@ -8,13 +8,15 @@ services:
     env_file:
       - ./immich.env
       - ./immich.env.local
+    environment:
+      - UPLOAD_LOCATION=/data
     networks:
       - database
       - proxy
     volumes:
       - /etc/localtime:/etc/localtime:ro
       - ${IMMICH_PHOTOS}:/mnt/immich:ro
-      - ${IMMICH_UPLOAD}:/usr/src/app/upload
+      - ${IMMICH_UPLOAD}/data:/data
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.immich.entrypoints=websecure"
@@ -39,7 +41,7 @@ services:
       - database
       - proxy
     volumes:
-      - ${DATA_DIR}:/cache
+      - ${DATA_DIR}/cache:/cache
     devices:
       - nvidia.com/gpu=${GPU_ID}
     deploy:
