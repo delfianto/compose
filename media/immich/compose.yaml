@@ -15,7 +15,7 @@ services:
       - proxy
     volumes:
       - /etc/localtime:/etc/localtime:ro
-      - ${IMMICH_PHOTOS}:/mnt/immich:ro
+      - ${IMMICH_PHOTOS}:/g:ro
       - ${IMMICH_UPLOAD}/data:/data
     labels:
       - "traefik.enable=true"
