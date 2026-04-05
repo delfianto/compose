@@ -33,32 +33,34 @@ services:
           memory: ${MEM_LIMIT}
 
   sidecar:
-    image: ghcr.io/steel-skull/ik_llama.cpp:cpu-full
+    image: ghcr.io/ggml-org/llama.cpp:full-cuda13
     container_name: sidecar
     restart: "no"
     networks:
       - genai
     volumes:
       - ${DATA_DIR}/models:/models:ro
-    entrypoint: ["/app/llama-server"]
     command: >
+      --server
       --mlock
+      --parallel 2
       --threads 16
-      --numa distribute
-      --run-time-repack
-      --flash-attn on
-      --model /models/${SIDECAR_MODEL}.gguf
-      --chat-template-kwargs '{"enable_thinking":false}'
-      --ctx-size 32768
-      --n-gpu-layers 0
+      --reasoning off
+      --cache-type-k q4_0
+      --cache-type-v q4_0
+      --ctx-size 65536
+      --n-gpu-layers -1
       --host 0.0.0.0
       --port 8080
-      --temp 0.7
-      --top-p 0.8
+      --temp 1.0
+      --top-p 0.95
       --top-k 20
       --min-p 0.0
       --presence-penalty 1.5
       --repeat-penalty 1.0
+      --model /models/${SIDECAR_MODEL}.gguf
+    devices:
+      - nvidia.com/gpu=1
     deploy:
       resources:
         limits:
