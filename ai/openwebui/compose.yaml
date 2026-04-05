@@ -39,7 +39,7 @@ services:
     networks:
       - genai
     volumes:
-      - ${GGUF_DIR}:/models:ro
+      - ${DATA_DIR}/models:/models:ro
     command: >
       --server
       --model /models/${SIDECAR_MODEL}.gguf

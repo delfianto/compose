@@ -31,6 +31,7 @@ services:
       - ./hf.env
     environment:
       - MODEL_ID=${RERANKER_MODEL}
+      - POOLING=last-token
     networks:
       - genai
       - proxy
