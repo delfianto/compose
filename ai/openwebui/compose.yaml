@@ -33,7 +33,7 @@ services:
           memory: ${MEM_LIMIT}
 
   sidecar:
-    image: ghcr.io/ggml-org/llama.cpp:full-cuda13
+    image: ghcr.io/delfianto/ik_llama_cpu_zen5:latest
     container_name: sidecar
     restart: "no"
     networks:
@@ -41,24 +41,23 @@ services:
     volumes:
       - ${DATA_DIR}/models:/models:ro
     command: >
-      --server
       --mlock
-      --parallel 2
       --threads 16
-      --reasoning off
-      --cache-type-k q4_0
-      --cache-type-v q4_0
-      --ctx-size 65536
-      --n-gpu-layers -1
+      --parallel 2
+      --ctx-size 32768
+      --flash-attn off
       --host 0.0.0.0
       --port 8080
-      --temp 1.0
+      --temp 0.7
       --top-p 0.95
       --top-k 20
       --min-p 0.0
       --presence-penalty 1.5
       --repeat-penalty 1.0
+      --reasoning-tokens block
       --model /models/${SIDECAR_MODEL}.gguf
+      --chat-template-kwargs '{"enable_thinking":false}'
+      --jinja
     devices:
       - nvidia.com/gpu=1
     deploy:
