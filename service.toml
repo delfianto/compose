@@ -10,5 +10,8 @@ requires = ["db-postgres", "ai-bifrost", "ai-embedding", "ai-ollama"]
 [infra-infisical]
 requires = ["db-postgres", "db-valkey"]
 
+[infra-forgejo]
+requires = ["db-postgres"]
+
 [media-immich]
 requires = ["db-postgres", "db-valkey"]
