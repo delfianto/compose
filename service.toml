@@ -1,0 +1,11 @@
+[infra-infisical]
+requires = ["db-postgres", "db-valkey"]
+
+[ai-bifrost]
+requires = ["db-postgres"]
+
+[ai-openwebui]
+requires = ["db-postgres", "db-qdrant", "ai-bifrost", "ai-embedding"]
+
+[ai-librechat]
+requires = ["db-postgres", "ai-bifrost", "ai-embedding"]
