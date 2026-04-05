@@ -1,0 +1,33 @@
+services:
+  forgejo:
+    image: codeberg.org/forgejo/forgejo:14-rootless
+    container_name: forgejo
+    restart: "no"
+    networks:
+      - database
+      - proxy
+    volumes:
+      - ${DATA_DIR}/data:/var/lib/gitea
+      - ${DATA_DIR}/conf:/etc/gitea
+      - /etc/localtime:/etc/localtime:ro
+    env_file:
+      - forgejo.env
+      - forgejo.env.local
+    ports:
+      - "222:2222"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.forgejo.entrypoints=websecure"
+      - "traefik.http.routers.forgejo.rule=Host(`git.${TRAEFIK_ACME_DOMAIN}`)"
+      - "traefik.http.routers.forgejo.tls.certresolver=cloudflare"
+      - "traefik.http.services.forgejo.loadbalancer.server.port=3000"
+      - "homepage.group=Infra"
+      - "homepage.name=Forgejo"
+      - "homepage.icon=forgejo.svg"
+      - "homepage.href=https://git.${TRAEFIK_ACME_DOMAIN}"
+
+networks:
+  database:
+    external: true
+  proxy:
+    external: true
