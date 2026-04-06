@@ -7,12 +7,18 @@ services:
     networks:
       - proxy
     environment:
-      - COMMANDLINE_ARGS=--enable-insecure-extension-access --cuda-malloc --listen --port 7860
       - UV_CACHE_DIR=/app/uv_cache
+    command: >
+      --enable-insecure-extension-access
+      --cuda-malloc
+      --listen
+      --port 7860
+      --theme dark
+      --forge-ref-comfy-home /comfyui
     volumes:
-      - ${EXEC_DIR}/uv_cache:/app/uv_cache
+      - ${DATA_DIR}:/comfyui
       - ${EXEC_DIR}/venv:/app/venv
-      - ${DATA_DIR}/models:/app/models
+      - ${EXEC_DIR}/uv_cache:/app/uv_cache
       - ${HOME}/Pictures/StableDiffusion:/app/outputs
     devices:
       - nvidia.com/gpu=0
