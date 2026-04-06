@@ -19,7 +19,7 @@ services:
       - ${DATA_DIR}:/comfyui
       - ${EXEC_DIR}/venv:/app/venv
       - ${EXEC_DIR}/uv_cache:/app/uv_cache
-      - ${HOME}/Pictures/StableDiffusion:/app/outputs
+      - ${HOME}/Pictures/StableDiffusion:/app/output
     devices:
       - nvidia.com/gpu=0
     labels:
