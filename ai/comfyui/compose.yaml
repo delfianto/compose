@@ -6,7 +6,7 @@ services:
     environment:
       - USE_UV=true
       - USE_NEW_MANAGER=true
-      - COMFY_CMDLINE_EXTRA=--enable-manager --reserve-vram 2.0
+      - COMFY_CMDLINE_EXTRA=--reserve-vram 2.0
       - BASE_DIRECTORY=/basedir
       - SECURITY_LEVEL=weak
       # For rootless docker
