@@ -1,0 +1,48 @@
+services:
+  comfyui:
+    image: mmartial/comfyui-nvidia-docker:ubuntu24_cuda13.1-latest
+    container_name: comfyui
+    restart: "no"
+    environment:
+      - USE_UV=true
+      - USE_NEW_MANAGER=true
+      - COMFY_CMDLINE_EXTRA=--enable-manager --reserve-vram 2.0
+      - BASE_DIRECTORY=/basedir
+      - SECURITY_LEVEL=weak
+      # For rootless docker
+      - WANTED_UID=0
+      - WANTED_GID=0
+    networks:
+      - genai
+      - proxy
+    volumes:
+      - ${VENV_DIR}:/comfy/mnt
+      - ${DATA_DIR}/user:/basedir/user
+      - ${DATA_DIR}/input:/basedir/input
+      - ${DATA_DIR}/models:/basedir/models
+      - ${DATA_DIR}/custom_nodes:/basedir/custom_nodes
+      - ${HOME}/Pictures/StableDiffusion:/basedir/output
+    devices:
+      - nvidia.com/gpu=0
+      - nvidia.com/gpu=1
+    deploy:
+      resources:
+        limits:
+          memory: 16GB
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.comfy.entrypoints=websecure"
+      - "traefik.http.routers.comfy.rule=Host(`comfy.${TRAEFIK_ACME_DOMAIN}`)"
+      - "traefik.http.routers.comfy.tls.certresolver=cloudflare"
+      - "traefik.http.services.comfy.loadbalancer.server.port=8188"
+      - "homepage.group=Artificial Intelligence"
+      - "homepage.name=ComfyUI"
+      - "homepage.icon=comfyui.svg"
+      - "homepage.href=https://comfy.${TRAEFIK_ACME_DOMAIN}"
+      - "homepage.description=Node-based Stable Diffusion GUI"
+
+networks:
+  genai:
+    external: true
+  proxy:
+    external: true
