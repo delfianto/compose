@@ -1,4 +1,6 @@
-FROM nvidia/cuda:13.1.1-base-ubuntu24.04
+FROM nvidia/cuda:13.2.0-base-ubuntu24.04
+LABEL org.opencontainers.image.source="https://github.com/delfianto/compose"
+LABEL org.opencontainers.image.description="Stable Diffusion WebUI Forge Neo"
 
 # Install system dependencies and Python 3.13 via deadsnakes PPA
 RUN apt-get update && apt-get install -y software-properties-common \
@@ -22,4 +24,3 @@ RUN chmod +x /entrypoint.sh
 
 # Use the entrypoint script to launch
 ENTRYPOINT ["/entrypoint.sh"]
-CMD ["--listen", "--port", "7860"]

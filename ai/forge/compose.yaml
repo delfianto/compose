@@ -1,20 +1,21 @@
 services:
-  forge-classic:
+  forge-neo:
     build: .
-    image: ${GHCR_IMG}:${GHCR_VER}
-    container_name: forge-classic
+    image: ghcr.io/delfianto/compose/forge-neo:latest
+    container_name: forge-neo
     restart: "no"
     networks:
       - proxy
     environment:
-      - COMMANDLINE_ARGS=--listen --enable-insecure-extension-access --cuda-malloc
-      - UV_LINK_MODE=copy
+      - COMMANDLINE_ARGS=--enable-insecure-extension-access --cuda-malloc --listen --port 7860
+      - UV_CACHE_DIR=/app/uv_cache
     volumes:
-      - ${DATA_DIR}/forge:/app/.venv
+      - ${EXEC_DIR}/uv_cache:/app/uv_cache
+      - ${EXEC_DIR}/venv:/app/venv
       - ${DATA_DIR}/models:/app/models
-      - ${HOME}/Pictures/StableDiffusion:/app/output
+      - ${HOME}/Pictures/StableDiffusion:/app/outputs
     devices:
-      - nvidia.com/gpu=${GPU_ID}
+      - nvidia.com/gpu=0
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.forge.entrypoints=websecure"
@@ -22,7 +23,7 @@ services:
       - "traefik.http.routers.forge.tls.certresolver=cloudflare"
       - "traefik.http.services.forge.loadbalancer.server.port=7860"
       - "homepage.group=Artificial Intelligence"
-      - "homepage.name=Forge Classic"
+      - "homepage.name=Forge Neo"
       - "homepage.icon=/icons/stablediff.png"
       - "homepage.href=https://forge.${TRAEFIK_ACME_DOMAIN}"
 

@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-VENV_DIR="/app/.venv"
+export VENV_DIR="/app/venv"
 
 # Check if the virtual environment exists, if not create it
 if [[ ! -f "$VENV_DIR/bin/python3" ]]; then
