@@ -24,11 +24,11 @@ services:
       - db_password
       - db_root_password
     volumes:
-      - ${DATA_DIR}/mariadb:/var/lib/mysql
+      - ${DATA_DIR}:/var/lib/mysql
     deploy:
       resources:
         limits:
-          memory: 2GB
+          memory: ${MEM_LIMIT}
 
 networks:
   database:
@@ -36,6 +36,6 @@ networks:
 
 secrets:
   db_password:
-    file: ${DATA_DIR}/mariadb_password.txt
+    file: ${DATA_DIR}/password.txt
   db_root_password:
-    file: ${DATA_DIR}/mariadb_root_password.txt
+    file: ${DATA_DIR}/root_password.txt

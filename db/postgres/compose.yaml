@@ -19,12 +19,12 @@ services:
     secrets:
       - db_password
     volumes:
-      - ${DATA_DIR}/postgres:/var/lib/postgresql/18/docker
-      - ${PROJ_DIR}/postgres/initdb.d:/docker-entrypoint-initdb.d
+      - ${DATA_DIR}:/var/lib/postgresql/18/docker
+      - ${PROJ_DIR}/initdb.d:/docker-entrypoint-initdb.d
     deploy:
       resources:
         limits:
-          memory: 2GB
+          memory: ${MEM_LIMIT}
 
 networks:
   database:
@@ -32,4 +32,5 @@ networks:
 
 secrets:
   db_password:
-    file: ${DATA_DIR}/postgres_password.txt
+    file: ${DATA_DIR}/password.txt
+
