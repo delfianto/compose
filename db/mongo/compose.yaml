@@ -11,11 +11,11 @@ services:
     ports:
       - 127.0.0.1:27017:27017
     volumes:
-      - ${DATA_DIR}/mongo:/data/db
+      - ${DATA_DIR}:/data/db
     deploy:
       resources:
         limits:
-          memory: 1GB
+          memory: ${MEM_LIMIT}
 
 networks:
   database:
