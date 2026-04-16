@@ -24,7 +24,7 @@ services:
     secrets:
       - db_password
     volumes:
-      - ${DATA_DIR}:/var/lib/postgresql/18/docker
+      - ${DATA_DIR}/postgres:/var/lib/postgresql/18/docker
     configs:
       - source: init-sql
         target: /docker-entrypoint-initdb.d/init.sql
@@ -46,4 +46,4 @@ networks:
 
 secrets:
   db_password:
-    file: ${DATA_DIR}/password.txt
+    file: ${DATA_DIR}/postgres.txt

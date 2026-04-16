@@ -21,10 +21,10 @@ services:
     ports:
       - 127.0.0.1:3306:3306
     secrets:
-      - db_password
-      - db_root_password
+      - db_user
+      - db_root
     volumes:
-      - ${DATA_DIR}:/var/lib/mysql
+      - ${DATA_DIR}/mariadb:/var/lib/mysql
     deploy:
       resources:
         limits:
@@ -35,7 +35,7 @@ networks:
     external: true
 
 secrets:
-  db_password:
-    file: ${DATA_DIR}/password.txt
-  db_root_password:
-    file: ${DATA_DIR}/root_password.txt
+  db_user:
+    file: ${DATA_DIR}/mariadb_user.txt
+  db_root:
+    file: ${DATA_DIR}/mariadb_root.txt
