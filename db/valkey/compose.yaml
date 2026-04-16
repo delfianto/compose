@@ -9,7 +9,7 @@ services:
     ports:
       - 127.0.0.1:6379:6379
     volumes:
-      - ${DATA_DIR}:/data
+      - ${DATA_DIR}/valkey:/data
     deploy:
       resources:
         limits:
