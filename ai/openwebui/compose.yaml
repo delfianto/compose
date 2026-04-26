@@ -38,25 +38,18 @@ services:
     restart: "no"
     networks:
       - genai
+      - proxy
     volumes:
-      - ${DATA_DIR}/models:/models:ro
+      - ${DATA_DIR}/cache/models:/models:ro
     command: >
       --mlock
       --threads 16
-      --parallel 2
       --ctx-size 32768
-      --flash-attn off
       --host 0.0.0.0
       --port 8080
-      --temp 0.7
-      --top-p 0.95
-      --top-k 20
-      --min-p 0.0
-      --presence-penalty 1.5
-      --repeat-penalty 1.0
+      --reasoning off
       --reasoning-tokens block
       --model /models/${SIDECAR_MODEL}.gguf
-      --chat-template-kwargs '{"enable_thinking":false}'
       --jinja
     devices:
       - nvidia.com/gpu=1
