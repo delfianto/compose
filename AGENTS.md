@@ -14,10 +14,10 @@ Docker Compose orchestration for a self-hosted homelab. Modular compose files ma
 .
 ├── ai/               # AI/ML services (bifrost, ollama, embedding, openwebui, librechat, comfyui, forge, risuai)
 ├── db/               # Databases (postgres, mariadb, mongo, valkey, qdrant)
-├── infra/            # Infrastructure (forgejo, infisical)
+├── infra/            # Infrastructure & Reverse proxy (forgejo, infisical, traefik)
 ├── media/            # Media services (immich, photoprism, plex, stash)
 ├── mcp/              # MCP servers (valkey, qdrant, dbhub)
-├── panel/            # Reverse proxy & dashboard (traefik, homepage, portainer, tugtainer)
+├── panel/            # Dashboard & management (homepage, portainer, tugtainer)
 ├── service.toml      # Service dependency graph
 └── CLAUDE.md
 ```
@@ -39,16 +39,17 @@ Each service lives in its own subdirectory with a `compose.yaml` and env files. 
 
 Each service directory follows this pattern:
 
-| File | Purpose | Committed to git |
-|------|---------|-----------------|
-| `.env` | Shell interpolation vars (image tags, paths, UIDs, GPU IDs) | Yes |
-| `.env.local` | Local overrides for `.env` | No (gitignored) |
-| `{service}.env` | Container runtime env vars (app config, credentials) | Yes |
-| `{service}.env.local` | Secrets and local-only container vars | No (gitignored) |
+| File                  | Purpose                                                     | Committed to git |
+| --------------------- | ----------------------------------------------------------- | ---------------- |
+| `.env`                | Shell interpolation vars (image tags, paths, UIDs, GPU IDs) | Yes              |
+| `.env.local`          | Local overrides for `.env`                                  | No (gitignored)  |
+| `{service}.env`       | Container runtime env vars (app config, credentials)        | Yes              |
+| `{service}.env.local` | Secrets and local-only container vars                       | No (gitignored)  |
 
 **Precedence** (last wins): `.env` < `.env.local` < `env_file:` entries < `environment:` section
 
 **Rules**:
+
 - Never hardcode secrets in compose files or committed env files
 - All passwords/tokens go in `.local` or `.secret` files
 - Document required variables with comments in base env files
@@ -64,13 +65,13 @@ Each service directory follows this pattern:
 
 Five isolated Docker bridge networks (must be pre-created via `docker nbs`):
 
-| Network | Subnet | Internal | Purpose |
-|---------|--------|----------|---------|
-| `proxy` | 172.20.0.0/24 | No | Traefik-exposed services |
-| `metrics` | 172.21.0.0/24 | Yes | Monitoring (future) |
-| `database` | 172.22.0.0/24 | Yes | Database services |
-| `genai` | 172.23.0.0/24 | Yes | AI/ML inter-service |
-| `auth` | 172.24.0.0/24 | Yes | Authentication (future) |
+| Network    | Subnet        | Internal | Purpose                  |
+| ---------- | ------------- | -------- | ------------------------ |
+| `proxy`    | 172.20.0.0/24 | No       | Traefik-exposed services |
+| `metrics`  | 172.21.0.0/24 | Yes      | Monitoring (future)      |
+| `database` | 172.22.0.0/24 | Yes      | Database services        |
+| `genai`    | 172.23.0.0/24 | Yes      | AI/ML inter-service      |
+| `auth`     | 172.24.0.0/24 | Yes      | Authentication (future)  |
 
 All networks are declared `external: true` in compose files. Services connect only to networks they need. Multi-network services must specify `traefik.docker.network=proxy` label.
 
@@ -96,14 +97,14 @@ Standard label pattern for exposed services:
 
 ```yaml
 labels:
-  traefik.enable: "true"
-  traefik.docker.network: proxy
-  traefik.http.routers.{name}.rule: "Host(`{subdomain}.${TRAEFIK_ACME_DOMAIN}`)"
-  traefik.http.routers.{name}.entrypoints: websecure
-  traefik.http.routers.{name}.tls.certresolver: cloudflare
-  homepage.group: "{Category}"
-  homepage.name: "{Display Name}"
-  homepage.icon: "{icon}.svg"
+    traefik.enable: "true"
+    traefik.docker.network: proxy
+    traefik.http.routers.{name}.rule: "Host(`{subdomain}.${TRAEFIK_ACME_DOMAIN}`)"
+    traefik.http.routers.{name}.entrypoints: websecure
+    traefik.http.routers.{name}.tls.certresolver: cloudflare
+    homepage.group: "{Category}"
+    homepage.name: "{Display Name}"
+    homepage.icon: "{icon}.svg"
 ```
 
 ### Homepage Dashboard Labels
@@ -131,14 +132,14 @@ media-immich     -> db-postgres, db-valkey
 
 Enhanced Docker Compose wrapper with sensible defaults:
 
-| Command | Behavior |
-|---------|----------|
-| `compose up` | `docker compose up --remove-orphans --detach` |
-| `compose down` | `docker compose down --remove-orphans --volumes` |
-| `compose logs` | `docker compose logs -f --tail=100` |
-| `compose ps` | Pretty table format |
-| `compose build` | `docker compose build --no-cache` |
-| `compose exec` | Opens `/bin/bash` if no command given |
+| Command         | Behavior                                         |
+| --------------- | ------------------------------------------------ |
+| `compose up`    | `docker compose up --remove-orphans --detach`    |
+| `compose down`  | `docker compose down --remove-orphans --volumes` |
+| `compose logs`  | `docker compose logs -f --tail=100`              |
+| `compose ps`    | Pretty table format                              |
+| `compose build` | `docker compose build --no-cache`                |
+| `compose exec`  | Opens `/bin/bash` if no command given            |
 
 Supports `COMPOSE_PROJECT` env var for hyphenated project names (e.g., `genai-ollama` -> `genai/ollama`).
 
@@ -161,13 +162,13 @@ python3 systemd.py deps list|check <service>
 
 ### Docker CLI Plugins
 
-| Plugin | Command | Purpose |
-|--------|---------|---------|
-| Network Bootstrap | `docker nbs` | Create networks from TOML config |
-| Image List | `docker img` | List images grouped by registry |
-| Image Update | `docker imu` | Pull updates (supports `--parallel`) |
-| Pretty PS | `docker pps` | Enhanced container status (`-v` for verbose) |
-| GPU Checker | `docker smi` | Verify NVIDIA GPU availability |
+| Plugin            | Command      | Purpose                                      |
+| ----------------- | ------------ | -------------------------------------------- |
+| Network Bootstrap | `docker nbs` | Create networks from TOML config             |
+| Image List        | `docker img` | List images grouped by registry              |
+| Image Update      | `docker imu` | Pull updates (supports `--parallel`)         |
+| Pretty PS         | `docker pps` | Enhanced container status (`-v` for verbose) |
+| GPU Checker       | `docker smi` | Verify NVIDIA GPU availability               |
 
 ## Custom Builds
 
@@ -178,8 +179,8 @@ python3 systemd.py deps list|check <service>
 ## Testing
 
 - `ai/embedding/tests/tei.py`: Embedding/reranking pipeline validator
-  - `python tei.py --embed <file>` or `--query <text>`
-  - Tests against local endpoints (ports 4000-4002, 6333)
+    - `python tei.py --embed <file>` or `--query <text>`
+    - Tests against local endpoints (ports 4000-4002, 6333)
 
 ## Adding a New Service
 

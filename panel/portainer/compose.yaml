@@ -1,0 +1,31 @@
+services:
+  portainer:
+    image: portainer/portainer-ce:alpine-sts
+    container_name: portainer
+    restart: "no"
+    networks:
+      - proxy
+    volumes:
+      - ${DATA_DIR}/portainer:/data
+      - ${DOCKER_SOCK}:/var/run/docker.sock
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.portainer.entrypoints=websecure"
+      - "traefik.http.routers.portainer.rule=Host(`panel.${TRAEFIK_ACME_DOMAIN}`)"
+      - "traefik.http.routers.portainer.tls.certresolver=cloudflare"
+      - "traefik.http.services.portainer.loadbalancer.server.port=9000"
+      - "homepage.group=Core"
+      - "homepage.name=Portainer"
+      - "homepage.icon=portainer.svg"
+      - "homepage.href=https://panel.${TRAEFIK_ACME_DOMAIN}"
+      - "homepage.description=Container Management"
+    deploy:
+      resources:
+        limits:
+          memory: 512MB
+
+networks:
+  proxy:
+    external: true
