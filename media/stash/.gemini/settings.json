@@ -1,0 +1,21 @@
+{
+  "mcpServers": {
+    "stash": {
+      "command": "docker",
+      "args": [
+        "run",
+        "-i",
+        "--rm",
+        "--network",
+        "proxy",
+        "--env-file",
+        "/srv/compose/media/stash/mcp.env",
+        "--env-file",
+        "/srv/compose/media/stash/mcp.env.local",
+        "-e",
+        "STASH_ENDPOINT=http://stash:9069",
+        "ghcr.io/donlothario/stash_mcp_server:main"
+      ]
+    }
+  }
+}
