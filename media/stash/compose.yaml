@@ -38,6 +38,22 @@ services:
         limits:
           memory: 24G
 
+  stash-mcp-server:
+    image: ghcr.io/donlothario/stash_mcp_server:main
+    container_name: stash-mcp-server
+    restart: "no"
+    networks:
+      - proxy
+    environment:
+      - STASH_ENDPOINT=https://stash.${TRAEFIK_ACME_DOMAIN}
+    env_file:
+      - mcp.env
+      - mcp.env.local
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
 networks:
   proxy:
     external: true
