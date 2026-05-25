@@ -54,7 +54,7 @@ services:
       stash:
         condition: service_healthy
     environment:
-      - STASH_ENDPOINT=https://stash.${TRAEFIK_ACME_DOMAIN}
+      - STASH_ENDPOINT=http://stash:9069
     env_file:
       - mcp.env
       - mcp.env.local
