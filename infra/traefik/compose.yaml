@@ -1,55 +1,4 @@
 services:
-  homepage:
-    image: ghcr.io/gethomepage/homepage:v1
-    container_name: homepage
-    restart: "no"
-    environment:
-      - HOMEPAGE_ALLOWED_HOSTS=home.${TRAEFIK_ACME_DOMAIN}
-    networks:
-      - proxy
-      - metrics
-    volumes:
-      - ${DATA_DIR}/homepage:/app/config
-      - ${DATA_DIR}/homepage/icons:/app/public/icons
-      - ${DOCKER_SOCK}:/var/run/docker.sock:ro
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.homepage.entrypoints=websecure"
-      - "traefik.http.routers.homepage.rule=Host(`home.${TRAEFIK_ACME_DOMAIN}`)"
-      - "traefik.http.routers.homepage.tls.certresolver=cloudflare"
-      - "traefik.http.services.homepage.loadbalancer.server.port=3000"
-    deploy:
-      resources:
-        limits:
-          memory: 512MB
-
-  portainer:
-    image: portainer/portainer-ce:alpine-sts
-    container_name: portainer
-    restart: "no"
-    networks:
-      - proxy
-    volumes:
-      - ${DATA_DIR}/portainer:/data
-      - ${DOCKER_SOCK}:/var/run/docker.sock
-      - /etc/localtime:/etc/localtime:ro
-      - /etc/timezone:/etc/timezone:ro
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.portainer.entrypoints=websecure"
-      - "traefik.http.routers.portainer.rule=Host(`panel.${TRAEFIK_ACME_DOMAIN}`)"
-      - "traefik.http.routers.portainer.tls.certresolver=cloudflare"
-      - "traefik.http.services.portainer.loadbalancer.server.port=9000"
-      - "homepage.group=Core"
-      - "homepage.name=Portainer"
-      - "homepage.icon=portainer.svg"
-      - "homepage.href=https://panel.${TRAEFIK_ACME_DOMAIN}"
-      - "homepage.description=Container Management"
-    deploy:
-      resources:
-        limits:
-          memory: 512MB
-
   traefik:
     image: traefik:v3.6
     container_name: traefik
@@ -58,7 +7,7 @@ services:
       - no-new-privileges:true
     environment:
       # Cloudflare Zero DNS API token
-      - CF_DNS_API_TOKEN_FILE=/run/secrets/cf_dns_api_token
+      - CF_DNS_API_TOKEN_FILE=/run/secrets/cf_token
     networks:
       - proxy
       - metrics
@@ -66,12 +15,12 @@ services:
       - 0.0.0.0:80:80
       - 0.0.0.0:443:443
     secrets:
-      - cf_dns_api_token
-      - traefik_htpasswd
+      - cf_token
+      - htpasswd
     volumes:
       - /etc/localtime:/etc/localtime:ro
       - /etc/timezone:/etc/timezone:ro
-      - ${DATA_DIR}/traefik/acme.json:/etc/traefik/acme.json
+      - ${DATA_DIR}/acme.json:/etc/traefik/acme.json
       - ${DOCKER_SOCK}:/var/run/docker.sock:ro
     command:
       # Traefik log level
@@ -103,7 +52,7 @@ services:
       - --api.insecure=true
     labels:
       - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
-      - "traefik.http.middlewares.traefik-auth.basicauth.usersfile=/run/secrets/traefik_htpasswd"
+      - "traefik.http.middlewares.traefik-auth.basicauth.usersfile=/run/secrets/htpasswd"
       - "traefik.enable=true"
       - "traefik.http.routers.http-catchall.entrypoints=web"
       - "traefik.http.routers.http-catchall.middlewares=redirect-to-https"
@@ -126,41 +75,11 @@ services:
         limits:
           memory: 512MB
 
-  tugtainer:
-    image: ghcr.io/quenary/tugtainer:1
-    container_name: tugtainer
-    restart: "no"
-    networks:
-      - proxy
-    environment:
-      - TZ=Asia/Jakarta
-    volumes:
-      - ${DATA_DIR}/tugtainer:/tugtainer
-      - ${DOCKER_SOCK}:/var/run/docker.sock:ro
-      - /etc/localtime:/etc/localtime:ro
-      - /etc/timezone:/etc/timezone:ro
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.tugtainer.entrypoints=websecure"
-      - "traefik.http.routers.tugtainer.rule=Host(`updates.${TRAEFIK_ACME_DOMAIN}`)"
-      - "traefik.http.routers.tugtainer.tls.certresolver=cloudflare"
-      - "traefik.http.services.tugtainer.loadbalancer.server.port=80"
-      - "homepage.group=Core"
-      - "homepage.name=Tugtainer"
-      - "homepage.icon=docker.svg"
-      - "homepage.href=https://updates.${TRAEFIK_ACME_DOMAIN}"
-      - "homepage.description=Container Update Manager"
-      - "dev.quenary.tugtainer.protected=true"
-    deploy:
-      resources:
-        limits:
-          memory: 512MB
-
 secrets:
-  cf_dns_api_token:
-    file: ./secret/cf_dns.secret
-  traefik_htpasswd:
-    file: ./secret/htpasswd.secret
+  cf_token:
+    file: ${DATA_DIR}/cf_token
+  htpasswd:
+    file: ${DATA_DIR}/htpasswd
 
 networks:
   proxy:
