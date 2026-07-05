@@ -11,6 +11,8 @@ services:
       - "host.docker.internal:host-gateway"
     volumes:
       - ${DATA_DIR}:/app/backend/data
+      - ./config.py:/app/backend/open_webui/config.py:ro
+      - ./pgvector.py:/app/backend/open_webui/retrieval/vector/dbs/pgvector.py:ro
     env_file:
       - webui.env
       - webui.env.local
