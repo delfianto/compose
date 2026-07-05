@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 import argparse
 import os
-import requests
+
 import psycopg2
+import requests
 from pgvector.psycopg2 import register_vector
 
 # --- Configuration ---
@@ -100,7 +101,13 @@ def embed_file(file_path):
         chunks = []
         for chunk in raw_chunks:
             # Skip horizontal lines, title headers, and metadata sections
-            if chunk.startswith("---") or chunk.startswith("# ") or chunk.startswith("## ") or chunk.startswith("### ") or chunk.startswith("#### "):
+            if (
+                chunk.startswith("---")
+                or chunk.startswith("# ")
+                or chunk.startswith("## ")
+                or chunk.startswith("### ")
+                or chunk.startswith("#### ")
+            ):
                 continue
             chunks.append(chunk)
     else:
@@ -186,4 +193,3 @@ if __name__ == "__main__":
             parser.print_help()
     except Exception as e:
         print(f"❌ Error: {e}")
-
