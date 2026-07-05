@@ -5,6 +5,15 @@ services:
     restart: "no"
     env_file:
       - ./hf.env
+    entrypoint:
+      - /bin/bash
+      - -c
+      - |
+        if [ -f "$${HF_TOKEN_FILE}" ]; then
+          export HF_TOKEN=$$(cat "$${HF_TOKEN_FILE}")
+        fi
+        exec /entrypoint.sh "$$@"
+      - "--"
     environment:
       - MODEL_ID=${EMBEDDER_MODEL}
     networks:
@@ -29,9 +38,17 @@ services:
     restart: "no"
     env_file:
       - ./hf.env
+    entrypoint:
+      - /bin/bash
+      - -c
+      - |
+        if [ -f "$${HF_TOKEN_FILE}" ]; then
+          export HF_TOKEN=$$(cat "$${HF_TOKEN_FILE}")
+        fi
+        exec /entrypoint.sh "$$@"
+      - "--"
     environment:
       - MODEL_ID=${RERANKER_MODEL}
-      - POOLING=last-token
     networks:
       - genai
       - proxy
@@ -47,22 +64,6 @@ services:
       resources:
         limits:
           memory: 12GB
-
-  tei-proxy:
-    image: ghcr.io/delfianto/tei-proxy:latest
-    container_name: tei-proxy
-    restart: "no"
-    env_file:
-      - ./proxy.env
-    networks:
-      - genai
-      - proxy
-    ports:
-      - 127.0.0.1:4000:4000
-    deploy:
-      resources:
-        limits:
-          memory: 128MB
 
 networks:
   genai:
