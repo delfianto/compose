@@ -4,19 +4,10 @@ services:
     container_name: tei-embed
     restart: "no"
     env_file:
-      - ./hf.env
+      - hf.env
     entrypoint:
       - /bin/bash
-      - -c
-      - |
-        if [ -f "$${HF_TOKEN_FILE}" ]; then
-          export HF_TOKEN=$$(cat "$${HF_TOKEN_FILE}")
-        fi
-        if [ -d /usr/local/cuda/compat ]; then
-          mv /usr/local/cuda/compat /usr/local/cuda/compat.disabled
-        fi
-        exec /entrypoint.sh "$$@"
-      - "--"
+      - /entrypoint-wrapper.sh
     environment:
       - MODEL_ID=${EMBEDDER_MODEL}
       - DTYPE=float32
@@ -24,9 +15,12 @@ services:
       - genai
       - proxy
     ports:
-      - 4001:4000
+      - 127.0.0.1:4001:4000
     volumes:
       - ${DATA_DIR}:/data
+      - ./entrypoint.sh:/entrypoint-wrapper.sh:ro
+    tmpfs:
+      - /usr/local/cuda/compat
     secrets:
       - hf_token
     devices:
@@ -34,35 +28,29 @@ services:
     deploy:
       resources:
         limits:
-          memory: 12GB
+          memory: 4GB
 
   tei-reranker:
     image: ghcr.io/huggingface/text-embeddings-inference:86-latest
     container_name: tei-rerank
     restart: "no"
     env_file:
-      - ./hf.env
+      - hf.env
     entrypoint:
       - /bin/bash
-      - -c
-      - |
-        if [ -f "$${HF_TOKEN_FILE}" ]; then
-          export HF_TOKEN=$$(cat "$${HF_TOKEN_FILE}")
-        fi
-        if [ -d /usr/local/cuda/compat ]; then
-          mv /usr/local/cuda/compat /usr/local/cuda/compat.disabled
-        fi
-        exec /entrypoint.sh "$$@"
-      - "--"
+      - /entrypoint-wrapper.sh
     environment:
       - MODEL_ID=${RERANKER_MODEL}
     networks:
       - genai
       - proxy
     ports:
-      - 4002:4000
+      - 127.0.0.1:4002:4000
     volumes:
       - ${DATA_DIR}:/data
+      - ./entrypoint.sh:/entrypoint-wrapper.sh:ro
+    tmpfs:
+      - /usr/local/cuda/compat
     secrets:
       - hf_token
     devices:
@@ -70,7 +58,23 @@ services:
     deploy:
       resources:
         limits:
-          memory: 12GB
+          memory: 4GB
+
+  tei-proxy:
+    image: ghcr.io/delfianto/tei-proxy:latest
+    container_name: tei-proxy
+    restart: "no"
+    env_file:
+      - proxy.env
+    networks:
+      - genai
+      - proxy
+    ports:
+      - 4000:4000
+    deploy:
+      resources:
+        limits:
+          memory: 128MB
 
 networks:
   genai:
