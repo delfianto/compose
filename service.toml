@@ -5,7 +5,7 @@ requires = ["db-postgres"]
 requires = ["db-postgres", "ai-bifrost", "ai-embedding", "ai-ollama"]
 
 [ai-openwebui]
-requires = ["db-postgres", "db-qdrant", "ai-bifrost", "ai-embedding", "ai-ollama"]
+requires = ["db-postgres", "ai-bifrost", "ai-embedding", "ai-ollama"]
 
 [infra-forgejo]
 requires = ["db-postgres"]
