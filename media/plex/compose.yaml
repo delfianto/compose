@@ -34,6 +34,12 @@ services:
       - "homepage.description=Media Server"
     devices:
       - nvidia.com/gpu=${GPU_ID}
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:32400/identity"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
     deploy:
       resources:
         limits:
@@ -64,6 +70,12 @@ services:
       - "homepage.icon=tautulli.svg"
       - "homepage.href=https://tautulli.${TRAEFIK_ACME_DOMAIN}"
       - "homepage.description=Plex Monitoring"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8181/status"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
     deploy:
       resources:
         limits:

@@ -50,6 +50,13 @@ services:
       - --metrics.prometheus.entrypoint=metrics
       # API access from localhost only
       - --api.insecure=true
+      # Enable /ping on the internal "traefik" entrypoint (:8080) for the healthcheck
+      - --ping=true
+    healthcheck:
+      test: ["CMD", "traefik", "healthcheck", "--ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     labels:
       - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
       - "traefik.http.middlewares.traefik-auth.basicauth.usersfile=/run/secrets/htpasswd"

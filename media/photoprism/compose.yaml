@@ -35,6 +35,12 @@ services:
       - "homepage.description=Photo and video management"
     devices:
       - nvidia.com/gpu=${GPU_ID}
+    healthcheck:
+      test: ["CMD", "photoprism", "status"]
+      interval: 30s
+      timeout: 15s
+      retries: 5
+      start_period: 60s
     deploy:
       resources:
         limits:
