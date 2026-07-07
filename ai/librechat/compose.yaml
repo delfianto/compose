@@ -28,6 +28,13 @@ services:
       - "homepage.name=LibreChat"
       - "homepage.icon=librechat.svg"
       - "homepage.href=https://chat.${TRAEFIK_ACME_DOMAIN}"
+    # Alpine base has busybox wget but no curl
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:${PORT}/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
     deploy:
       resources:
         limits:
@@ -45,6 +52,12 @@ services:
       - ${DATA_DIR}/meili:/meili_data
     networks:
       - genai
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:7700/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
     deploy:
       resources:
         limits:

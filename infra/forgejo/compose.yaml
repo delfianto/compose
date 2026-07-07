@@ -15,6 +15,12 @@ services:
       - forgejo.env.local
     ports:
       - "222:2222"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:3000/api/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.forgejo.entrypoints=websecure"

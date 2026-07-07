@@ -25,6 +25,12 @@ services:
       - hf_token
     devices:
       - nvidia.com/gpu=${GPU_ID}
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:4000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 120s
     deploy:
       resources:
         limits:
@@ -55,11 +61,19 @@ services:
       - hf_token
     devices:
       - nvidia.com/gpu=${GPU_ID}
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:4000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 120s
     deploy:
       resources:
         limits:
           memory: 4GB
 
+  # Healthcheck is built into the image: the binary self-probes /health via
+  # its --healthcheck flag (the scratch image has no shell or HTTP client)
   tei-proxy:
     image: ghcr.io/delfianto/tei-proxy:latest
     container_name: tei-proxy

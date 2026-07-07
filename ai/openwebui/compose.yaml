@@ -55,6 +55,17 @@ services:
       --jinja
     devices:
       - nvidia.com/gpu=1
+    # Image has bash but no curl/wget; llama-server answers /health with 200
+    # once the model is loaded, 503 while still loading
+    healthcheck:
+      test: >-
+        bash -c 'exec 3<>/dev/tcp/127.0.0.1/8080 &&
+        printf "GET /health HTTP/1.0\r\n\r\n" >&3 &&
+        grep -q " 200 " <&3'
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 120s
     deploy:
       resources:
         limits:

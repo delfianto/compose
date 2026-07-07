@@ -25,6 +25,13 @@ services:
     devices:
       - nvidia.com/gpu=0
       - nvidia.com/gpu=1
+    # Long start_period: the entrypoint (re)builds the venv before ComfyUI listens
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8188/"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 300s
     deploy:
       resources:
         limits:

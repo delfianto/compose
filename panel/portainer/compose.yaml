@@ -21,6 +21,11 @@ services:
       - "homepage.icon=portainer.svg"
       - "homepage.href=https://panel.${TRAEFIK_ACME_DOMAIN}"
       - "homepage.description=Container Management"
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:9000/api/system/status"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     deploy:
       resources:
         limits:
