@@ -7,9 +7,12 @@ services:
     restart: "no"
     env_file:
       - ./immich.env
-      - ./immich.env.local
     environment:
       - UPLOAD_LOCATION=/data
+      - DB_PASSWORD_FILE=/run/secrets/db_password
+    secrets:
+      - db_password
+      - api_key
     networks:
       - database
       - proxy
@@ -54,3 +57,9 @@ networks:
     external: true
   proxy:
     external: true
+
+secrets:
+  db_password:
+    file: ${DATA_DIR}/db_password
+  api_key:
+    file: ${DATA_DIR}/api_key
