@@ -15,7 +15,7 @@ services:
       - genai
       - proxy
     ports:
-      - 127.0.0.1:4001:4000
+      - 0.0.0.0:4001:4000
     volumes:
       - ${DATA_DIR}:/data
       - ./entrypoint.sh:/entrypoint-wrapper.sh:ro
@@ -34,7 +34,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 4GB
+          memory: 8GB
 
   tei-reranker:
     image: ghcr.io/huggingface/text-embeddings-inference:86-latest
@@ -51,7 +51,7 @@ services:
       - genai
       - proxy
     ports:
-      - 127.0.0.1:4002:4000
+      - 0.0.0.0:4002:4000
     volumes:
       - ${DATA_DIR}:/data
       - ./entrypoint.sh:/entrypoint-wrapper.sh:ro
@@ -70,7 +70,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 4GB
+          memory: 8GB
 
   # Healthcheck is built into the image: the binary self-probes /health via
   # its --healthcheck flag (the scratch image has no shell or HTTP client)
@@ -84,7 +84,7 @@ services:
       - genai
       - proxy
     ports:
-      - 4000:4000
+      - 0.0.0.0:4000:4000
     deploy:
       resources:
         limits:

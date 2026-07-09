@@ -3,6 +3,12 @@ services:
     image: codeberg.org/forgejo/forgejo:14-rootless
     container_name: forgejo
     restart: "no"
+    user: "0:0"
+    entrypoint: ["/secret-env.sh"]
+    command: ["/usr/bin/dumb-init", "--", "/usr/local/bin/docker-entrypoint.sh"]
+    environment:
+      - DROP_USER=git
+      - FORCE_DROP_USER=1
     networks:
       - database
       - proxy
@@ -10,11 +16,16 @@ services:
       - ${DATA_DIR}/data:/var/lib/gitea
       - ${DATA_DIR}/conf:/etc/gitea
       - /etc/localtime:/etc/localtime:ro
+      - ${COMPOSE_BASE}/lib/secret-env.sh:/secret-env.sh:ro
     env_file:
       - forgejo.env
-      - forgejo.env.local
+    secrets:
+      - source: forgejo_db_password
+        target: FORGEJO__database__PASSWD
+      - source: forgejo_db_password
+        target: POSTGRES_PASSWORD
     ports:
-      - "222:2222"
+      - "0.0.0.0:222:2222"
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://localhost:3000/api/healthz"]
       interval: 10s
@@ -37,3 +48,7 @@ networks:
     external: true
   proxy:
     external: true
+
+secrets:
+  forgejo_db_password:
+    file: ${SECRET_DIR}/forgejo_db_password

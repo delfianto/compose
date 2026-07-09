@@ -3,15 +3,21 @@ services:
     image: mongo:8.2-noble
     container_name: mongodb
     restart: "no"
+    entrypoint: ["/secret-env.sh"]
+    command: ["docker-entrypoint.sh", "mongod"]
     env_file:
-      - ./mongodb.env
-      - ./mongodb.env.local
+      - mongodb.env
     networks:
       - database
+      - default
     ports:
-      - 127.0.0.1:27017:27017
+      - 0.0.0.0:27017:27017
     volumes:
       - ${DATA_DIR}/mongo:/data/db
+      - ${COMPOSE_BASE}/lib/secret-env.sh:/secret-env.sh:ro
+    secrets:
+      - source: mongo_root_password
+        target: MONGO_INITDB_ROOT_PASSWORD
     healthcheck:
       test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping')"]
       interval: 10s
@@ -21,8 +27,12 @@ services:
     deploy:
       resources:
         limits:
-          memory: ${MEM_LIMIT}
+          memory: 1GB
 
 networks:
   database:
     external: true
+
+secrets:
+  mongo_root_password:
+    file: ${SECRET_DIR}/mongo_root_password

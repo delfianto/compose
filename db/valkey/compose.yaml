@@ -6,8 +6,9 @@ services:
     command: valkey-server --save 60 1 --loglevel notice
     networks:
       - database
+      - default
     ports:
-      - 127.0.0.1:6379:6379
+      - 0.0.0.0:6379:6379
     volumes:
       - ${DATA_DIR}/valkey:/data
     healthcheck:
@@ -18,7 +19,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: ${MEM_LIMIT}
+          memory: 512MB
 
 networks:
   database:

@@ -1,7 +1,7 @@
 services:
   postgres:
     image: tensorchord/vchord-suite:pg18-latest
-    container_name: pgsql
+    container_name: vchord
     restart: "no"
     command: postgres -c "shared_preload_libraries=vchord" -c "max_connections=200"
     healthcheck:
@@ -15,7 +15,7 @@ services:
     environment:
       POSTGRES_INITDB_ARGS: "--data-checksums"
     env_file:
-      - ./postgres.env
+      - postgres.env
     networks:
       - database
       - default
@@ -31,7 +31,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: ${MEM_LIMIT}
+          memory: 2GB
 
 configs:
   init-sql:
@@ -46,4 +46,4 @@ networks:
 
 secrets:
   db_password:
-    file: ${DATA_DIR}/postgres.txt
+    file: ${SECRET_DIR}/postgres_db_password

@@ -6,7 +6,7 @@
 #      permission check no matter what the host permissions are, so the
 #      tree and its .immich markers are pre-created)
 #   3. ensure the secret files under ${DATA_DIR} exist
-#   4. create the database role, database, and extensions on the pgsql
+#   4. create the database role, database, and extensions on the vchord
 #      container (asks for the postgres admin credentials when needed)
 #   5. docker compose up
 # Idempotent: steps that are already done are skipped.

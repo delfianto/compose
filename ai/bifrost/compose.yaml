@@ -3,15 +3,33 @@ services:
     image: maximhq/bifrost:${IMAGE}
     container_name: bifrost
     restart: "no"
-    env_file:
-      - ./bifrost.env
-      - ./bifrost.env.local
+    # Rootless docker: container root == compose owner on the host (unprivileged).
+    # The image's default appuser maps to a subuid that cannot read the 0600
+    # host-owned secret file, so run as container root like the other services.
+    user: "0:0"
+    # Bifrost has no native _FILE/docker-secret support (only env./vault. refs);
+    # entrypoint.sh exports every mounted secret as an env var before handing
+    # off to the stock entrypoint. Overriding entrypoint drops the image CMD,
+    # hence the explicit command below.
+    entrypoint: ["/secret-env.sh"]
+    command: ["/app/docker-entrypoint.sh", "/app/main"]
+    secrets:
+      - source: bifrost_encryption_key
+        target: BIFROST_ENCRYPTION_KEY
+      - anthropic_api_key
+      - eleven_labs_api_key
+      - google_api_key
+      - hugging_face_api_key
+      - openai_api_key
+      - openrouter_api_key
+      - perplexity_api_key
     networks:
       - database
       - genai
       - proxy
     volumes:
       - ${DATA_DIR}:/app/data
+      - ${COMPOSE_BASE}/lib/secret-env.sh:/secret-env.sh:ro
     # Same check upstream ships in newer image builds (alpine base, busybox wget)
     healthcheck:
       test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/health"]
@@ -41,3 +59,21 @@ networks:
     external: true
   proxy:
     external: true
+
+secrets:
+  bifrost_encryption_key:
+    file: ${SECRET_DIR}/bifrost_encryption_key
+  anthropic_api_key:
+    file: ${SECRET_DIR}/anthropic_api_key
+  eleven_labs_api_key:
+    file: ${SECRET_DIR}/eleven_labs_api_key
+  google_api_key:
+    file: ${SECRET_DIR}/google_api_key
+  hugging_face_api_key:
+    file: ${SECRET_DIR}/hugging_face_api_key
+  openai_api_key:
+    file: ${SECRET_DIR}/openai_api_key
+  openrouter_api_key:
+    file: ${SECRET_DIR}/openrouter_api_key
+  perplexity_api_key:
+    file: ${SECRET_DIR}/perplexity_api_key

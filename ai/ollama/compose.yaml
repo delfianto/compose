@@ -7,9 +7,9 @@ services:
       - genai
       - proxy
     ports:
-      - 127.0.0.1:11434:11434
+      - 0.0.0.0:11434:11434
     env_file:
-      - ./ollama.env
+      - ollama.env
     volumes:
       - ${DATA_DIR}:/root/.ollama
     healthcheck:

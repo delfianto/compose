@@ -6,7 +6,7 @@ services:
     container_name: ${CONTAINER_NAME}
     restart: "no"
     env_file:
-      - ./immich.env
+      - immich.env
     environment:
       - UPLOAD_LOCATION=/data
       - DB_PASSWORD_FILE=/run/secrets/db_password
@@ -60,6 +60,6 @@ networks:
 
 secrets:
   db_password:
-    file: ${DATA_DIR}/db_password
+    file: ${SECRET_DIR}/immich_db_password
   api_key:
-    file: ${DATA_DIR}/api_key
+    file: ${SECRET_DIR}/immich_api_key

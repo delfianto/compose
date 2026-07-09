@@ -13,12 +13,19 @@ services:
       - ${DATA_DIR}:/app/backend/data
       - ./config.py:/app/backend/open_webui/config.py:ro
       - ./pgvector.py:/app/backend/open_webui/retrieval/vector/dbs/pgvector.py:ro
+      - ${COMPOSE_BASE}/lib/secret-env.sh:/secret-env.sh:ro
+    entrypoint: ["/secret-env.sh"]
+    command: ["bash", "start.sh"]
     env_file:
       - webui.env
-      - webui.env.local
     environment:
       - WEBUI_URL=https://webui.${TRAEFIK_ACME_DOMAIN}
       - CORS_ALLOW_ORIGIN=https://webui.${TRAEFIK_ACME_DOMAIN}
+    secrets:
+      - source: openwebui_secret_key
+        target: WEBUI_SECRET_KEY
+      - source: openwebui_database_url
+        target: DATABASE_URL
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.webui.entrypoints=websecure"
@@ -32,7 +39,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: ${MEM_LIMIT}
+          memory: 2GB
 
   sidecar:
     image: ghcr.io/delfianto/ik_llama_cpu_zen5:latest
@@ -69,7 +76,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: ${MEM_LIMIT}
+          memory: 2GB
 
 networks:
   database:
@@ -78,3 +85,9 @@ networks:
     external: true
   proxy:
     external: true
+
+secrets:
+  openwebui_secret_key:
+    file: ${SECRET_DIR}/openwebui_secret_key
+  openwebui_database_url:
+    file: ${SECRET_DIR}/openwebui_database_url

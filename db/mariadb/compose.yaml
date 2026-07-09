@@ -3,8 +3,9 @@ services:
     image: mariadb:12-ubi10
     container_name: mariadb
     restart: "no"
+    user: "0:0"
     env_file:
-      - ./mariadb.env
+      - mariadb.env
     environment:
       MARIADB_AUTO_UPGRADE: "1"
     security_opt:
@@ -18,8 +19,9 @@ services:
       - --collation-server=utf8mb4_unicode_ci
     networks:
       - database
+      - default
     ports:
-      - 127.0.0.1:3306:3306
+      - 0.0.0.0:3306:3306
     secrets:
       - db_user
       - db_root
@@ -34,7 +36,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: ${MEM_LIMIT}
+          memory: 2GB
 
 networks:
   database:
@@ -42,6 +44,6 @@ networks:
 
 secrets:
   db_user:
-    file: ${DATA_DIR}/mariadb_user.txt
+    file: ${SECRET_DIR}/mariadb_user.txt
   db_root:
-    file: ${DATA_DIR}/mariadb_root.txt
+    file: ${SECRET_DIR}/mariadb_root.txt
