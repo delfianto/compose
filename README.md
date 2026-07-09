@@ -2,7 +2,7 @@
 
 Welcome to this Docker Compose orchestration project for self-hosted homelab services!
 
-This repository provides a various modular collection of Docker Compose files and management tools for orchestrating a self-hosted environment including databases, generative AI, and media streaming. For complete documentation please check the [WIKI](https://github.com/delfianto/compose/wiki)
+This repository provides a various modular collection of Docker Compose files and management tools for orchestrating a self-hosted environment including databases, generative AI, and media streaming.
 
 # Disclaimer
 

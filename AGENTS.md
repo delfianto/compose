@@ -5,7 +5,6 @@
 Docker Compose orchestration for a self-hosted homelab. Modular compose files manage databases, generative AI, media streaming, infrastructure, and dashboard/management tooling. Deployed on Linux with systemd, rootless Docker, dual NVIDIA GPUs, and Traefik reverse proxy.
 
 **Repository**: `github.com/delfianto/compose`
-**Wiki**: `github.com/delfianto/compose/wiki` (cloned at `../compose-wiki`)
 **License**: MIT
 
 ## Directory Layout
