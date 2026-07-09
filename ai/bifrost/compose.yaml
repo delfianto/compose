@@ -1,6 +1,6 @@
 services:
   bifrost:
-    image: maximhq/bifrost:${IMAGE}
+    image: maximhq/bifrost:v2.0.0-prerelease1-amd64
     container_name: bifrost
     restart: "no"
     # Rootless docker: container root == compose owner on the host (unprivileged).

@@ -1,6 +1,6 @@
 services:
   comfyui:
-    image: mmartial/comfyui-nvidia-docker:ubuntu24_cuda13.1-latest
+    image: mmartial/comfyui-nvidia-docker:ubuntu24_cuda13.2-latest
     container_name: comfyui
     restart: "no"
     environment:

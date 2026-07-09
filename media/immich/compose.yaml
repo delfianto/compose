@@ -2,8 +2,8 @@ services:
   immich-server:
     depends_on:
       - immich-machine-learning
-    image: ghcr.io/immich-app/immich-server:${IMMICH_VERSION}
-    container_name: ${CONTAINER_NAME}
+    image: ghcr.io/immich-app/immich-server:v3
+    container_name: immich
     restart: "no"
     env_file:
       - immich.env
@@ -23,13 +23,13 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.immich.entrypoints=websecure"
-      - "traefik.http.routers.immich.rule=Host(`${CONTAINER_NAME}.${TRAEFIK_ACME_DOMAIN}`)"
+      - "traefik.http.routers.immich.rule=Host(`immich.${TRAEFIK_ACME_DOMAIN}`)"
       - "traefik.http.routers.immich.tls.certresolver=cloudflare"
       - "traefik.http.services.immich.loadbalancer.server.port=2283"
       - "homepage.group=Media"
       - "homepage.name=Immich"
       - "homepage.icon=immich.svg"
-      - "homepage.href=https://${CONTAINER_NAME}.${TRAEFIK_ACME_DOMAIN}"
+      - "homepage.href=https://immich.${TRAEFIK_ACME_DOMAIN}"
       - "homepage.description=Photo and video management"
     deploy:
       resources:
@@ -37,7 +37,7 @@ services:
           memory: 8G
 
   immich-machine-learning:
-    image: ghcr.io/immich-app/immich-machine-learning:${IMMICH_VERSION}-cuda
+    image: ghcr.io/immich-app/immich-machine-learning:v3-cuda
     container_name: immich-ml
     restart: "no"
     networks:
