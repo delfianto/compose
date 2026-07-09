@@ -3,6 +3,9 @@ services:
     container_name: chat-api
     image: ghcr.io/danny-avila/librechat-dev:latest
     restart: "no"
+    user: "0:0"
+    entrypoint: ["/secret-env.sh"]
+    command: ["npm", "run", "backend"]
     networks:
       - database
       - genai
@@ -11,13 +14,40 @@ services:
       - "host.docker.internal:host-gateway"
     env_file:
       - .env
-      - .env.local
+    environment:
+      - DROP_USER=node
     volumes:
       - ${PROJ_DIR}/.env:/app/.env
       - ${DATA_DIR}/config.yaml:/app/librechat.yaml
       - ${DATA_DIR}/images:/app/client/public/images
       - ${DATA_DIR}/uploads:/app/uploads
       - ${DATA_DIR}/logs:/app/logs
+      - ${COMPOSE_BASE}/lib/secret-env.sh:/secret-env.sh:ro
+    secrets:
+      - source: librechat_db_password
+        target: POSTGRES_PASSWORD
+      - source: librechat_meili_master_key
+        target: MEILI_MASTER_KEY
+      - source: librechat_creds_key
+        target: CREDS_KEY
+      - source: librechat_creds_iv
+        target: CREDS_IV
+      - source: librechat_jwt_secret
+        target: JWT_SECRET
+      - source: librechat_jwt_refresh_secret
+        target: JWT_REFRESH_SECRET
+      - source: openweather_api_key
+        target: OPENWEATHER_API_KEY
+      - source: openai_api_key
+        target: OPENAI_API_KEY
+      - source: anthropic_api_key
+        target: ANTHROPIC_API_KEY
+      - source: google_api_key
+        target: GOOGLE_KEY
+      - source: openrouter_api_key
+        target: OPENROUTER_KEY
+      - source: mongo_root_password
+        target: MONGO_ROOT_PASSWORD
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.librechat.entrypoints=websecure"
@@ -28,9 +58,8 @@ services:
       - "homepage.name=LibreChat"
       - "homepage.icon=librechat.svg"
       - "homepage.href=https://chat.${TRAEFIK_ACME_DOMAIN}"
-    # Alpine base has busybox wget but no curl
     healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:${PORT}/health"]
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://127.0.0.1:${PORT}/health"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -44,12 +73,17 @@ services:
     container_name: chat-search
     image: getmeili/meilisearch:v1.25.0
     restart: "no"
+    entrypoint: ["/secret-env.sh"]
+    command: ["tini", "--", "/bin/meilisearch"]
     environment:
       - MEILI_HOST=http://meilisearch:7700
-      - MEILI_MASTER_KEY=${MEILI_MASTER_KEY}
       - MEILI_NO_ANALYTICS=true
     volumes:
       - ${DATA_DIR}/meili:/meili_data
+      - ${COMPOSE_BASE}/lib/secret-env.sh:/secret-env.sh:ro
+    secrets:
+      - source: librechat_meili_master_key
+        target: MEILI_MASTER_KEY
     networks:
       - genai
     healthcheck:
@@ -70,3 +104,29 @@ networks:
     external: true
   proxy:
     external: true
+
+secrets:
+  librechat_db_password:
+    file: ${SECRET_DIR}/librechat_db_password
+  librechat_meili_master_key:
+    file: ${SECRET_DIR}/librechat_meili_master_key
+  librechat_creds_key:
+    file: ${SECRET_DIR}/librechat_creds_key
+  librechat_creds_iv:
+    file: ${SECRET_DIR}/librechat_creds_iv
+  librechat_jwt_secret:
+    file: ${SECRET_DIR}/librechat_jwt_secret
+  librechat_jwt_refresh_secret:
+    file: ${SECRET_DIR}/librechat_jwt_refresh_secret
+  openweather_api_key:
+    file: ${SECRET_DIR}/openweather_api_key
+  openai_api_key:
+    file: ${SECRET_DIR}/openai_api_key
+  anthropic_api_key:
+    file: ${SECRET_DIR}/anthropic_api_key
+  google_api_key:
+    file: ${SECRET_DIR}/google_api_key
+  openrouter_api_key:
+    file: ${SECRET_DIR}/openrouter_api_key
+  mongo_root_password:
+    file: ${SECRET_DIR}/mongo_root_password

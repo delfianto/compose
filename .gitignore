@@ -16,3 +16,8 @@
 **/global.env
 **/*override.yaml
 **/.venv
+
+# Contains real domain/host values baked in for app-level config vars
+# (DOMAIN_CLIENT/DOMAIN_SERVER) that can't be Compose-interpolated from
+# TRAEFIK_ACME_DOMAIN -- see ai/librechat/.env.sample for the template.
+ai/librechat/.env

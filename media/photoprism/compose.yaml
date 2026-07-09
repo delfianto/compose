@@ -6,9 +6,10 @@ services:
     security_opt:
       - seccomp:unconfined
       - apparmor:unconfined
+    entrypoint: ["/secret-env.sh"]
+    command: ["/init"]
     env_file:
-      - ./photoprism.env
-      - ./photoprism.env.local
+      - photoprism.env
     environment:
       PHOTOPRISM_INIT: tensorflow-gpu
       PHOTOPRISM_FFMPEG_ENCODER: nvidia
@@ -22,6 +23,12 @@ services:
     volumes:
       - ${STORAGE_DIR}:/photoprism/storage
       - ${ORIGINALS_DIR}:/photoprism/originals:ro
+      - ${COMPOSE_BASE}/lib/secret-env.sh:/secret-env.sh:ro
+    secrets:
+      - source: photoprism_db_password
+        target: PHOTOPRISM_DATABASE_PASSWORD
+      - source: photoprism_admin_password
+        target: PHOTOPRISM_ADMIN_PASSWORD
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.prism.entrypoints=websecure"
@@ -51,3 +58,9 @@ networks:
     external: true
   proxy:
     external: true
+
+secrets:
+  photoprism_db_password:
+    file: ${SECRET_DIR}/photoprism_db_password
+  photoprism_admin_password:
+    file: ${SECRET_DIR}/photoprism_admin_password
