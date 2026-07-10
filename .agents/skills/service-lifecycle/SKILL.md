@@ -42,31 +42,31 @@ If no service is given, it's auto-detected from `$PWD` (must be a subdirectory o
 `start` / `restart` (per-service `state` is the post-action `ActiveState`):
 ```json
 {"command": "start", "results": [
-  {"service": "db-postgres", "unit": "compose@db-postgres.service", "state": "active"}
+  {"service": "db-vchord", "unit": "compose@db-vchord.service", "state": "active"}
 ]}
 ```
 
 `stop` / `enable` / `disable` (fire-and-forget, no state re-check):
 ```json
 {"command": "stop", "results": [
-  {"service": "db-postgres", "unit": "compose@db-postgres.service", "status": "stopped"}
+  {"service": "db-vchord", "unit": "compose@db-vchord.service", "status": "stopped"}
 ]}
 ```
 
 `status`:
 ```json
 {"command": "status", "results": [
-  {"service": "db-postgres", "unit": "compose@db-postgres.service",
+  {"service": "db-vchord", "unit": "compose@db-vchord.service",
    "active_state": "inactive", "sub_state": "dead",
    "load_state": "loaded", "unit_file_state": "enabled",
-   "description": "Compose Service for db-postgres"}
+   "description": "Compose Service for db-vchord"}
 ]}
 ```
 
 `sync` (`action` is one of `none` / `adopted` / `reset`):
 ```json
 {"command": "sync", "results": [
-  {"service": "db-postgres", "unit": "compose@db-postgres.service",
+  {"service": "db-vchord", "unit": "compose@db-vchord.service",
    "systemd_active": false, "containers_running": true, "action": "adopted"}
 ]}
 ```
@@ -74,7 +74,7 @@ If no service is given, it's auto-detected from `$PWD` (must be a subdirectory o
 `update`:
 ```json
 {"command": "update", "results": [
-  {"service": "db-postgres", "pulled": "ok", "restarted": true}
+  {"service": "db-vchord", "pulled": "ok", "restarted": true}
 ]}
 ```
 
@@ -92,7 +92,7 @@ If no service is given, it's auto-detected from `$PWD` (must be a subdirectory o
 `compose ps <name>` accepts a services argument but the current binary drops it (`run_ps(ctx, _services)` in `src/commands/ps.rs` never reads `_services`) — it always lists every container on the host regardless of what you pass. Don't rely on it to scope output; instead pipe `--json` through `jq` and filter client-side, e.g.:
 
 ```bash
-compose ps --json | jq '.results[] | select(.name == "postgres")'
+compose ps --json | jq '.results[] | select(.name == "vchord")'
 ```
 
 `composectl status <svc>` *does* filter correctly (it operates per-unit), so prefer it when you only care about one service's state.
@@ -110,7 +110,7 @@ compose ps --json | jq '.results[] | select(.name == "postgres")'
 ## Examples (real services in this repo)
 
 ```bash
-composectl status db-postgres infra-traefik --json
+composectl status db-vchord infra-traefik --json
 composectl start ai-ollama
 composectl update media-immich --json
 composectl sync panel-homepage   # after a manual `docker compose up` in panel/homepage

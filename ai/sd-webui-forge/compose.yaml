@@ -1,8 +1,7 @@
 services:
-  forge-neo:
-    build: .
-    image: ghcr.io/delfianto/compose/forge-neo:latest
-    container_name: forge-neo
+  sd-webui-forge:
+    image: ghcr.io/delfianto/sd-webui-forge:latest
+    container_name: sd-webui-forge
     restart: "no"
     networks:
       - proxy

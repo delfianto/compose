@@ -1,5 +1,5 @@
 services:
-  postgres:
+  vchord:
     image: tensorchord/vchord-suite:pg18-latest
     container_name: vchord
     restart: "no"
@@ -15,7 +15,7 @@ services:
     environment:
       POSTGRES_INITDB_ARGS: "--data-checksums"
     env_file:
-      - postgres.env
+      - vchord.env
     networks:
       - database
       - default

@@ -11,8 +11,8 @@ Docker Compose orchestration for a self-hosted homelab. Modular compose files ma
 
 ```
 .
-├── ai/               # AI/ML services (bifrost, ollama, embedding, openwebui, librechat, comfyui, forge, risuai)
-├── db/               # Databases (postgres, mariadb, mongo, valkey)
+├── ai/               # AI/ML services (bifrost, ollama, embedding, openwebui, librechat, comfyui, sd-webui-forge, koboldcpp, textgen, risuai)
+├── db/               # Databases (vchord, mariadb, mongo, valkey)
 ├── infra/            # Infrastructure & Reverse proxy (forgejo, infisical, traefik)
 ├── media/            # Media services (immich, photoprism, plex, stash)
 ├── panel/            # Dashboard & management (homepage, portainer, tugtainer)
@@ -29,7 +29,7 @@ Each service lives in its own subdirectory with a `compose.yaml` and env files. 
 
 - **Directories**: lowercase, no hyphens within a service name (e.g., `openwebui`, `librechat`)
 - **Compose files**: always `compose.yaml` (not `docker-compose.yml`), except `ai/risuai` which uses `compose.yml`
-- **Service names in compose**: lowercase simple names matching the directory (e.g., `ollama`, `postgres`)
+- **Service names in compose**: lowercase simple names matching the directory (e.g., `ollama`, `vchord`)
 - **Container names**: set explicitly via `container_name:`
 - **Systemd service names**: `category-service` with hyphens mapping to path separators (e.g., `ai-ollama` -> `ai/ollama`)
 - **Subdomains**: `{shortname}.${TRAEFIK_ACME_DOMAIN}` (e.g., `webui.example.com`)
@@ -102,7 +102,7 @@ All networks are declared `external: true` in compose files. Services connect on
 Dual NVIDIA GPU setup using Compose's CDI device syntax (`devices: - nvidia.com/gpu=<id>`) — not the older `deploy.resources.reservations.devices` block:
 
 - `ai/ollama` and `ai/comfyui` hardcode both `nvidia.com/gpu=0` and `=1` directly (visibility into both GPUs, not a var)
-- `ai/forge` hardcodes `nvidia.com/gpu=0` only
+- `ai/sd-webui-forge`, `ai/koboldcpp`, and `ai/textgen` hardcode `nvidia.com/gpu=0` only — the latter two are on-demand tools not expected to run alongside `ai/ollama`/`ai/comfyui`/`ai/sd-webui-forge` simultaneously
 - Everything else on a GPU reads `nvidia.com/gpu=${GPU_ID}` from its own `.env`: `ai/embedding`, `media/immich`, `media/photoprism`, `media/plex`, `media/stash` — all currently pinned to `GPU_ID=1`
 - OpenWebUI's sidecar is **CPU-only** (Zen5-optimized llama.cpp, see Custom Builds) — it does not reserve a GPU device
 - CDI device declarations only grant visibility, not an exclusive lock — VRAM budgeting across services sharing a GPU is a manual convention, not enforced by Docker
@@ -140,12 +140,12 @@ Services include `homepage.*` labels for auto-discovery by the Homepage dashboar
 Defined in `service.toml` and mirrored via `composectl deps`:
 
 ```
-ai-bifrost       -> db-postgres, db-valkey
-ai-librechat     -> db-postgres, ai-bifrost, ai-embedding (+ ai-ollama, optional)
-ai-openwebui     -> db-postgres, ai-bifrost, ai-embedding (+ ai-ollama, optional)
-infra-forgejo    -> db-postgres
-infra-infisical  -> db-postgres, db-valkey
-media-immich     -> db-postgres, db-valkey
+ai-bifrost       -> db-vchord, db-valkey
+ai-librechat     -> db-vchord, ai-bifrost, ai-embedding (+ ai-ollama, optional)
+ai-openwebui     -> db-vchord, ai-bifrost, ai-embedding (+ ai-ollama, optional)
+infra-forgejo    -> db-vchord
+infra-infisical  -> db-vchord, db-valkey
+media-immich     -> db-vchord, db-valkey
 ```
 
 **Startup order**: databases -> infrastructure -> AI foundations -> AI consumers -> media -> panel
@@ -207,7 +207,7 @@ Every subcommand on both personas accepts `--json` for machine-parseable output 
 
 ## Custom Builds
 
-- `ai/forge/Dockerfile` + `ai/forge/entrypoint.sh`: CUDA 13.2, Python 3.13, Forge Neo SD WebUI
+- Forge Neo SD WebUI (CUDA 13.2, Python 3.13, `ai/sd-webui-forge`'s `sd-webui-forge` service): build moved to its own repo (`sd-webui-forge-docker`)
 - Zen5-optimized llama.cpp CPU inference (OpenWebUI's `sidecar` service): build moved to its own repo
 - Images pushed to `ghcr.io/delfianto/`
 

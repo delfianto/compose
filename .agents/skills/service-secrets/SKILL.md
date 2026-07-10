@@ -27,7 +27,7 @@ On this host, as of the last check, `compose config --json` returns no `INFISICA
 
 `svc`/`--service` auto-detects from `$PWD` like other commands, but only if it resolves to exactly one service.
 
-`INFISICAL_BOOTSTRAP` (comma-separated service list in `compose.env`) marks Tier-0 services that must start before Infisical itself is reachable — those skip secret injection entirely, matching this repo's dependency ordering (`db-postgres` etc. come up before `infra-infisical`).
+`INFISICAL_BOOTSTRAP` (comma-separated service list in `compose.env`) marks Tier-0 services that must start before Infisical itself is reachable — those skip secret injection entirely, matching this repo's dependency ordering (`db-vchord` etc. come up before `infra-infisical`).
 
 ## JSON shapes
 
