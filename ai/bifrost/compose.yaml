@@ -14,8 +14,7 @@ services:
     entrypoint: ["/secret-env.sh"]
     command: ["/app/docker-entrypoint.sh", "/app/main"]
     secrets:
-      - source: bifrost_encryption_key
-        target: BIFROST_ENCRYPTION_KEY
+      - bifrost_encryption_key
       - anthropic_api_key
       - eleven_labs_api_key
       - google_api_key

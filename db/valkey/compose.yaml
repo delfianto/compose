@@ -1,6 +1,6 @@
 services:
   valkey:
-    image: valkey/valkey:9-alpine
+    image: valkey/valkey-bundle:9.1-alpine
     container_name: valkey
     restart: "no"
     command: valkey-server --save 60 1 --loglevel notice

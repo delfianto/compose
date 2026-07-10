@@ -12,7 +12,7 @@ Docker Compose orchestration for a self-hosted homelab. Modular compose files ma
 ```
 .
 ├── ai/               # AI/ML services (bifrost, ollama, embedding, openwebui, librechat, comfyui, forge, risuai)
-├── db/               # Databases (postgres, mariadb, mongo, valkey, qdrant)
+├── db/               # Databases (postgres, mariadb, mongo, valkey)
 ├── infra/            # Infrastructure & Reverse proxy (forgejo, infisical, traefik)
 ├── media/            # Media services (immich, photoprism, plex, stash)
 ├── panel/            # Dashboard & management (homepage, portainer, tugtainer)
@@ -103,7 +103,7 @@ Dual NVIDIA GPU setup using Compose's CDI device syntax (`devices: - nvidia.com/
 
 - `ai/ollama` and `ai/comfyui` hardcode both `nvidia.com/gpu=0` and `=1` directly (visibility into both GPUs, not a var)
 - `ai/forge` hardcodes `nvidia.com/gpu=0` only
-- Everything else on a GPU reads `nvidia.com/gpu=${GPU_ID}` from its own `.env`: `ai/embedding`, `db/qdrant`, `media/immich`, `media/photoprism`, `media/plex`, `media/stash` — all currently pinned to `GPU_ID=1`
+- Everything else on a GPU reads `nvidia.com/gpu=${GPU_ID}` from its own `.env`: `ai/embedding`, `media/immich`, `media/photoprism`, `media/plex`, `media/stash` — all currently pinned to `GPU_ID=1`
 - OpenWebUI's sidecar is **CPU-only** (Zen5-optimized llama.cpp, see Custom Builds) — it does not reserve a GPU device
 - CDI device declarations only grant visibility, not an exclusive lock — VRAM budgeting across services sharing a GPU is a manual convention, not enforced by Docker
 
@@ -140,9 +140,9 @@ Services include `homepage.*` labels for auto-discovery by the Homepage dashboar
 Defined in `service.toml` and mirrored via `composectl deps`:
 
 ```
-ai-bifrost       -> db-postgres
-ai-librechat     -> db-postgres, ai-bifrost, ai-embedding, ai-ollama
-ai-openwebui     -> db-postgres, ai-bifrost, ai-embedding, ai-ollama
+ai-bifrost       -> db-postgres, db-valkey
+ai-librechat     -> db-postgres, ai-bifrost, ai-embedding (+ ai-ollama, optional)
+ai-openwebui     -> db-postgres, ai-bifrost, ai-embedding (+ ai-ollama, optional)
 infra-forgejo    -> db-postgres
 infra-infisical  -> db-postgres, db-valkey
 media-immich     -> db-postgres, db-valkey
@@ -208,7 +208,7 @@ Every subcommand on both personas accepts `--json` for machine-parseable output 
 ## Custom Builds
 
 - `ai/forge/Dockerfile` + `ai/forge/entrypoint.sh`: CUDA 13.2, Python 3.13, Forge Neo SD WebUI
-- `ai/openwebui/sidecar-cpu/Dockerfile` + `build.sh`: Zen5-optimized llama.cpp CPU inference
+- Zen5-optimized llama.cpp CPU inference (OpenWebUI's `sidecar` service): build moved to its own repo
 - Images pushed to `ghcr.io/delfianto/`
 
 ## Testing
