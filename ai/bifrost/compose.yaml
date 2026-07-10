@@ -16,10 +16,11 @@ services:
     secrets:
       - bifrost_encryption_key
       - anthropic_api_key
-      - eleven_labs_api_key
-      - google_api_key
-      - hugging_face_api_key
+      - elevenlabs_api_key
+      - gemini_api_key
+      - huggingface_api_key
       - openai_api_key
+      - opencode_go_api_key
       - openrouter_api_key
       - perplexity_api_key
     networks:
@@ -64,14 +65,16 @@ secrets:
     file: ${SECRET_DIR}/bifrost_encryption_key
   anthropic_api_key:
     file: ${SECRET_DIR}/anthropic_api_key
-  eleven_labs_api_key:
-    file: ${SECRET_DIR}/eleven_labs_api_key
-  google_api_key:
-    file: ${SECRET_DIR}/google_api_key
-  hugging_face_api_key:
-    file: ${SECRET_DIR}/hugging_face_api_key
+  elevenlabs_api_key:
+    file: ${SECRET_DIR}/elevenlabs_api_key
+  gemini_api_key:
+    file: ${SECRET_DIR}/gemini_api_key
+  huggingface_api_key:
+    file: ${SECRET_DIR}/huggingface_api_key
   openai_api_key:
     file: ${SECRET_DIR}/openai_api_key
+  opencode_go_api_key:
+    file: ${SECRET_DIR}/opencode_go_api_key
   openrouter_api_key:
     file: ${SECRET_DIR}/openrouter_api_key
   perplexity_api_key:
