@@ -1,5 +1,5 @@
 # Ignored directories
-**/.claude/
+**/.claude/settings.local.json
 **/__pycache__/
 **/certs/
 **/data/

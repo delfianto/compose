@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(composectl*)",
+      "Bash(compose*)",
+      "Bash(docker compose config*)",
+      "Bash(docker img*)",
+      "Bash(docker manifest inspect*)",
+      "Bash(docker image inspect*)",
+      "Bash(docker pstats*)"
+    ]
+  }
+}

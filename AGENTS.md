@@ -152,31 +152,47 @@ media-immich     -> db-postgres, db-valkey
 
 ## Tooling
 
+### Agent Skills (`.agents/skills/`, symlinked from `.claude/skills/`)
+
+Skills live under `.agents/skills/` — the harness-agnostic location — with `.claude/skills` symlinked to it (mirroring the `CLAUDE.md -> AGENTS.md` pattern above) so Claude Code and other coding tools that read `.agents/skills` both resolve the same files. Prefer these over hand-rolling `composectl`/`compose` invocations — they encode the correct flags, `--json` shapes, and known gotchas (e.g. `compose ps`'s filter argument being ignored, `service.toml` not being wired to `--deps`):
+
+| Skill | Covers |
+| --- | --- |
+| `service-lifecycle` | start/stop/restart/update/status/sync/enable/disable, `compose ps` for container health |
+| `service-deps` | `composectl deps` (systemd `Requires=`/`Wants=`/`After=` overrides) and its relationship to `service.toml` |
+| `service-secrets` | `composectl secret` (Infisical-backed; currently unconfigured on this host — distinct from the `SECRET_DIR`/`secret-env.sh` convention below) |
+| `service-config` | `compose config` / `composectl config` (the machine-wide `compose.env` interpolation layer) |
+
 ### `compose` / `composectl` (`~/.local/bin/`)
 
-Same Rust binary — `compose` is a symlink to `composectl` — dispatching a different command set depending on which name it's invoked as.
+Same Rust binary — `compose` is a symlink to `composectl` — dispatching a different command set depending on which name it's invoked as. **Prefer `composectl` (the systemd unit) for anything that starts, stops, or restarts a service** — every service here declares `restart: "no"` specifically so systemd owns lifecycle and restart-on-failure, not Docker. Reach for the direct `compose` persona only for one-off inspection (`ps`, `pull`) or quick iteration before a unit exists, and run `composectl sync` afterward to reconcile any drift.
 
-**As `compose`** — thin per-project Docker Compose wrapper, run from inside a service directory (all subcommands take an optional `[SERVICES]...` filter):
+**As `compose`** — thin per-project Docker Compose wrapper, run from inside a service directory (most subcommands take an optional `[SERVICES]...` filter — note `compose ps` currently ignores its filter arg and always lists every container):
 
 | Command           | Behavior                                                                                                   |
 | ----------------- | ---------------------------------------------------------------------------------------------------------- |
 | `compose up`      | `docker compose up -d`                                                                                     |
-| `compose down`    | `docker compose down`                                                                                      |
-| `compose restart` | `docker compose down` + `up`                                                                               |
+| `compose down`    | `docker compose down --remove-orphans`                                                                     |
+| `compose restart` | `compose down` + `up`                                                                                      |
 | `compose pull`    | Pull images without restarting                                                                             |
-| `compose ps`      | List containers/status                                                                                     |
+| `compose ps`      | List containers/status (mirrors `docker pps`; filter arg currently unused, see `service-lifecycle` skill)  |
+| `compose secret`  | Infisical-backed secret list/get/set/delete (see `service-secrets` skill)                                  |
 | `compose config`  | View/set global config (`--compose-base`, `--compose-data`, `--acme-domain/email/server`, `--docker-host`) |
 
 **As `composectl`** — systemd-service-lifecycle layer, run from anywhere with a `category-service` name:
 
-| Command                                 | Behavior                                                                                                            |
-| --------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
-| `composectl start/stop/restart`         | `systemctl start/stop/restart` the unit                                                                             |
-| `composectl update`                     | Pull new images and restart via systemd                                                                             |
-| `composectl enable/disable`             | `systemctl enable/disable`                                                                                          |
-| `composectl status`                     | `systemctl status`                                                                                                  |
-| `composectl ps`                         | List containers/status                                                                                              |
-| `composectl deps list/add/remove/clear` | Manage the `service.toml` dependency graph (`add <service> <dep>... [--requires]`, default relationship is `Wants`) |
+| Command                                 | Behavior                                                                                     |
+| ---------------------------------------- | --------------------------------------------------------------------------------------------- |
+| `composectl start/stop/restart`          | `systemctl start/stop/restart` the unit                                                       |
+| `composectl update`                      | Pull new images and restart via systemd                                                       |
+| `composectl pull`                        | Pull images without restarting                                                                |
+| `composectl enable/disable`              | `systemctl enable/disable`                                                                    |
+| `composectl status`                      | `systemctl status`                                                                             |
+| `composectl sync`                        | Reconcile systemd's tracked state against actual container state (use after a direct `compose`/`docker compose` invocation) |
+| `composectl secret`                      | Same Infisical secret management as `compose secret`                                          |
+| `composectl deps list/add/remove/clear`  | Manage systemd drop-in dependency overrides directly (`add <service> <dep>... [--requires]`, default relationship is `Wants`). Not auto-synced with `service.toml` — that file is a hand-maintained mirror; update it yourself after `deps add`/`remove` |
+
+Every subcommand on both personas accepts `--json` for machine-parseable output — see the skills above for exact shapes.
 
 ### Docker CLI Plugins (`~/.docker/cli-plugins/`)
 
@@ -184,7 +200,7 @@ Same Rust binary — `compose` is a symlink to `composectl` — dispatching a di
 | ------------ | ---------------- | ------------------------------------------------------------------------ |
 | Network      | `docker net`     | Bootstrap networks from TOML (`-i`) or inspect (`-v`)                    |
 | Image List   | `docker img`     | List images grouped by registry                                          |
-| Image Update | `docker upgrade` | Pull updates for all local images (`--dry-run`, `--filter`, `--workers`) |
+| Image Update | `docker upgrade` | Pull updates for **every local image on the machine** (not scoped to one compose project), then prune the dangling images each pull orphaned (`docker image prune -f`, on by default; `--dry-run`, `--filter`, `--workers`, `--no-prune`) |
 | Pretty PS    | `docker pps`     | Enhanced container status (`-v`/`--verbose`, `--running`)                |
 | GPU Checker  | `docker nvidia`  | `nvidia-smi` passthrough                                                 |
 | Live Stats   | `docker pstats`  | Live container stats dashboard (`-1` one-shot, `-s` sort column)         |
