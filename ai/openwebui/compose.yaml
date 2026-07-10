@@ -10,14 +10,13 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     volumes:
+      - ./patches:/patches:ro
       - ${DATA_DIR}:/app/backend/data
-      - ./config.py:/app/backend/open_webui/config.py:ro
-      - ./pgvector.py:/app/backend/open_webui/retrieval/vector/dbs/pgvector.py:ro
       - ${COMPOSE_BASE}/lib/secret-env.sh:/secret-env.sh:ro
     entrypoint: ["/secret-env.sh"]
-    command: ["bash", "start.sh"]
+    command: ["bash", "-c", "python3 /patches/apply.py && exec bash start.sh"]
     env_file:
-      - webui.env
+      - openwebui.env
     environment:
       - WEBUI_URL=https://webui.${TRAEFIK_ACME_DOMAIN}
       - CORS_ALLOW_ORIGIN=https://webui.${TRAEFIK_ACME_DOMAIN}
@@ -42,7 +41,7 @@ services:
           memory: 2GB
 
   sidecar:
-    image: ghcr.io/delfianto/ik_llama_cpu_zen5:latest
+    image: ghcr.io/delfianto/ik_llama.cpp-zen5:sha-52da392
     container_name: sidecar
     restart: "no"
     networks:
