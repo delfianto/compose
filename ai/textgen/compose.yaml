@@ -1,0 +1,39 @@
+services:
+  textgen:
+    image: atinoda/text-generation-webui:default-nvidia
+    container_name: textgen
+    restart: "no"
+    init: true
+    networks:
+      - proxy
+    env_file:
+      - textgen.env
+    volumes:
+      - ${DATA_DIR}/user_data:/app/user_data
+      - ${DATA_DIR}/cache:/root/.cache
+    devices:
+      - nvidia.com/gpu=0
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:7860/"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.textgen.entrypoints=websecure"
+      - "traefik.http.routers.textgen.rule=Host(`textgen.${TRAEFIK_ACME_DOMAIN}`)"
+      - "traefik.http.routers.textgen.tls.certresolver=cloudflare"
+      - "traefik.http.services.textgen.loadbalancer.server.port=7860"
+      - "homepage.group=Artificial Intelligence"
+      - "homepage.name=Text Generation WebUI"
+      - "homepage.icon=text-generation-webui.png"
+      - "homepage.href=https://textgen.${TRAEFIK_ACME_DOMAIN}"
+    deploy:
+      resources:
+        limits:
+          memory: 8GB
+
+networks:
+  proxy:
+    external: true

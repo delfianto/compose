@@ -1,11 +1,11 @@
 #!/bin/bash
 
-# pgtools - Simple database management utility for Postgres
+# pgtools.sh - Simple database management utility for Postgres
 #
 # Usage:
-#   ./pgtools connect <db_name>
-#   ./pgtools bootstrap --database <name> --password <pass> [--extensions "ext1 ext2"]
-#   ./pgtools maintain --database "db1 db2"
+#   ./pgtools.sh connect <db_name>
+#   ./pgtools.sh bootstrap --database <name> --password <pass> [--extensions "ext1 ext2"]
+#   ./pgtools.sh maintain --database "db1 db2"
 
 # Safety & Environment
 set -euo pipefail
@@ -36,7 +36,7 @@ fi
 cmd_connect() {
     local TARGET_DB=$1
     if [[ -z "$TARGET_DB" ]]; then
-        echo "Usage: ./pgtools connect <database_name>"
+        echo "Usage: ./pgtools.sh connect <database_name>"
         exit 1
     fi
     echo "--- Connecting to Database Shell: $TARGET_DB ---"

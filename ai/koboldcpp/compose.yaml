@@ -1,0 +1,37 @@
+services:
+  koboldcpp:
+    image: koboldai/koboldcpp:latest
+    container_name: koboldcpp
+    restart: "no"
+    networks:
+      - proxy
+    env_file:
+      - koboldcpp.env
+    volumes:
+      - ${DATA_DIR}:/models
+    devices:
+      - nvidia.com/gpu=0
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:5001/"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.kobold.entrypoints=websecure"
+      - "traefik.http.routers.kobold.rule=Host(`kobold.${TRAEFIK_ACME_DOMAIN}`)"
+      - "traefik.http.routers.kobold.tls.certresolver=cloudflare"
+      - "traefik.http.services.kobold.loadbalancer.server.port=5001"
+      - "homepage.group=Artificial Intelligence"
+      - "homepage.name=KoboldCpp"
+      - "homepage.icon=koboldcpp.png"
+      - "homepage.href=https://kobold.${TRAEFIK_ACME_DOMAIN}"
+    deploy:
+      resources:
+        limits:
+          memory: 8GB
+
+networks:
+  proxy:
+    external: true

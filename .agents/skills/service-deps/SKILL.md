@@ -1,9 +1,9 @@
 ---
 name: service-deps
-description: Manage systemd inter-service start-up dependencies (Requires=/Wants=/After=) between compose services via composectl deps, and keep service.toml's documentation mirror in sync. Use when adding/removing a dependency between services (e.g. "librechat needs postgres up first") or auditing the current dependency graph before enabling a new service.
+description: Manage systemd inter-service start-up dependencies (Requires=/Wants=/After=) between compose services via composectl deps, and keep service.toml's documentation mirror in sync. Use when adding/removing a dependency between services (e.g. "librechat needs vchord up first") or auditing the current dependency graph before enabling a new service.
 ---
 
-Compose services in this repo don't depend on each other through `depends_on:` in a compose file — that only orders containers *within* one project. Cross-project ordering (e.g. `ai-librechat` must come up after `db-postgres`) is expressed as systemd drop-in overrides, managed through `composectl deps`.
+Compose services in this repo don't depend on each other through `depends_on:` in a compose file — that only orders containers *within* one project. Cross-project ordering (e.g. `ai-librechat` must come up after `db-vchord`) is expressed as systemd drop-in overrides, managed through `composectl deps`.
 
 ## Commands
 
@@ -25,30 +25,30 @@ Storage: `<systemd_dir>/compose@<service>.service.d/dependencies.conf` (rootless
 `deps add`:
 ```json
 {"command": "deps", "action": "add", "service": "ai-librechat",
- "added": ["db-postgres", "ai-bifrost"], "type": "Wants"}
+ "added": ["db-vchord", "ai-bifrost"], "type": "Wants"}
 ```
 
 `deps list <svc>` — `state` is this unit's own `ActiveState`; `required` is `Requires=` + `BindsTo=` (compose units only — the implicit `docker.service` edge every unit has is filtered out as noise); `wanted` is `Wants=`. Both are **forward** deps (what this service depends on), not reverse-dependents. `overrides` is the raw drop-in file contents (`null` if none exists) — `Requires`/`Wants`/`BindsTo`/`After` always present even when empty, unlike `required`/`wanted` below:
 ```json
 {"command": "deps", "action": "list", "service": "compose@ai-openwebui.service",
  "state": "inactive",
- "required": ["compose@ai-bifrost.service", "compose@ai-embedding.service", "compose@db-postgres.service"],
+ "required": ["compose@ai-bifrost.service", "compose@ai-embedding.service", "compose@db-vchord.service"],
  "wanted": ["compose@ai-ollama.service"],
  "overrides": {
-   "After": ["compose@db-postgres.service", "compose@ai-bifrost.service", "compose@ai-embedding.service", "compose@ai-ollama.service"],
+   "After": ["compose@db-vchord.service", "compose@ai-bifrost.service", "compose@ai-embedding.service", "compose@ai-ollama.service"],
    "BindsTo": [],
-   "Requires": ["compose@db-postgres.service", "compose@ai-bifrost.service", "compose@ai-embedding.service"],
+   "Requires": ["compose@db-vchord.service", "compose@ai-bifrost.service", "compose@ai-embedding.service"],
    "Wants": ["compose@ai-ollama.service"]
  }}
 ```
 
-**`required`/`wanted` are omitted entirely when empty** (not `[]`) — e.g. a leaf service with no deps at all just returns `{"command": "deps", "action": "list", "service": "compose@db-postgres.service", "state": "inactive", "overrides": null}`. Don't assume the keys exist; check with `.get()`/`in` rather than indexing directly.
+**`required`/`wanted` are omitted entirely when empty** (not `[]`) — e.g. a leaf service with no deps at all just returns `{"command": "deps", "action": "list", "service": "compose@db-vchord.service", "state": "inactive", "overrides": null}`. Don't assume the keys exist; check with `.get()`/`in` rather than indexing directly.
 
 `deps list` (no service) — every discovered `compose@*.service` unit (walked outward from `docker.service`'s reverse-dependents), each as its own `{state, required?, wanted?}` under `services`, same omit-if-empty rule per entry:
 ```json
 {"command": "deps", "action": "list", "services": {
   "compose@ai-embedding.service": {"state": "inactive"},
-  "compose@infra-forgejo.service": {"state": "inactive", "required": ["compose@db-postgres.service"]},
+  "compose@infra-forgejo.service": {"state": "inactive", "required": ["compose@db-vchord.service"]},
   "compose@infra-traefik.service": {"state": "active"}
 }}
 ```
@@ -68,7 +68,7 @@ The actual, working mechanism — and the one `AGENTS.md`'s "Editing Guidelines"
 ## Example: adding a new consumer service's dependencies
 
 ```bash
-composectl deps add ai-openwebui db-postgres --requires
+composectl deps add ai-openwebui db-vchord --requires
 composectl deps add ai-openwebui ai-bifrost ai-embedding ai-ollama
 composectl deps list ai-openwebui --json
 ```
