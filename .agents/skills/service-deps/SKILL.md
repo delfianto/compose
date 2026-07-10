@@ -13,8 +13,8 @@ Compose services in this repo don't depend on each other through `depends_on:` i
 | Add hard dep | `composectl deps add <svc> <dep...> --requires` | `Requires=` + `After=` (fails the dependent unit if the dep fails) |
 | Remove dep | `composectl deps remove <svc> <dep...>` | strips from `Requires=`/`Wants=`/`After=` |
 | Clear all | `composectl deps clear <svc>` | deletes the drop-in file entirely |
-| List one service | `composectl deps list <svc>` | reverse-dependency tree + explicit overrides |
-| List everything | `composectl deps list` | full graph rooted at `docker.service` |
+| List one service | `composectl deps list <svc>` | this service's own forward deps (`required`/`wanted`) + explicit overrides |
+| List everything | `composectl deps list` | every discovered `compose@*.service` unit, each with its own forward deps |
 
 Every service implicitly gets `Requires=docker.service` + `BindsTo=docker.service` — you don't add those yourself.
 
@@ -28,15 +28,31 @@ Storage: `<systemd_dir>/compose@<service>.service.d/dependencies.conf` (rootless
  "added": ["db-postgres", "ai-bifrost"], "type": "Wants"}
 ```
 
-`deps list <svc>` — `edges` is `unit -> [direct reverse-dependents]`, `states` is `unit -> ActiveState`, walked via `systemctl show --property=RequiredBy,WantedBy,UpheldBy,PartOf,BoundBy`, filtered to this tool's own `compose@*.service` units (no `default.target` noise):
+`deps list <svc>` — `state` is this unit's own `ActiveState`; `required` is `Requires=` + `BindsTo=` (compose units only — the implicit `docker.service` edge every unit has is filtered out as noise); `wanted` is `Wants=`. Both are **forward** deps (what this service depends on), not reverse-dependents. `overrides` is the raw drop-in file contents (`null` if none exists) — `Requires`/`Wants`/`BindsTo`/`After` always present even when empty, unlike `required`/`wanted` below:
 ```json
-{"command": "deps", "action": "list", "service": "compose@db-postgres.service",
- "edges": {"compose@db-postgres.service": ["compose@infra-forgejo.service"]},
- "states": {"compose@db-postgres.service": "inactive"},
- "overrides": {"Requires": [], "Wants": [], "BindsTo": [], "After": []}}
+{"command": "deps", "action": "list", "service": "compose@ai-openwebui.service",
+ "state": "inactive",
+ "required": ["compose@ai-bifrost.service", "compose@ai-embedding.service", "compose@db-postgres.service"],
+ "wanted": ["compose@ai-ollama.service"],
+ "overrides": {
+   "After": ["compose@db-postgres.service", "compose@ai-bifrost.service", "compose@ai-embedding.service", "compose@ai-ollama.service"],
+   "BindsTo": [],
+   "Requires": ["compose@db-postgres.service", "compose@ai-bifrost.service", "compose@ai-embedding.service"],
+   "Wants": ["compose@ai-ollama.service"]
+ }}
 ```
 
-`deps list` (no service) omits `service`/`overrides`, same `edges`/`states` shape rooted at `docker.service`.
+**`required`/`wanted` are omitted entirely when empty** (not `[]`) — e.g. a leaf service with no deps at all just returns `{"command": "deps", "action": "list", "service": "compose@db-postgres.service", "state": "inactive", "overrides": null}`. Don't assume the keys exist; check with `.get()`/`in` rather than indexing directly.
+
+`deps list` (no service) — every discovered `compose@*.service` unit (walked outward from `docker.service`'s reverse-dependents), each as its own `{state, required?, wanted?}` under `services`, same omit-if-empty rule per entry:
+```json
+{"command": "deps", "action": "list", "services": {
+  "compose@ai-embedding.service": {"state": "inactive"},
+  "compose@infra-forgejo.service": {"state": "inactive", "required": ["compose@db-postgres.service"]},
+  "compose@infra-traefik.service": {"state": "active"}
+}}
+```
+No `overrides` in the all-services view — that's single-service only.
 
 ## Gotcha: `service.toml` is documentation only, not machine-fed
 
