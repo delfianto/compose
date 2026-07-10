@@ -42,23 +42,18 @@ services:
 
   sidecar:
     image: ghcr.io/delfianto/ik_llama.cpp-zen5:sha-52da392
-    container_name: sidecar
+    container_name: openwebui-task
     restart: "no"
     networks:
       - genai
       - proxy
     volumes:
       - ${DATA_DIR}/cache/models:/models:ro
-    command: >
-      --mlock
-      --threads 16
-      --ctx-size 32768
-      --host 0.0.0.0
-      --port 8080
-      --reasoning off
-      --reasoning-tokens block
-      --model /models/${SIDECAR_MODEL}.gguf
-      --jinja
+    environment:
+      - MODEL_PATH=/models/${TASK_MODEL}.gguf
+      - THREADS=16
+      - CTX_SIZE=32768
+      - EXTRA_ARGS=--mlock --reasoning off --reasoning-tokens block --jinja
     devices:
       - nvidia.com/gpu=1
     # Image has bash but no curl/wget; llama-server answers /health with 200
