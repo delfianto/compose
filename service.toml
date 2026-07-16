@@ -12,8 +12,5 @@ wants = ["ai-ollama"]
 [infra-forgejo]
 requires = ["db-vchord"]
 
-[infra-infisical]
-requires = ["db-vchord", "db-valkey"]
-
 [media-immich]
 requires = ["db-vchord", "db-valkey"]
