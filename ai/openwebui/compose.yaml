@@ -40,8 +40,8 @@ services:
         limits:
           memory: 2GB
 
-  sidecar:
-    image: ghcr.io/delfianto/ik_llama.cpp-zen5:sha-52da392
+  openwebui-task:
+    image: ghcr.io/delfianto/ik_llama.cpp-zen5:cpu
     container_name: openwebui-task
     restart: "no"
     networks:
@@ -70,7 +70,34 @@ services:
     deploy:
       resources:
         limits:
+          memory: 4GB
+
+  openwebui-term:
+    image: ghcr.io/open-webui/open-terminal
+    container_name: open-terminal
+    restart: "no"
+    # Rootless docker: container root == compose owner on the host (geist,
+    # owner of /srv/project). The image's own non-root "user" (uid 1000)
+    # would map to an unprivileged subuid instead, unable to write the
+    # /workspace bind mount below. Entrypoint tolerates running as root
+    # (verified manually: no hard non-root check like Forgejo's; it already
+    # uses passwordless sudo internally for its own permission fixups).
+    user: "0:0"
+    networks:
+      - genai
+    volumes:
+      - open-terminal-home:/home/user
+      - /srv/project:/workspace
+    environment:
+      - OPEN_TERMINAL_API_KEY_FILE=/run/secrets/open_terminal_api_key
+      - OPEN_TERMINAL_FILE_BROWSER_ROOT=/workspace
+    secrets:
+      - open_terminal_api_key
+    deploy:
+      resources:
+        limits:
           memory: 2GB
+          cpus: "2.0"
 
 networks:
   database:
@@ -80,8 +107,13 @@ networks:
   proxy:
     external: true
 
+volumes:
+  open-terminal-home:
+
 secrets:
   openwebui_secret_key:
     file: ${SECRET_DIR}/openwebui_secret_key
   openwebui_database_url:
     file: ${SECRET_DIR}/openwebui_database_url
+  open_terminal_api_key:
+    file: ${SECRET_DIR}/open_terminal_api_key
