@@ -1,6 +1,6 @@
 ---
 name: service-config
-description: View or update composectl/compose's own global settings (COMPOSE_BASE, COMPOSE_DATA, Traefik ACME domain/email/server, DOCKER_HOST, Infisical) stored in ~/.config/docker/compose.env. Use when checking or changing host-wide interpolation defaults shared by every project, not a specific service's env files.
+description: View or update composectl/compose's own global settings (COMPOSE_BASE, COMPOSE_DATA, Traefik ACME domain/email/server, DOCKER_HOST) stored in ~/.config/docker/compose.env. Use when checking or changing host-wide interpolation defaults shared by every project, not a specific service's env files.
 ---
 
 `compose config` / `composectl config` (identical implementation, either persona works) manage the **machine-wide** settings file — `/etc/compose.env` if root, `~/.config/docker/compose.env` under rootless Docker (this host's mode). This is the file `AGENTS.md` calls the "machine-wide interpolation layer": it's loaded before each project's own `.env` via `COMPOSE_ENV_FILES`, and the project's `.env` wins on any key collision. Don't confuse it with a service's own `.env`/`{service}.env`/`.local` files — those are per-project and this tool doesn't touch them.
@@ -40,10 +40,6 @@ Every flag validates before anything is written; on failure the file is untouche
 | `--acme-email <EMAIL>` | `TRAEFIK_ACME_EMAIL` | RFC 5322-ish email |
 | `--acme-server <URL>` | `TRAEFIK_ACME_SERVER` | valid HTTP(S) URL, resolvable host |
 | `--docker-host <URI>` | `DOCKER_HOST` | `unix://` (socket must exist), `tcp://`, or `ssh://` |
-| `--infisical-project-id <ID>` | `INFISICAL_PROJECT_ID` | none |
-| `--infisical-env <ENV>` | `INFISICAL_ENV` | none |
-| `--infisical-address <URL>` | `INFISICAL_ADDRESS` | valid HTTP(S) URL |
-| `--infisical-bootstrap <LIST>` | `INFISICAL_BOOTSTRAP` | comma-separated, no empty entries |
 
 Multiple flags in one call are fine:
 ```bash

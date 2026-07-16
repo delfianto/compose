@@ -13,7 +13,7 @@ Docker Compose orchestration for a self-hosted homelab. Modular compose files ma
 .
 ├── ai/               # AI/ML services (bifrost, ollama, embedding, openwebui, librechat, comfyui, sd-webui-forge, koboldcpp, textgen, risuai)
 ├── db/               # Databases (vchord, mariadb, mongo, valkey)
-├── infra/            # Infrastructure & Reverse proxy (forgejo, infisical, traefik)
+├── infra/            # Infrastructure & Reverse proxy (forgejo, traefik)
 ├── media/            # Media services (immich, photoprism, plex, stash)
 ├── panel/            # Dashboard & management (homepage, portainer, tugtainer)
 ├── lib/              # Shared scripts bind-mounted into containers (e.g. secret-env.sh)
@@ -144,7 +144,6 @@ ai-bifrost       -> db-vchord, db-valkey
 ai-librechat     -> db-vchord, ai-bifrost, ai-embedding (+ ai-ollama, optional)
 ai-openwebui     -> db-vchord, ai-bifrost, ai-embedding (+ ai-ollama, optional)
 infra-forgejo    -> db-vchord
-infra-infisical  -> db-vchord, db-valkey
 media-immich     -> db-vchord, db-valkey
 ```
 
@@ -160,7 +159,6 @@ Skills live under `.agents/skills/` — the harness-agnostic location — with `
 | --- | --- |
 | `service-lifecycle` | start/stop/restart/update/status/sync/enable/disable, `compose ps` for container health |
 | `service-deps` | `composectl deps` (systemd `Requires=`/`Wants=`/`After=` overrides) and its relationship to `service.toml` |
-| `service-secrets` | `composectl secret` (Infisical-backed; currently unconfigured on this host — distinct from the `SECRET_DIR`/`secret-env.sh` convention below) |
 | `service-config` | `compose config` / `composectl config` (the machine-wide `compose.env` interpolation layer) |
 
 ### `compose` / `composectl` (`~/.local/bin/`)
@@ -176,7 +174,6 @@ Same Rust binary — `compose` is a symlink to `composectl` — dispatching a di
 | `compose restart` | `compose down` + `up`                                                                                      |
 | `compose pull`    | Pull images without restarting                                                                             |
 | `compose ps`      | List containers/status (mirrors `docker pps`; filter arg currently unused, see `service-lifecycle` skill)  |
-| `compose secret`  | Infisical-backed secret list/get/set/delete (see `service-secrets` skill)                                  |
 | `compose config`  | View/set global config (`--compose-base`, `--compose-data`, `--acme-domain/email/server`, `--docker-host`) |
 
 **As `composectl`** — systemd-service-lifecycle layer, run from anywhere with a `category-service` name:
@@ -189,7 +186,6 @@ Same Rust binary — `compose` is a symlink to `composectl` — dispatching a di
 | `composectl enable/disable`              | `systemctl enable/disable`                                                                    |
 | `composectl status`                      | `systemctl status`                                                                             |
 | `composectl sync`                        | Reconcile systemd's tracked state against actual container state (use after a direct `compose`/`docker compose` invocation) |
-| `composectl secret`                      | Same Infisical secret management as `compose secret`                                          |
 | `composectl deps list/add/remove/clear`  | Manage systemd drop-in dependency overrides directly (`add <service> <dep>... [--requires]`, default relationship is `Wants`). Not auto-synced with `service.toml` — that file is a hand-maintained mirror; update it yourself after `deps add`/`remove` |
 
 Every subcommand on both personas accepts `--json` for machine-parseable output — see the skills above for exact shapes.
