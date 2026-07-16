@@ -54,10 +54,9 @@ services:
       - THREADS=16
       - CTX_SIZE=32768
       - EXTRA_ARGS=--mlock --reasoning off --reasoning-tokens block --jinja
-    devices:
-      - nvidia.com/gpu=1
-    # Image has bash but no curl/wget; llama-server answers /health with 200
-    # once the model is loaded, 503 while still loading
+    # llama-server answers /health with 200 once the model is loaded, 503 while
+    # still loading. Probed via bash's /dev/tcp rather than curl so the check
+    # does not depend on the image shipping an HTTP client.
     healthcheck:
       test: >-
         bash -c 'exec 3<>/dev/tcp/127.0.0.1/8080 &&
