@@ -23,7 +23,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 24GB
+          memory: 16GB
 
 networks:
   genai:
