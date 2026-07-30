@@ -41,7 +41,7 @@ services:
           memory: 2GB
 
   openwebui-task:
-    image: ghcr.io/delfianto/ik_llama.cpp-zen5:cpu
+    image: ghcr.io/delfianto/ik_llama.cpp:cpu
     container_name: openwebui-task
     restart: "no"
     networks:
