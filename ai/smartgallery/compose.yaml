@@ -1,0 +1,63 @@
+services:
+  smartgallery:
+    image: ${IMAGE_NAME}:${IMAGE_TAG}
+    container_name: smartgallery
+    restart: "no"
+    init: true
+    # Rootless Docker maps container root to the daemon owner (host uid/gid 1000).
+    # SmartGallery therefore writes host-owned database, cache, and gallery files.
+    user: "0:0"
+    entrypoint: ["/secret-env.sh"]
+    command: ["/smartgallery_init.bash"]
+    env_file:
+      - smartgallery.env
+      - path: smartgallery.env.local
+        required: false
+    environment:
+      CLI_ARGS: "--admin-pass $$SMARTGALLERY_ADMIN_PASSWORD --force-login"
+    networks:
+      - genai
+      - proxy
+    volumes:
+      - ${OUTPUT_DIR}:/mnt/output
+      - ${INPUT_DIR}:/mnt/input:ro
+      - ${MODELS_DIR}:/mnt/models:ro
+      - ${DATA_DIR}:/mnt/SmartGallery
+      - ${COMPOSE_BASE}/lib/secret-env.sh:/secret-env.sh:ro
+    secrets:
+      - smartgallery_admin_password
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://localhost:8189/galleryout', timeout=4)"
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.smartgallery.entrypoints=websecure"
+      - "traefik.http.routers.smartgallery.rule=Host(`gallery.${TRAEFIK_ACME_DOMAIN}`)"
+      - "traefik.http.routers.smartgallery.tls.certresolver=cloudflare"
+      - "traefik.http.services.smartgallery.loadbalancer.server.port=8189"
+      - "homepage.group=Artificial Intelligence"
+      - "homepage.name=SmartGallery"
+      - "homepage.icon=mdi-image-multiple"
+      - "homepage.href=https://gallery.${TRAEFIK_ACME_DOMAIN}/galleryout"
+      - "homepage.description=ComfyUI-aware media and workflow gallery"
+
+networks:
+  genai:
+    external: true
+  proxy:
+    external: true
+
+secrets:
+  smartgallery_admin_password:
+    file: ${SECRET_DIR}/smartgallery_admin_password
