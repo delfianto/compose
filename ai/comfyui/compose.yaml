@@ -1,52 +1,74 @@
 services:
-  comfyui:
-    image: mmartial/comfyui-nvidia-docker:ubuntu24_cuda13.2-latest
-    container_name: comfyui
+  comfy:
+    build:
+      context: .
+      args:
+        CUDA_IMAGE: ${CUDA_IMAGE}
+        TORCH_VERSION: ${TORCH_VERSION}
+        TORCHVISION_VERSION: ${TORCHVISION_VERSION}
+        TORCHAUDIO_VERSION: ${TORCHAUDIO_VERSION}
+        TORCH_INDEX_URL: ${TORCH_INDEX_URL}
+        COMFYUI_REPOSITORY: ${COMFYUI_REPOSITORY}
+        COMFYUI_REF: ${COMFYUI_REF}
+        COMFYUI_GGUF_REPOSITORY: ${COMFYUI_GGUF_REPOSITORY}
+        COMFYUI_GGUF_REF: ${COMFYUI_GGUF_REF}
+        COMFYUI_MULTIGPU_REPOSITORY: ${COMFYUI_MULTIGPU_REPOSITORY}
+        COMFYUI_MULTIGPU_REF: ${COMFYUI_MULTIGPU_REF}
+    image: ${IMAGE_NAME}:${IMAGE_TAG}
+    container_name: comfy
     restart: "no"
+    init: true
+    # Rootless Docker maps container root to the daemon owner (host uid/gid 1000).
+    # Using container uid 1000 here would instead map to an unprivileged subuid.
+    user: "0:0"
     environment:
-      - USE_UV=true
-      - USE_NEW_MANAGER=true
-      - COMFY_CMDLINE_EXTRA=--reserve-vram 2.0
-      - BASE_DIRECTORY=/basedir
-      - SECURITY_LEVEL=weak
-      # For rootless docker
-      - WANTED_UID=0
-      - WANTED_GID=0
+      COMFYUI_REPOSITORY: ${COMFYUI_REPOSITORY}
+      COMFYUI_REF: ${COMFYUI_REF}
+      COMFYUI_AUTO_UPDATE: ${COMFYUI_AUTO_UPDATE}
+      COMFYUI_UPDATE_STRICT: ${COMFYUI_UPDATE_STRICT}
+      COMFYUI_INSTALL_CUSTOM_NODE_REQUIREMENTS: ${COMFYUI_INSTALL_CUSTOM_NODE_REQUIREMENTS}
     networks:
       - genai
       - proxy
     volumes:
-      - ${VENV_DIR}:/comfy/mnt
-      - ${DATA_DIR}/user:/basedir/user
-      - ${DATA_DIR}/input:/basedir/input
-      - ${DATA_DIR}/models:/basedir/models
-      - ${DATA_DIR}/custom_nodes:/basedir/custom_nodes
-      - ${HOME}/Pictures/StableDiffusion:/basedir/output
+      - ${DATA_DIR}/models:/data/models
+      - ${DATA_DIR}/input:/data/input
+      - ${DATA_DIR}/user:/data/user
+      - ${DATA_DIR}/custom_nodes:/data/custom_nodes
+      - ${OUTPUT_DIR}:/data/output
+      - ${CACHE_DIR}/huggingface:/var/cache/huggingface
+      - ${CACHE_DIR}/torch:/var/cache/torch
+    tmpfs:
+      - /data/temp:size=8G,mode=1777
     devices:
       - nvidia.com/gpu=0
       - nvidia.com/gpu=1
-    # Long start_period: the entrypoint (re)builds the venv before ComfyUI listens
+    shm_size: "8gb"
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
     healthcheck:
-      test: ["CMD", "curl", "-fsS", "http://localhost:8188/"]
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://localhost:8188/', timeout=4)"
       interval: 10s
       timeout: 5s
       retries: 5
       start_period: 300s
-    deploy:
-      resources:
-        limits:
-          memory: 16GB
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.comfy.entrypoints=websecure"
-      - "traefik.http.routers.comfy.rule=Host(`comfy.${TRAEFIK_ACME_DOMAIN}`)"
+      - "traefik.http.routers.comfy.rule=Host(`comfyui.${TRAEFIK_ACME_DOMAIN}`)"
       - "traefik.http.routers.comfy.tls.certresolver=cloudflare"
       - "traefik.http.services.comfy.loadbalancer.server.port=8188"
       - "homepage.group=Artificial Intelligence"
       - "homepage.name=ComfyUI"
       - "homepage.icon=comfyui.svg"
-      - "homepage.href=https://comfy.${TRAEFIK_ACME_DOMAIN}"
-      - "homepage.description=Node-based Stable Diffusion GUI"
+      - "homepage.href=https://comfyui.${TRAEFIK_ACME_DOMAIN}"
+      - "homepage.description=Node-based generative AI GUI"
 
 networks:
   genai:
