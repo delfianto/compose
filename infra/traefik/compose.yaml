@@ -6,8 +6,7 @@ services:
     security_opt:
       - no-new-privileges:true
     environment:
-      # Cloudflare Zero DNS API token
-      - CF_DNS_API_TOKEN_FILE=/run/secrets/cf_token
+      - CF_DNS_API_TOKEN_FILE=/run/secrets/cloudflare_dns
     networks:
       - proxy
       - metrics
@@ -15,7 +14,7 @@ services:
       - 0.0.0.0:80:80
       - 0.0.0.0:443:443
     secrets:
-      - cf_token
+      - cloudflare_dns
       - htpasswd
     volumes:
       - /etc/localtime:/etc/localtime:ro
@@ -83,8 +82,8 @@ services:
           memory: 512MB
 
 secrets:
-  cf_token:
-    file: ${DATA_DIR}/cf_token
+  cloudflare_dns:
+    file: ${SECRET_DIR}/cloudflare_dns
   htpasswd:
     file: ${DATA_DIR}/htpasswd
 
