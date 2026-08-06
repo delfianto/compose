@@ -1,10 +1,6 @@
 [ai-bifrost]
 requires = ["db-vchord", "db-valkey"]
 
-[ai-librechat]
-requires = ["db-vchord", "ai-bifrost", "ai-embedding"]
-wants = ["ai-ollama"]
-
 [ai-openwebui]
 requires = ["db-vchord", "ai-bifrost", "ai-embedding"]
 wants = ["ai-ollama"]

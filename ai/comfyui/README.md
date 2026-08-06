@@ -23,8 +23,9 @@ incomplete CUDA 13.2 set, which has no matching TorchAudio wheel even though
 ComfyUI still imports TorchAudio.
 
 The source checkout and Python environment are intentionally disposable
-container state. Models, inputs, outputs, user data, custom nodes, and download
-caches are host mounts configured in `.env`. ComfyUI's SQLite database is
+container state. Models, inputs, user data, custom nodes, and download caches
+live together under `${DATA_DIR}` (`/srv/appdata/comfyui` by default); generated
+images remain in `${OUTPUT_DIR}`. ComfyUI's SQLite database is
 explicitly stored at `/data/user/comfyui.db`; `--base-directory` alone does not
 relocate the database from its source-tree default.
 
@@ -63,6 +64,11 @@ while a rebuild provides a clean runtime when node dependencies become tangled.
 
 No host port is published. Access is through the existing Traefik `proxy`
 network at `https://comfyui.${TRAEFIK_ACME_DOMAIN}`.
+
+Forge Neo mounts the same `${DATA_DIR}` and uses
+`--forge-ref-comfy-home /comfyui` to discover compatible ComfyUI model folders.
+This shares model files only; Forge remains a separate inference application
+and does not use the running ComfyUI service as its backend.
 
 ## GGUF and multiple GPUs
 

@@ -36,8 +36,8 @@ services:
       - ${DATA_DIR}/user:/data/user
       - ${DATA_DIR}/custom_nodes:/data/custom_nodes
       - ${OUTPUT_DIR}:/data/output
-      - ${CACHE_DIR}/huggingface:/var/cache/huggingface
-      - ${CACHE_DIR}/torch:/var/cache/torch
+      - ${DATA_DIR}/cache/huggingface:/var/cache/huggingface
+      - ${DATA_DIR}/cache/torch:/var/cache/torch
     tmpfs:
       - /data/temp:size=8G,mode=1777
     devices:
