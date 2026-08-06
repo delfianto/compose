@@ -52,7 +52,7 @@ sync_requirements() {
     fi
 
     printf 'ComfyUI requirements changed; synchronizing Python packages.\n'
-    python -m pip install \
+    uv pip install --python "${VIRTUAL_ENV}/bin/python" \
         -r "${COMFYUI_DIR}/requirements.txt" \
         -r "${COMFYUI_DIR}/manager_requirements.txt"
     printf '%s\n' "${current_hash}" > "${REQUIREMENTS_STAMP}"
@@ -84,7 +84,7 @@ sync_custom_node_requirements() {
     printf 'Custom-node requirements changed; synchronizing Python packages.\n'
     for requirement in "${requirements[@]}"; do
         printf 'Installing %s\n' "${requirement}"
-        python -m pip install -r "${requirement}"
+        uv pip install --python "${VIRTUAL_ENV}/bin/python" -r "${requirement}"
     done
     printf '%s\n' "${current_hash}" > "${CUSTOM_REQUIREMENTS_STAMP}"
 }
