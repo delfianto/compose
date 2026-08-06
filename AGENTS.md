@@ -11,7 +11,7 @@ Docker Compose orchestration for a self-hosted homelab. Modular compose files ma
 
 ```
 .
-├── ai/               # AI/ML services (bifrost, ollama, embedding, openwebui, librechat, comfyui, sd-webui-forge, koboldcpp, textgen, risuai)
+├── ai/               # AI/ML services (bifrost, ollama, embedding, openwebui, comfyui, forgeneo, koboldcpp, textgen, risuai)
 ├── db/               # Databases (vchord, mariadb, mongo, valkey)
 ├── infra/            # Infrastructure & Reverse proxy (forgejo, traefik)
 ├── media/            # Media services (immich, photoprism, plex, stash)
@@ -27,7 +27,7 @@ Each service lives in its own subdirectory with a `compose.yaml` and env files. 
 
 ### Naming
 
-- **Directories**: lowercase, no hyphens within a service name (e.g., `openwebui`, `librechat`)
+- **Directories**: lowercase, no hyphens within a service name (e.g., `openwebui`, `forgeneo`)
 - **Compose files**: always `compose.yaml` (not `docker-compose.yml`), except `ai/risuai` which uses `compose.yml`
 - **Service names in compose**: lowercase simple names matching the directory (e.g., `ollama`, `vchord`)
 - **Container names**: set explicitly via `container_name:`
@@ -46,7 +46,7 @@ Each service directory follows this pattern:
 | `{service}.env.local` | Secrets and local-only container vars                       | No (gitignored)  |
 
 **Precedence** (last wins), verified empirically (see below) rather than assumed:
-- For **interpolation** (`${VAR}` in `compose.yaml` itself): `~/.config/docker/compose.env` < `.env` — that's it. `.env.local` is **not** loaded for interpolation on this host (`COMPOSE_ENV_FILES` only lists `compose.env,.env`); don't rely on it to override paths/domains that a compose file interpolates. If a real value must differ from what's tracked in `.env` and can't be committed, either gitignore that service's `.env` outright and keep a `.env.sample` template (see `ai/librechat`), or keep the value out of interpolation entirely (put it only in `{service}.env`/`{service}.env.local`, which the container reads as runtime vars, not Compose interpolation).
+- For **interpolation** (`${VAR}` in `compose.yaml` itself): `~/.config/docker/compose.env` < `.env` — that's it. `.env.local` is **not** loaded for interpolation on this host (`COMPOSE_ENV_FILES` only lists `compose.env,.env`); don't rely on it to override paths/domains that a compose file interpolates. If a real value must differ from what's tracked in `.env` and can't be committed, either gitignore that service's `.env` outright and keep a `.env.sample` template, or keep the value out of interpolation entirely (put it only in `{service}.env`/`{service}.env.local`, which the container reads as runtime vars, not Compose interpolation).
 - For **container runtime env** (what the process inside actually sees): `{service}.env` < `{service}.env.local` < `environment:` section — these are loaded via `env_file:`/`environment:` at container-start time, a completely different mechanism from `.env` interpolation, and `.local` here does take effect.
 
 **Machine-wide interpolation layer**: `COMPOSE_ENV_FILES` (exported by the login shell and by the `compose@.service` systemd template, e.g. `~/.config/docker/compose.env,.env`) makes Compose load `~/.config/docker/compose.env` before each project's own `.env`, and the project's `.env` wins on conflicts. That file holds host-wide interpolation vars: `COMPOSE_BASE`, `COMPOSE_DATA`, `TRAEFIK_ACME_DOMAIN/EMAIL/SERVER`, `DOCKER_HOST`, `DOCKER_SOCK`. Reference `${COMPOSE_BASE}` (e.g. for `lib/secret-env.sh` mounts) instead of hardcoding relative `../../` paths, since it's already exported everywhere.
@@ -66,12 +66,12 @@ Each service directory follows this pattern:
         my_secret:
             file: ${SECRET_DIR}/my_secret
     ```
-- **Shared vs Service-specific**: Shared credentials (e.g., `openai_api_key`) use bare names, while service-specific secrets (e.g., `librechat_meili_master_key`) are prefixed.
+- **Shared vs Service-specific**: Shared credentials (e.g., `openai_api_key`) use bare names, while service-specific secrets (e.g., `forgejo_db_password`) are prefixed.
 - **The `/secret-env.sh` Entrypoint Shim** (`lib/secret-env.sh`):
     - Used for images that do not support reading secrets from `/run/secrets/{name}` natively.
     - Mount `${COMPOSE_BASE}/lib/secret-env.sh` at `/secret-env.sh:ro` and set `entrypoint: ["/secret-env.sh"]`.
     - Exports every mounted secret as an uppercased env var (or verbatim if the secret name already has an uppercase letter — use `target:` in the compose `secrets:` block to control the exact var name), then expands `$VAR` references inside other env vars, then execs the original command.
-    - `#!/bin/sh`, deliberately POSIX-only (`[ ]`, not `[[ ]]`) — it's bind-mounted into a mix of BusyBox `ash` (alpine-based images: bifrost, forgejo, librechat, meilisearch) and `dash` (debian-based: mongo, openwebui, photoprism) containers, none of which have bash.
+    - `#!/bin/sh`, deliberately POSIX-only (`[ ]`, not `[[ ]]`) — it's bind-mounted into a mix of BusyBox `ash` (alpine-based images: bifrost, forgejo, meilisearch) and `dash` (debian-based: mongo, openwebui, photoprism) containers, none of which have bash.
 - **Privilege Dropping**:
     - Because secret files are `0600` on the host, only container root (host `geist` uid 1000) can read them, so images needing `user: "0:0"` + the shim to read them.
     - The shim reads `/proc/self/uid_map` to detect whether container uid 0 is _real_ host root. Under rootless Docker (this host), uid 0 maps to an unprivileged host uid, so dropping to `DROP_USER` buys no extra isolation and is **skipped by default** — the app just keeps running as container root.
@@ -102,7 +102,7 @@ All networks are declared `external: true` in compose files. Services connect on
 Dual NVIDIA GPU setup using Compose's CDI device syntax (`devices: - nvidia.com/gpu=<id>`) — not the older `deploy.resources.reservations.devices` block:
 
 - `ai/ollama` and `ai/comfyui` hardcode both `nvidia.com/gpu=0` and `=1` directly (visibility into both GPUs, not a var)
-- `ai/sd-webui-forge`, `ai/koboldcpp`, and `ai/textgen` hardcode `nvidia.com/gpu=0` only — the latter two are on-demand tools not expected to run alongside `ai/ollama`/`ai/comfyui`/`ai/sd-webui-forge` simultaneously
+- `ai/forgeneo`, `ai/koboldcpp`, and `ai/textgen` hardcode `nvidia.com/gpu=0` only — the latter two are on-demand tools not expected to run alongside `ai/ollama`/`ai/comfyui`/`ai/forgeneo` simultaneously
 - Everything else on a GPU reads `nvidia.com/gpu=${GPU_ID}` from its own `.env`: `ai/embedding`, `media/immich`, `media/photoprism`, `media/plex`, `media/stash` — all currently pinned to `GPU_ID=1`
 - OpenWebUI's sidecar is **CPU-only** (Zen5-optimized llama.cpp, see Custom Builds) — it does not reserve a GPU device
 - CDI device declarations only grant visibility, not an exclusive lock — VRAM budgeting across services sharing a GPU is a manual convention, not enforced by Docker
@@ -111,7 +111,7 @@ Dual NVIDIA GPU setup using Compose's CDI device syntax (`devices: - nvidia.com/
 
 - `/srv/appdata/{service}` (`DATA_DIR`): Persistent service data
 - `/mnt/{media_type}`: External media mounts (Plex, Stash, PhotoPrism)
-- `PROJ_DIR`: only used by `ai/librechat` today (bind-mounts its own `.env` into the container), not a repo-wide convention
+- `PROJ_DIR`: not a repo-wide convention; no current service uses it
 - Bind mounts use `:ro` where write access is unnecessary
 
 ### Traefik Labels
@@ -141,7 +141,6 @@ Defined in `service.toml` and mirrored via `composectl deps`:
 
 ```
 ai-bifrost       -> db-vchord, db-valkey
-ai-librechat     -> db-vchord, ai-bifrost, ai-embedding (+ ai-ollama, optional)
 ai-openwebui     -> db-vchord, ai-bifrost, ai-embedding (+ ai-ollama, optional)
 infra-forgejo    -> db-vchord
 media-immich     -> db-vchord, db-valkey
@@ -203,7 +202,7 @@ Every subcommand on both personas accepts `--json` for machine-parseable output 
 
 ## Custom Builds
 
-- Forge Neo SD WebUI (CUDA 13.2, Python 3.13, `ai/sd-webui-forge`'s `sd-webui-forge` service): build moved to its own repo (`sd-webui-forge-docker`)
+- Forge Neo SD WebUI (CUDA 13.2, Python 3.13, `ai/forgeneo`'s `forgeneo` service): build moved to its own repo (`sd-webui-forge-docker`)
 - Zen5-optimized llama.cpp CPU inference (OpenWebUI's `sidecar` service): build moved to its own repo
 - Images pushed to `ghcr.io/delfianto/`
 

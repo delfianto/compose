@@ -1,7 +1,7 @@
 services:
-  sd-webui-forge:
+  forgeneo:
     image: ghcr.io/delfianto/sd-webui-forge:latest
-    container_name: sd-webui-forge
+    container_name: forgeneo
     restart: "no"
     networks:
       - proxy
@@ -15,7 +15,9 @@ services:
       --theme dark
       --forge-ref-comfy-home /comfyui
     volumes:
-      - ${DATA_DIR}:/comfyui
+      # Forge discovers compatible model folders from the ComfyUI layout. It
+      # does not use ComfyUI as an inference backend and needs read-only access.
+      - ${DATA_DIR}:/comfyui:ro
       - ${EXEC_DIR}/venv:/app/venv
       - ${EXEC_DIR}/uv_cache:/app/uv_cache
       - ${HOME}/Pictures/StableDiffusion:/app/output
