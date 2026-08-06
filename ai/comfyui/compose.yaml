@@ -38,6 +38,7 @@ services:
       - ${OUTPUT_DIR}:/data/output
       - ${DATA_DIR}/cache/huggingface:/var/cache/huggingface
       - ${DATA_DIR}/cache/torch:/var/cache/torch
+      - ${DATA_DIR}/cache/uv:/var/cache/uv
     tmpfs:
       - /data/temp:size=8G,mode=1777
     devices:

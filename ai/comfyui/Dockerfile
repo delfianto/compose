@@ -16,10 +16,11 @@ ARG TORCH_INDEX_URL=https://download.pytorch.org/whl/cu130
 
 ENV DEBIAN_FRONTEND=noninteractive \
     PIP_DISABLE_PIP_VERSION_CHECK=1 \
-    PIP_NO_CACHE_DIR=1 \
     PYTHONUNBUFFERED=1 \
     HF_HOME=/var/cache/huggingface \
     TORCH_HOME=/var/cache/torch \
+    UV_CACHE_DIR=/var/cache/uv \
+    UV_LINK_MODE=copy \
     COMFYUI_DIR=/opt/ComfyUI \
     VIRTUAL_ENV=/opt/venv \
     PATH=/opt/venv/bin:$PATH
@@ -40,9 +41,12 @@ RUN apt-get update \
         python3-venv \
     && rm -rf /var/lib/apt/lists/*
 
-RUN python3 -m venv "${VIRTUAL_ENV}" \
-    && python -m pip install --upgrade pip setuptools wheel \
-    && python -m pip install \
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /usr/local/bin/
+
+RUN --mount=type=cache,target=/var/cache/uv \
+    python3 -m venv "${VIRTUAL_ENV}" \
+    && uv pip install --python "${VIRTUAL_ENV}/bin/python" --upgrade pip setuptools wheel \
+    && uv pip install --python "${VIRTUAL_ENV}/bin/python" \
         "torch==${TORCH_VERSION}" \
         "torchvision==${TORCHVISION_VERSION}" \
         "torchaudio==${TORCHAUDIO_VERSION}" \
@@ -57,14 +61,17 @@ WORKDIR ${COMFYUI_DIR}
 
 # The matching CUDA-enabled Torch trio is installed first, so ComfyUI's
 # unversioned torch requirements cannot silently select CPU or mismatched wheels.
-RUN python -m pip install -r requirements.txt -r manager_requirements.txt \
+RUN --mount=type=cache,target=/var/cache/uv \
+    uv pip install --python "${VIRTUAL_ENV}/bin/python" \
+        -r requirements.txt -r manager_requirements.txt \
     && sha256sum requirements.txt manager_requirements.txt \
        | sha256sum | cut -d ' ' -f 1 > /opt/comfy-requirements.sha256
 
 # Image-owned nodes are kept outside /data/custom_nodes because that path is a
 # persistent bind mount. Their configured refs are captured at build time while
 # /data/custom_nodes remains available to Manager.
-RUN mkdir -p /opt/custom_nodes \
+RUN --mount=type=cache,target=/var/cache/uv \
+    mkdir -p /opt/custom_nodes \
     && git init /opt/custom_nodes/ComfyUI-GGUF \
     && git -C /opt/custom_nodes/ComfyUI-GGUF remote add origin "${COMFYUI_GGUF_REPOSITORY}" \
     && git -C /opt/custom_nodes/ComfyUI-GGUF fetch --depth=1 origin "${COMFYUI_GGUF_REF}" \
@@ -73,7 +80,8 @@ RUN mkdir -p /opt/custom_nodes \
     && git -C /opt/custom_nodes/ComfyUI-MultiGPU remote add origin "${COMFYUI_MULTIGPU_REPOSITORY}" \
     && git -C /opt/custom_nodes/ComfyUI-MultiGPU fetch --depth=1 origin "${COMFYUI_MULTIGPU_REF}" \
     && git -C /opt/custom_nodes/ComfyUI-MultiGPU checkout --detach FETCH_HEAD \
-    && python -m pip install -r /opt/custom_nodes/ComfyUI-GGUF/requirements.txt
+    && uv pip install --python "${VIRTUAL_ENV}/bin/python" \
+        -r /opt/custom_nodes/ComfyUI-GGUF/requirements.txt
 
 COPY --chmod=755 docker-entrypoint.sh /usr/local/bin/comfy-entrypoint
 COPY extra_model_paths.yaml /opt/comfy-extra-model-paths.yaml

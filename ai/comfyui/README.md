@@ -29,6 +29,13 @@ images remain in `${OUTPUT_DIR}`. ComfyUI's SQLite database is
 explicitly stored at `/data/user/comfyui.db`; `--base-directory` alone does not
 relocate the database from its source-tree default.
 
+The Python environment remains disposable image/container state. Dependency
+installation uses `uv pip`, with its cache persisted at `${DATA_DIR}/cache/uv`,
+so custom-node requirements can be reconstructed after a container recreation
+without downloading unchanged wheels again. Regular `pip` remains installed in
+the venv for third-party custom nodes that invoke it directly. Docker builds use
+a BuildKit cache mount for `uv` without embedding its cache in image layers.
+
 ## Build and run
 
 ```sh
