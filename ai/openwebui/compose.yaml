@@ -1,7 +1,7 @@
 services:
-  openwebui:
+  main:
     image: ghcr.io/open-webui/open-webui:latest-slim
-    container_name: openwebui
+    container_name: owui-main
     restart: "no"
     networks:
       - database
@@ -40,9 +40,9 @@ services:
         limits:
           memory: 2GB
 
-  openwebui-task:
+  task:
     image: ghcr.io/delfianto/ik_llama.cpp:cpu
-    container_name: openwebui-task
+    container_name: owui-task
     restart: "no"
     networks:
       - genai
@@ -71,9 +71,9 @@ services:
         limits:
           memory: 8GB
 
-  openwebui-term:
+  term:
     image: ghcr.io/open-webui/open-terminal
-    container_name: open-terminal
+    container_name: owui-term
     restart: "no"
     # Rootless docker: container root == compose owner on the host (geist,
     # owner of /srv/project). The image's own non-root "user" (uid 1000)
