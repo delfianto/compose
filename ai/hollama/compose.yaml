@@ -21,7 +21,6 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.hollama.entrypoints=websecure"
-      - "traefik.http.routers.hollama.middlewares=traefik-auth@docker"
       - "traefik.http.routers.hollama.rule=Host(`hollama.${TRAEFIK_ACME_DOMAIN}`)"
       - "traefik.http.routers.hollama.tls.certresolver=cloudflare"
       - "traefik.http.services.hollama.loadbalancer.server.port=4173"
