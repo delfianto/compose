@@ -1,8 +1,8 @@
 # Hollama
 
 Minimal browser-based LLM client, served through Traefik at
-`https://hollama.${TRAEFIK_ACME_DOMAIN}` and protected by Traefik's shared
-basic-auth middleware.
+`https://hollama.${TRAEFIK_ACME_DOMAIN}` without application or proxy
+authentication.
 
 The application stores its settings and conversations in browser storage, so
 the container does not need a persistent volume.
