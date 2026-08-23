@@ -1,0 +1,41 @@
+services:
+  hollama:
+    image: ${HOLLAMA_IMAGE}
+    container_name: hollama
+    restart: "no"
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      - proxy
+    environment:
+      - VITE_ALLOWED_HOSTS=hollama.${TRAEFIK_ACME_DOMAIN}
+    healthcheck:
+      test: >-
+        node -e "fetch('http://127.0.0.1:4173/')
+        .then(r => process.exit(r.ok ? 0 : 1))
+        .catch(() => process.exit(1))"
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.hollama.entrypoints=websecure"
+      - "traefik.http.routers.hollama.middlewares=traefik-auth@docker"
+      - "traefik.http.routers.hollama.rule=Host(`hollama.${TRAEFIK_ACME_DOMAIN}`)"
+      - "traefik.http.routers.hollama.tls.certresolver=cloudflare"
+      - "traefik.http.services.hollama.loadbalancer.server.port=4173"
+      - "homepage.group=Artificial Intelligence"
+      - "homepage.name=Hollama"
+      - "homepage.icon=ollama.svg"
+      - "homepage.href=https://hollama.${TRAEFIK_ACME_DOMAIN}"
+      - "homepage.description=Minimal browser client for local LLMs"
+    deploy:
+      resources:
+        limits:
+          memory: 256MB
+          cpus: "0.5"
+
+networks:
+  proxy:
+    external: true
