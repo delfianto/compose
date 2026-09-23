@@ -3,6 +3,10 @@ services:
     image: ghcr.io/gethomepage/homepage:v1
     container_name: homepage
     restart: "no"
+    env_file:
+      # Local-only values (e.g. weather location), not committed
+      - path: homepage.env.local
+        required: false
     environment:
       - HOMEPAGE_ALLOWED_HOSTS=home.${TRAEFIK_ACME_DOMAIN}
       # Widget API keys, referenced from other services' labels as {{HOMEPAGE_FILE_*}}
