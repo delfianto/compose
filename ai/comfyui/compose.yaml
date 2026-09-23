@@ -70,6 +70,18 @@ services:
       - "homepage.icon=comfyui.svg"
       - "homepage.href=https://comfyui.${TRAEFIK_ACME_DOMAIN}"
       - "homepage.description=Node-based generative AI GUI"
+      # No dedicated homepage widget: read free VRAM/RAM from ComfyUI's /system_stats
+      - "homepage.widget.type=customapi"
+      - "homepage.widget.url=http://comfy:8188/system_stats"
+      - "homepage.widget.mappings[0].label=4080 VRAM"
+      - "homepage.widget.mappings[0].field=devices.0.vram_free"
+      - "homepage.widget.mappings[0].format=bytes"
+      - "homepage.widget.mappings[1].label=3060 VRAM"
+      - "homepage.widget.mappings[1].field=devices.1.vram_free"
+      - "homepage.widget.mappings[1].format=bytes"
+      - "homepage.widget.mappings[2].label=RAM"
+      - "homepage.widget.mappings[2].field=system.ram_free"
+      - "homepage.widget.mappings[2].format=bytes"
 
   mcp:
     build:

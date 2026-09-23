@@ -31,6 +31,10 @@ services:
       - "homepage.icon=stash.svg"
       - "homepage.href=https://stash.${TRAEFIK_ACME_DOMAIN}"
       - "homepage.description=Media Server for Cultured Material"
+      - "homepage.widget.type=stash"
+      - "homepage.widget.url=http://stash:9069"
+      - "homepage.widget.key={{HOMEPAGE_FILE_STASH_KEY}}"
+      - 'homepage.widget.fields=["scenes","images","performers","studios"]'
     devices:
       - nvidia.com/gpu=${GPU_ID}
     deploy:

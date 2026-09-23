@@ -32,6 +32,10 @@ services:
       - "homepage.icon=plex.svg"
       - "homepage.href=https://plex.${TRAEFIK_ACME_DOMAIN}"
       - "homepage.description=Media Server"
+      - "homepage.widget.type=plex"
+      - "homepage.widget.url=http://plex:32400"
+      - "homepage.widget.key={{HOMEPAGE_FILE_PLEX_KEY}}"
+      - 'homepage.widget.fields=["streams","movies","tv"]'
     devices:
       - nvidia.com/gpu=${GPU_ID}
     healthcheck:
@@ -70,6 +74,9 @@ services:
       - "homepage.icon=tautulli.svg"
       - "homepage.href=https://tautulli.${TRAEFIK_ACME_DOMAIN}"
       - "homepage.description=Plex Monitoring"
+      - "homepage.widget.type=tautulli"
+      - "homepage.widget.url=http://tautulli:8181"
+      - "homepage.widget.key={{HOMEPAGE_FILE_TAUTULLI_KEY}}"
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://localhost:8181/status"]
       interval: 10s
