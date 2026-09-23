@@ -41,6 +41,12 @@ services:
       - "homepage.name=Forgejo"
       - "homepage.icon=forgejo.svg"
       - "homepage.href=https://git.${TRAEFIK_ACME_DOMAIN}"
+      - "homepage.description=Self-hosted Git Forge"
+      # Forgejo speaks the Gitea API; homepage has no dedicated forgejo widget
+      - "homepage.widget.type=gitea"
+      - "homepage.widget.url=http://forgejo:3000"
+      - "homepage.widget.key={{HOMEPAGE_FILE_FORGEJO_KEY}}"
+      - 'homepage.widget.fields=["notifications","pulls","repositories"]'
 
 networks:
   database:

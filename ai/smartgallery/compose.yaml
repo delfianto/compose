@@ -49,7 +49,7 @@ services:
       - "traefik.http.services.smartgallery.loadbalancer.server.port=8189"
       - "homepage.group=Artificial Intelligence"
       - "homepage.name=SmartGallery"
-      - "homepage.icon=mdi-image-multiple"
+      - "homepage.icon=/icons/smartgallery.png"  # app's own logo; not in dashboard-icons/selfh.st
       - "homepage.href=https://gallery.${TRAEFIK_ACME_DOMAIN}/galleryout"
       - "homepage.description=ComfyUI-aware media and workflow gallery"
 

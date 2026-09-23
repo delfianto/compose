@@ -5,6 +5,16 @@ services:
     restart: "no"
     environment:
       - HOMEPAGE_ALLOWED_HOSTS=home.${TRAEFIK_ACME_DOMAIN}
+      # Widget API keys, referenced from other services' labels as {{HOMEPAGE_FILE_*}}
+      - HOMEPAGE_FILE_FORGEJO_KEY=/run/secrets/forgejo_api_key
+      - HOMEPAGE_FILE_PLEX_KEY=/run/secrets/plex_api_key
+      - HOMEPAGE_FILE_STASH_KEY=/run/secrets/stash_api_key
+      - HOMEPAGE_FILE_TAUTULLI_KEY=/run/secrets/tautulli_api_key
+    secrets:
+      - forgejo_api_key
+      - plex_api_key
+      - stash_api_key
+      - tautulli_api_key
     networks:
       - proxy
       - metrics
@@ -28,3 +38,13 @@ networks:
     external: true
   metrics:
     external: true
+
+secrets:
+  forgejo_api_key:
+    file: ${SECRET_DIR}/forgejo_api_key
+  plex_api_key:
+    file: ${SECRET_DIR}/plex_api_key
+  stash_api_key:
+    file: ${SECRET_DIR}/stash_api_key
+  tautulli_api_key:
+    file: ${SECRET_DIR}/tautulli_api_key
