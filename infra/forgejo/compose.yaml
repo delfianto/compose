@@ -1,6 +1,6 @@
 services:
   forgejo:
-    image: codeberg.org/forgejo/forgejo:14-rootless
+    image: codeberg.org/forgejo/forgejo:16-rootless
     container_name: forgejo
     restart: "no"
     user: "0:0"
@@ -14,7 +14,6 @@ services:
       - proxy
     volumes:
       - ${DATA_DIR}/data:/var/lib/gitea
-      - ${DATA_DIR}/conf:/etc/gitea
       - /etc/localtime:/etc/localtime:ro
       - ${COMPOSE_BASE}/lib/secret-env.sh:/secret-env.sh:ro
     env_file:
