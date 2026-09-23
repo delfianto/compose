@@ -25,9 +25,9 @@ services:
       - ${ORIGINALS_DIR}:/photoprism/originals:ro
       - ${COMPOSE_BASE}/lib/secret-env.sh:/secret-env.sh:ro
     secrets:
-      - source: photoprism_db_password
+      - source: photoprism_db
         target: PHOTOPRISM_DATABASE_PASSWORD
-      - source: photoprism_admin_password
+      - source: photoprism_admin
         target: PHOTOPRISM_ADMIN_PASSWORD
     labels:
       - "traefik.enable=true"
@@ -60,7 +60,7 @@ networks:
     external: true
 
 secrets:
-  photoprism_db_password:
-    file: ${SECRET_DIR}/photoprism_db_password
-  photoprism_admin_password:
-    file: ${SECRET_DIR}/photoprism_admin_password
+  photoprism_db:
+    file: ${SECRET_DIR}/photoprism_db
+  photoprism_admin:
+    file: ${SECRET_DIR}/photoprism_admin

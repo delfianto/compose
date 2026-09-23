@@ -44,6 +44,6 @@ networks:
 
 secrets:
   db_user:
-    file: ${SECRET_DIR}/mariadb_user.txt
+    file: ${SECRET_DIR}/mariadb_user
   db_root:
-    file: ${SECRET_DIR}/mariadb_root.txt
+    file: ${SECRET_DIR}/mariadb_root

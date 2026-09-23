@@ -16,7 +16,7 @@ services:
       - ${DATA_DIR}/mongo:/data/db
       - ${COMPOSE_BASE}/lib/secret-env.sh:/secret-env.sh:ro
     secrets:
-      - source: mongo_root_password
+      - source: mongo_root
         target: MONGO_INITDB_ROOT_PASSWORD
     healthcheck:
       test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping')"]
@@ -34,5 +34,5 @@ networks:
     external: true
 
 secrets:
-  mongo_root_password:
-    file: ${SECRET_DIR}/mongo_root_password
+  mongo_root:
+    file: ${SECRET_DIR}/mongo_root

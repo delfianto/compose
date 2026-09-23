@@ -66,7 +66,7 @@ Each service directory follows this pattern:
         my_secret:
             file: ${SECRET_DIR}/my_secret
     ```
-- **Shared vs Service-specific**: Shared credentials (e.g., `openai_api_key`) use bare names, while service-specific secrets (e.g., `forgejo_db_password`) are prefixed.
+- **Naming**: Name provider API keys `<provider>_api_key` (e.g., `openai_api_key`, `plex_api_key`). Use a short role suffix when a service has multiple distinct credentials (e.g., `immich_db`, `openwebui_secret`, `mariadb_root`). Use a Compose secret `target:` when the container needs a specific filename or environment variable.
 - **The `/secret-env.sh` Entrypoint Shim** (`lib/secret-env.sh`):
     - Used for images that do not support reading secrets from `/run/secrets/{name}` natively.
     - Mount `${COMPOSE_BASE}/lib/secret-env.sh` at `/secret-env.sh:ro` and set `entrypoint: ["/secret-env.sh"]`.

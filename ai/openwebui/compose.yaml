@@ -21,9 +21,9 @@ services:
       - WEBUI_URL=https://webui.${TRAEFIK_ACME_DOMAIN}
       - CORS_ALLOW_ORIGIN=https://webui.${TRAEFIK_ACME_DOMAIN}
     secrets:
-      - source: openwebui_secret_key
+      - source: openwebui_secret
         target: WEBUI_SECRET_KEY
-      - source: openwebui_database_url
+      - source: openwebui_db
         target: DATABASE_URL
     labels:
       - "traefik.enable=true"
@@ -91,7 +91,8 @@ services:
       - OPEN_TERMINAL_API_KEY_FILE=/run/secrets/open_terminal_api_key
       - OPEN_TERMINAL_FILE_BROWSER_ROOT=/workspace
     secrets:
-      - open_terminal_api_key
+      - source: openwebui_terminal
+        target: open_terminal_api_key
     deploy:
       resources:
         limits:
@@ -110,9 +111,9 @@ volumes:
   open-terminal-home:
 
 secrets:
-  openwebui_secret_key:
-    file: ${SECRET_DIR}/openwebui_secret_key
-  openwebui_database_url:
-    file: ${SECRET_DIR}/openwebui_database_url
-  open_terminal_api_key:
-    file: ${SECRET_DIR}/open_terminal_api_key
+  openwebui_secret:
+    file: ${SECRET_DIR}/openwebui_secret
+  openwebui_db:
+    file: ${SECRET_DIR}/openwebui_db
+  openwebui_terminal:
+    file: ${SECRET_DIR}/openwebui_terminal

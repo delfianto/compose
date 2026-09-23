@@ -46,4 +46,4 @@ networks:
 
 secrets:
   db_password:
-    file: ${SECRET_DIR}/postgres_db_password
+    file: ${SECRET_DIR}/postgres_db

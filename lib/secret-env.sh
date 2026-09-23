@@ -1,10 +1,11 @@
 #!/bin/sh
 # Export every mounted docker secret as an env var, then exec the image's
 # original entrypoint (passed as the container command).
-# Naming: all-lowercase secret names are uppercased (google_api_key ->
-# GOOGLE_API_KEY). Names containing an uppercase letter are exported verbatim --
-# use `target:` in the compose secrets block when uppercasing can't produce the
-# var name (e.g. target: FORGEJO__database__PASSWD).
+# Naming: all-lowercase secret names are uppercased
+# (openai_api_key -> OPENAI_API_KEY).
+# Names containing an uppercase letter are exported verbatim. Use `target:`
+# in the compose secrets block for the exact variable name (e.g.
+# target: OPENAI_API_KEY or target: FORGEJO__database__PASSWD).
 set -eu
 for f in /run/secrets/*; do
   [ -f "$f" ] || continue

@@ -19,9 +19,9 @@ services:
     env_file:
       - forgejo.env
     secrets:
-      - source: forgejo_db_password
+      - source: forgejo_db
         target: FORGEJO__database__PASSWD
-      - source: forgejo_db_password
+      - source: forgejo_db
         target: POSTGRES_PASSWORD
     ports:
       - "0.0.0.0:222:2222"
@@ -49,5 +49,5 @@ networks:
     external: true
 
 secrets:
-  forgejo_db_password:
-    file: ${SECRET_DIR}/forgejo_db_password
+  forgejo_db:
+    file: ${SECRET_DIR}/forgejo_db

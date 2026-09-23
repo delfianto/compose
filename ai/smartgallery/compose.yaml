@@ -25,7 +25,8 @@ services:
       - ${DATA_DIR}:/mnt/SmartGallery
       - ${COMPOSE_BASE}/lib/secret-env.sh:/secret-env.sh:ro
     secrets:
-      - smartgallery_admin_password
+      - source: smartgallery_admin
+        target: SMARTGALLERY_ADMIN_PASSWORD
     cap_drop:
       - ALL
     security_opt:
@@ -59,5 +60,5 @@ networks:
     external: true
 
 secrets:
-  smartgallery_admin_password:
-    file: ${SECRET_DIR}/smartgallery_admin_password
+  smartgallery_admin:
+    file: ${SECRET_DIR}/smartgallery_admin
