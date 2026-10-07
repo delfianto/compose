@@ -1,6 +1,7 @@
 services:
   smartgallery:
-    image: ${IMAGE_NAME}:${IMAGE_TAG}
+    # Includes FFmpeg for image, video, and audio previews.
+    image: mmartial/smart-comfyui-gallery:latest
     container_name: smartgallery
     restart: "no"
     init: true
