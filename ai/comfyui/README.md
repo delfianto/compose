@@ -39,13 +39,22 @@ a BuildKit cache mount for `uv` without embedding its cache in image layers.
 ## Build and run
 
 ```sh
-docker compose build --pull
+docker compose build --pull comfyui
 composectl start ai-comfyui
 ```
 
 Use `composectl restart ai-comfyui` to fetch the configured ComfyUI ref on the
-next start. Rebuild periodically with `docker compose build --pull` to update
+next start. Rebuild periodically with `docker compose build --pull comfyui` to update
 the PyTorch/CUDA base and to reset any Python packages modified by custom nodes.
+
+ComfyUI MCP now lives in [../comfyui-mcp](../comfyui-mcp/README.md) with its own
+systemd unit. `composectl restart ai-comfyui` updates ComfyUI without restarting
+MCP. Run `/srv/compose/ai/comfyui-mcp/update.py` to build the latest stable MCP
+release and restart MCP independently.
+
+Docker caches source-fetching build layers. Add `--no-cache` when rebuilding to
+refresh the bundled ComfyUI and custom-node snapshots even if their configured
+refs have not changed.
 
 ## Update policy
 

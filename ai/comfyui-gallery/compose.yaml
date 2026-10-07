@@ -1,8 +1,8 @@
 services:
-  smartgallery:
+  comfyui-gallery:
     # Includes FFmpeg for image, video, and audio previews.
     image: mmartial/smart-comfyui-gallery:latest
-    container_name: smartgallery
+    container_name: comfyui-gallery
     restart: "no"
     init: true
     # Rootless Docker maps container root to the daemon owner (host uid/gid 1000).
