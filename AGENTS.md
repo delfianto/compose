@@ -11,7 +11,7 @@ Docker Compose orchestration for a self-hosted homelab. Modular compose files ma
 
 ```
 .
-├── ai/               # AI/ML services (bifrost, ollama, embedding, openwebui, comfyui, forgeneo, koboldcpp, textgen, risuai)
+├── ai/               # AI/ML services (bifrost, ollama, embedding, openwebui, comfyui, comfyui-mcp, comfyui-gallery, forgeneo, koboldcpp, textgen, risuai)
 ├── db/               # Databases (vchord, mariadb, mongo, valkey)
 ├── infra/            # Infrastructure & Reverse proxy (forgejo, traefik)
 ├── media/            # Media services (immich, photoprism, plex, stash)
@@ -27,11 +27,11 @@ Each service lives in its own subdirectory with a `compose.yaml` and env files. 
 
 ### Naming
 
-- **Directories**: lowercase, no hyphens within a service name (e.g., `openwebui`, `forgeneo`)
+- **Directories**: lowercase, generally no hyphens within a service name (e.g., `openwebui`, `forgeneo`); `ai/comfyui-mcp` and `ai/comfyui-gallery` are explicit exceptions.
 - **Compose files**: always `compose.yaml` (not `docker-compose.yml`), except `ai/risuai` which uses `compose.yml`
 - **Service names in compose**: lowercase simple names matching the directory (e.g., `ollama`, `vchord`)
 - **Container names**: set explicitly via `container_name:`
-- **Systemd service names**: `category-service` with hyphens mapping to path separators (e.g., `ai-ollama` -> `ai/ollama`)
+- **Systemd service names**: `category-service` with path separators flattened to hyphens (e.g., `ai-ollama` -> `ai/ollama`, `ai-comfyui-mcp` -> `ai/comfyui-mcp`). The updated `composectl` resolver preserves hyphens inside existing directory names.
 - **Subdomains**: `{shortname}.${TRAEFIK_ACME_DOMAIN}` (e.g., `webui.example.com`)
 
 ### Environment Files
@@ -141,6 +141,7 @@ Defined in `service.toml` and mirrored via `composectl deps`:
 
 ```
 ai-bifrost       -> db-vchord, db-valkey
+ai-comfyui-mcp      -> ai-comfyui (optional startup dependency)
 ai-openwebui     -> db-vchord, ai-bifrost, ai-embedding (+ ai-ollama, optional)
 infra-forgejo    -> db-vchord
 media-immich     -> db-vchord, db-valkey

@@ -1,6 +1,9 @@
 [ai-bifrost]
 requires = ["db-vchord", "db-valkey"]
 
+[ai-comfyui-mcp]
+wants = ["ai-comfyui"]
+
 [ai-openwebui]
 requires = ["db-vchord", "ai-bifrost", "ai-embedding"]
 wants = ["ai-ollama"]

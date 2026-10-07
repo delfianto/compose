@@ -1,5 +1,5 @@
 services:
-  comfy:
+  comfyui:
     build:
       context: .
       args:
@@ -15,7 +15,7 @@ services:
         COMFYUI_MULTIGPU_REPOSITORY: ${COMFYUI_MULTIGPU_REPOSITORY}
         COMFYUI_MULTIGPU_REF: ${COMFYUI_MULTIGPU_REF}
     image: ${IMAGE_NAME}:${IMAGE_TAG}
-    container_name: comfy
+    container_name: comfyui
     restart: "no"
     init: true
     # Rootless Docker maps container root to the daemon owner (host uid/gid 1000).
@@ -72,7 +72,7 @@ services:
       - "homepage.description=Node-based generative AI GUI"
       # No dedicated homepage widget: read free VRAM/RAM from ComfyUI's /system_stats
       - "homepage.widget.type=customapi"
-      - "homepage.widget.url=http://comfy:8188/system_stats"
+      - "homepage.widget.url=http://comfyui:8188/system_stats"
       - "homepage.widget.mappings[0].label=4080 VRAM"
       - "homepage.widget.mappings[0].field=devices.0.vram_free"
       - "homepage.widget.mappings[0].format=bytes"
@@ -82,60 +82,6 @@ services:
       - "homepage.widget.mappings[2].label=RAM"
       - "homepage.widget.mappings[2].field=system.ram_free"
       - "homepage.widget.mappings[2].format=bytes"
-
-  mcp:
-    build:
-      context: https://github.com/artokun/comfyui-mcp.git#v${MCP_VERSION}
-    image: ${MCP_IMAGE_NAME}:${MCP_VERSION}
-    container_name: comfy-mcp
-    restart: "no"
-    init: true
-    # Rootless Docker maps container root to the daemon owner (host uid/gid 1000),
-    # allowing the MCP state bind mount to remain owned by the host user.
-    user: "0:0"
-    command:
-      - --http
-      - --host
-      - 0.0.0.0
-      - --port
-      - "9100"
-      # The published port is restricted to host loopback below. This opt-out is
-      # therefore not reachable from the LAN or through Traefik.
-      - --allow-unauthenticated-non-loopback
-    environment:
-      COMFYUI_URL: http://comfy:8188
-      COMFYUI_MCP_DATA_DIR: /data/mcp
-      COMFYUI_DOWNLOAD_CACHE_DIR: /data/cache/downloads
-      HOME: /data
-      XDG_CACHE_HOME: /data/cache
-      XDG_CONFIG_HOME: /data/config
-    depends_on:
-      comfy:
-        condition: service_healthy
-    networks:
-      - genai
-      - proxy
-    ports:
-      - "127.0.0.1:${MCP_PORT}:9100"
-    volumes:
-      - ${MCP_DATA_DIR}:/data
-    read_only: true
-    tmpfs:
-      - /tmp:size=256M,mode=1777
-    cap_drop:
-      - ALL
-    security_opt:
-      - no-new-privileges:true
-    healthcheck:
-      test:
-        - CMD
-        - node
-        - -e
-        - "fetch('http://localhost:9100/mcp').then(() => process.exit(0)).catch(() => process.exit(1))"
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 30s
 
 networks:
   genai:
