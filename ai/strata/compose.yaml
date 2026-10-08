@@ -1,0 +1,47 @@
+name: strata
+
+services:
+  strata:
+    image: ${IMAGE_REPO}:${STRATA_VERSION}
+    container_name: strata
+    restart: "no"
+    user: "0:0"
+    stop_grace_period: 60s
+    devices:
+      - nvidia.com/gpu=0
+      - nvidia.com/gpu=1
+    networks:
+      - proxy
+      - genai
+    env_file:
+      - strata.env
+      - path: strata.env.local
+        required: false
+    volumes:
+      - type: bind
+        source: ${DATA_DIR}
+        target: /data
+        bind:
+          create_host_path: false
+    ulimits:
+      memlock:
+        soft: ${MEMLOCK_BYTES}
+        hard: ${MEMLOCK_BYTES}
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=proxy"
+      - "traefik.http.routers.strata.entrypoints=websecure"
+      - "traefik.http.routers.strata.rule=Host(`strata.${TRAEFIK_ACME_DOMAIN}`)"
+      - "traefik.http.routers.strata.tls.certresolver=cloudflare"
+      - "traefik.http.services.strata.loadbalancer.server.port=8080"
+      - "homepage.group=Artificial Intelligence"
+      - "homepage.name=Strata"
+      - "homepage.icon=mdi-layers"
+      - "homepage.href=https://strata.${TRAEFIK_ACME_DOMAIN}"
+      - "homepage.description=Local Qwen inference with dual-GPU layer splitting"
+
+networks:
+  proxy:
+    external: true
+  genai:
+    external: true

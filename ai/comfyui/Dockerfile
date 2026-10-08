@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1.7
 
-ARG CUDA_IMAGE=nvidia/cuda:13.2.1-base-ubuntu24.04
+ARG CUDA_IMAGE=nvidia/cuda:13.4.2-base-ubuntu24.04
 FROM ${CUDA_IMAGE}
 
 ARG COMFYUI_REPOSITORY=https://github.com/Comfy-Org/ComfyUI.git

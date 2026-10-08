@@ -1,6 +1,6 @@
 # ComfyUI
 
-Locally built ComfyUI runtime using NVIDIA's Ubuntu 24.04 CUDA 13.2 base image. The
+Locally built ComfyUI runtime using NVIDIA's Ubuntu 24.04 CUDA 13.4.2 base image. The
 container updates the ComfyUI checkout to `COMFYUI_REF` whenever it starts and
 installs changed core/Manager requirements before launching.
 
@@ -15,12 +15,18 @@ This keeps image-owned nodes separate from Manager-installed nodes in the
 persisted `/data/custom_nodes` bind mount.
 
 PyTorch 2.11, TorchVision 0.26, and TorchAudio 2.11 are installed as a matched
-set from PyTorch's CUDA 13.0 wheel channel. CUDA 13.x minor compatibility lets
-those wheels run with the CUDA 13.2 host interface. The PyTorch wheels supply
-the CUDA workload libraries and cuDNN, avoiding duplication with NVIDIA's
-larger `runtime`/`cudnn-runtime` images. This also avoids PyTorch 2.12's currently
-incomplete CUDA 13.2 set, which has no matching TorchAudio wheel even though
-ComfyUI still imports TorchAudio.
+set from PyTorch's CUDA 13.0 wheel channel. The wheels supply the CUDA workload
+libraries and cuDNN, avoiding duplication with NVIDIA's larger
+`runtime`/`cudnn-runtime` images. Updating the base to CUDA 13.4.2 does not
+change `torch.version.cuda` from 13.0 or automatically improve inference speed.
+TorchAudio remains included because ComfyUI imports it.
+
+[NVIDIA's compatibility documentation](https://docs.nvidia.com/deploy/cuda-compatibility/minor-version-compatibility.html)
+lists driver 580 or newer for CUDA 13.x. This host uses driver 615.71.09;
+compatibility also depends on the libraries and features a workflow uses.
+The CUDA 13.4.2 image passed FP16 matrix multiplication, convolution, and
+attention checks on both the RTX 4080 and RTX 3060, plus ComfyUI startup and an
+HTTP `/system_stats` probe. These checks do not cover every custom workflow.
 
 The source checkout and Python environment are intentionally disposable
 container state. Models, inputs, user data, custom nodes, and download caches
@@ -38,13 +44,23 @@ a BuildKit cache mount for `uv` without embedding its cache in image layers.
 
 ## Build and run
 
+[docker-bake.hcl](docker-bake.hcl) owns the build definition; Compose owns the
+runtime configuration. `./build.sh` loads shell-compatible `.env` assignments
+and then optional `.env.local` overrides before invoking Docker Buildx Bake.
+The default target builds for `linux/amd64` and loads the image into the local
+Docker daemon with the configured `IMAGE_NAME:IMAGE_TAG`. It does not push it.
+
+Inspect the resolved build settings with `./build.sh --print`, or validate the
+Dockerfile with `./build.sh --check comfyui` (without exporting an image), then
+build:
+
 ```sh
-docker compose build --pull comfyui
+./build.sh --pull comfyui
 composectl start ai-comfyui
 ```
 
 Use `composectl restart ai-comfyui` to fetch the configured ComfyUI ref on the
-next start. Rebuild periodically with `docker compose build --pull comfyui` to update
+next start. Rebuild periodically with `./build.sh --pull comfyui` to update
 the PyTorch/CUDA base and to reset any Python packages modified by custom nodes.
 
 ComfyUI MCP now lives in [../comfyui-mcp](../comfyui-mcp/README.md) with its own

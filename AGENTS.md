@@ -46,10 +46,10 @@ Each service directory follows this pattern:
 | `{service}.env.local` | Secrets and local-only container vars                       | No (gitignored)  |
 
 **Precedence** (last wins), verified empirically (see below) rather than assumed:
-- For **interpolation** (`${VAR}` in `compose.yaml` itself): `~/.config/docker/compose.env` < `.env` — that's it. `.env.local` is **not** loaded for interpolation on this host (`COMPOSE_ENV_FILES` only lists `compose.env,.env`); don't rely on it to override paths/domains that a compose file interpolates. If a real value must differ from what's tracked in `.env` and can't be committed, either gitignore that service's `.env` outright and keep a `.env.sample` template, or keep the value out of interpolation entirely (put it only in `{service}.env`/`{service}.env.local`, which the container reads as runtime vars, not Compose interpolation).
+- For **interpolation** (`${VAR}` in `compose.yaml` itself): `~/.config/docker/compose.env` < `.env` < `.env.local`. `compose`/`composectl` pass existing files as ordered `--env-file` arguments and ignore inherited `COMPOSE_ENV_FILES`; missing files are skipped. Explicit shell variables outrank file values for direct commands. Systemd entrypoints remove exported global config keys from the child environment so project overrides can win (the configured `DOCKER_HOST` remains authoritative). Raw `docker compose` needs explicit `--env-file` arguments or a project wrapper for the same layering.
 - For **container runtime env** (what the process inside actually sees): `{service}.env` < `{service}.env.local` < `environment:` section — these are loaded via `env_file:`/`environment:` at container-start time, a completely different mechanism from `.env` interpolation, and `.local` here does take effect.
 
-**Machine-wide interpolation layer**: `COMPOSE_ENV_FILES` (exported by the login shell and by the `compose@.service` systemd template, e.g. `~/.config/docker/compose.env,.env`) makes Compose load `~/.config/docker/compose.env` before each project's own `.env`, and the project's `.env` wins on conflicts. That file holds host-wide interpolation vars: `COMPOSE_BASE`, `COMPOSE_DATA`, `TRAEFIK_ACME_DOMAIN/EMAIL/SERVER`, `DOCKER_HOST`, `DOCKER_SOCK`. Reference `${COMPOSE_BASE}` (e.g. for `lib/secret-env.sh` mounts) instead of hardcoding relative `../../` paths, since it's already exported everywhere.
+**Machine-wide interpolation layer**: `compose-utils` loads `~/.config/docker/compose.env` before each project's optional `.env` and `.env.local`. No fixed `COMPOSE_ENV_FILES` export is needed. That global file holds host-wide interpolation vars: `COMPOSE_BASE`, `COMPOSE_DATA`, `TRAEFIK_ACME_DOMAIN/EMAIL/SERVER`, `DOCKER_HOST`, `DOCKER_SOCK`. Reference `${COMPOSE_BASE}` (e.g. for `lib/secret-env.sh` mounts) instead of hardcoding relative `../../` paths.
 
 **Rules**:
 
@@ -153,7 +153,7 @@ media-immich     -> db-vchord, db-valkey
 
 ### Agent Skills (`.agents/skills/`, symlinked from `.claude/skills/`)
 
-Skills live under `.agents/skills/` — the harness-agnostic location — with `.claude/skills` symlinked to it (mirroring the `CLAUDE.md -> AGENTS.md` pattern above) so Claude Code and other coding tools that read `.agents/skills` both resolve the same files. Prefer these over hand-rolling `composectl`/`compose` invocations — they encode the correct flags, `--json` shapes, and known gotchas (e.g. `compose ps`'s filter argument being ignored, `service.toml` not being wired to `--deps`):
+Skills live under `.agents/skills/` — the harness-agnostic location — with `.claude/skills` symlinked to it so Claude Code and other coding tools that read `.agents/skills` both resolve the same files. Prefer these over hand-rolling `composectl`/`compose` invocations — they encode the correct flags, `--json` shapes, and known gotchas (e.g. `compose ps`'s filter argument being ignored, `service.toml` not being wired to `--deps`):
 
 | Skill | Covers |
 | --- | --- |

@@ -3,7 +3,7 @@ name: service-config
 description: View or update composectl/compose's own global settings (COMPOSE_BASE, COMPOSE_DATA, Traefik ACME domain/email/server, DOCKER_HOST) stored in ~/.config/docker/compose.env. Use when checking or changing host-wide interpolation defaults shared by every project, not a specific service's env files.
 ---
 
-`compose config` / `composectl config` (identical implementation, either persona works) manage the **machine-wide** settings file — `/etc/compose.env` if root, `~/.config/docker/compose.env` under rootless Docker (this host's mode). This is the file `AGENTS.md` calls the "machine-wide interpolation layer": it's loaded before each project's own `.env` via `COMPOSE_ENV_FILES`, and the project's `.env` wins on any key collision. Don't confuse it with a service's own `.env`/`{service}.env`/`.local` files — those are per-project and this tool doesn't touch them.
+`compose config` / `composectl config` (identical implementation, either persona works) manage the **machine-wide** settings file — `/etc/compose.env` if root, `~/.config/docker/compose.env` under rootless Docker (this host's mode). This is the file `AGENTS.md` calls the "machine-wide interpolation layer": compose-utils loads it before each project's optional `.env` and `.env.local` using ordered `--env-file` arguments. Later files win; missing files are skipped, and inherited `COMPOSE_ENV_FILES` is ignored. Don't confuse it with a service's own `.env`/`{service}.env`/`.local` files — those are per-project and this tool doesn't touch them.
 
 ## View
 
