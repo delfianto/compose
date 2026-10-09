@@ -99,6 +99,8 @@ Traefik serves `https://strata.${TRAEFIK_ACME_DOMAIN}`, with an
 OpenAI-compatible API at `/v1`, using the `websecure` entrypoint and
 Cloudflare certificate resolver. It connects to Strata's internal port
 8080 through the external `proxy` network. No host port is published.
+`STRATA_ALLOWED_HOSTS` permits the Traefik hostname and the internal `strata`
+service name while keeping DNS rebinding protection enabled.
 Homepage discovers the service through its labels. Containers on `genai`
 can also reach `http://strata:8080/v1`. The external `proxy` network
 permits outbound model downloads.

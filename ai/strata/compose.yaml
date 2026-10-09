@@ -17,6 +17,8 @@ services:
       - strata.env
       - path: strata.env.local
         required: false
+    environment:
+      STRATA_ALLOWED_HOSTS: "strata,strata.${TRAEFIK_ACME_DOMAIN}"
     volumes:
       - type: bind
         source: ${DATA_DIR}
