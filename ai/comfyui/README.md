@@ -7,12 +7,12 @@ installs changed core/Manager requirements before launching.
 The resulting local image is tagged
 `ghcr.io/delfianto/comfyui-nvidia-cuda:latest`; building does not publish it.
 
-The image includes a build-time snapshot of
-[ComfyUI-GGUF](https://github.com/city96/ComfyUI-GGUF) in `/opt/custom_nodes`.
-[Our MultiGPU fork](https://github.com/delfianto/ComfyUI-MultiGPU) is a regular
-Git checkout at `/srv/appdata/comfyui/custom_nodes/ComfyUI-MultiGPU`, mounted at
-`/data/custom_nodes/ComfyUI-MultiGPU`. Its fixes and edits survive image rebuilds;
-restart ComfyUI after changing Python code. MultiGPU is not installed in the image.
+Custom nodes are persistent Git checkouts under `/srv/appdata/comfyui/custom_nodes`,
+mounted at `/data/custom_nodes`, including
+[ComfyUI-GGUF](https://github.com/city96/ComfyUI-GGUF) and
+[our MultiGPU fork](https://github.com/delfianto/ComfyUI-MultiGPU).
+Their edits and updates survive image rebuilds; restart ComfyUI after changing
+Python code. Neither node is installed in the image.
 
 PyTorch 2.11, TorchVision 0.26, and TorchAudio 2.11 are installed as a matched
 set from PyTorch's CUDA 13.0 wheel channel. The wheels supply the CUDA workload
@@ -75,8 +75,7 @@ MCP. Run `/srv/compose/ai/comfyui-mcp/update.py` to build the latest stable MCP
 release and restart MCP independently.
 
 Docker caches source-fetching build layers. Add `--no-cache` when rebuilding to
-refresh the bundled ComfyUI and custom-node snapshots even if their configured
-refs have not changed.
+refresh the bundled ComfyUI snapshot even if its configured ref has not changed.
 
 ## Update policy
 
@@ -89,8 +88,8 @@ refs have not changed.
 - `COMFYUI_INSTALL_CUSTOM_NODE_REQUIREMENTS=true` discovers and installs each
   persisted custom node's `requirements.txt`; hashes avoid repeat work on an
   ordinary restart.
-- `COMFYUI_GGUF_REF=main` captures GGUF during image builds. Rebuild to update it;
-  do not update this image-owned copy through ComfyUI Manager.
+- GGUF is maintained in its persistent checkout or through ComfyUI Manager.
+  Restart ComfyUI after updating it.
 - MultiGPU is maintained in its persistent checkout. Review and update its Git
   branch there, then run `composectl restart ai-comfyui --json` to load changes.
   Its development checks and upstream issue review are documented in the fork's
@@ -108,6 +107,16 @@ Forge Neo mounts the same `${DATA_DIR}` and uses
 `--forge-ref-comfy-home /comfyui` to discover compatible ComfyUI model folders.
 This shares model files only; Forge remains a separate inference application
 and does not use the running ComfyUI service as its backend.
+
+## Node caching
+
+Normal runs use ComfyUI's default RAM-pressure node caching. The switching
+stress test used `--cache-none` as a diagnostic workaround; it is no longer a
+runtime default. When finished with a workflow, `POST /free` with
+`{"unload_models": true, "free_memory": true}` requests model unloading and
+executor-cache cleanup after the active generation finishes. Automatic cleanup
+at workflow boundaries and memory reclamation with caching enabled still need
+validation; switching workflows does not yet trigger this request automatically.
 
 ## GGUF and multiple GPUs
 

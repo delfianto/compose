@@ -43,16 +43,6 @@ variable "COMFYUI_REF" {
   default = "master"
 }
 
-variable "COMFYUI_GGUF_REPOSITORY" {
-  type    = string
-  default = "https://github.com/city96/ComfyUI-GGUF.git"
-}
-
-variable "COMFYUI_GGUF_REF" {
-  type    = string
-  default = "main"
-}
-
 group "default" {
   targets = ["comfyui"]
 }
@@ -70,8 +60,6 @@ target "comfyui" {
     TORCH_INDEX_URL              = TORCH_INDEX_URL
     COMFYUI_REPOSITORY           = COMFYUI_REPOSITORY
     COMFYUI_REF                  = COMFYUI_REF
-    COMFYUI_GGUF_REPOSITORY      = COMFYUI_GGUF_REPOSITORY
-    COMFYUI_GGUF_REF             = COMFYUI_GGUF_REF
   }
   output = ["type=docker"]
 }

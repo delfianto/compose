@@ -4,7 +4,7 @@ services:
     container_name: comfyui
     restart: "no"
     init: true
-    # Bound host RAM during model switching by disabling node-result caching.
+    # Use default node caching; workflow-boundary cleanup is requested separately.
     command:
       - "python"
       - "main.py"
@@ -16,12 +16,9 @@ services:
       - "/data"
       - "--database-url"
       - "sqlite:////data/user/comfyui.db"
-      - "--extra-model-paths-config"
-      - "/opt/comfy-extra-model-paths.yaml"
       - "--enable-manager"
       - "--reserve-vram"
       - "2.0"
-      - "--cache-none"
     # Rootless Docker maps container root to the daemon owner (host uid/gid 1000).
     # Using container uid 1000 here would instead map to an unprivileged subuid.
     user: "0:0"
