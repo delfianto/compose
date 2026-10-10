@@ -7,12 +7,12 @@ installs changed core/Manager requirements before launching.
 The resulting local image is tagged
 `ghcr.io/delfianto/comfyui-nvidia-cuda:latest`; building does not publish it.
 
-The image also includes build-time snapshots of
-[ComfyUI-GGUF](https://github.com/city96/ComfyUI-GGUF) and
-[ComfyUI-MultiGPU](https://github.com/pollockjj/ComfyUI-MultiGPU). They live in
-`/opt/custom_nodes` and are added through `/opt/comfy-extra-model-paths.yaml`.
-This keeps image-owned nodes separate from Manager-installed nodes in the
-persisted `/data/custom_nodes` bind mount.
+The image includes a build-time snapshot of
+[ComfyUI-GGUF](https://github.com/city96/ComfyUI-GGUF) in `/opt/custom_nodes`.
+[Our MultiGPU fork](https://github.com/delfianto/ComfyUI-MultiGPU) is a regular
+Git checkout at `/srv/appdata/comfyui/custom_nodes/ComfyUI-MultiGPU`, mounted at
+`/data/custom_nodes/ComfyUI-MultiGPU`. Its fixes and edits survive image rebuilds;
+restart ComfyUI after changing Python code. MultiGPU is not installed in the image.
 
 PyTorch 2.11, TorchVision 0.26, and TorchAudio 2.11 are installed as a matched
 set from PyTorch's CUDA 13.0 wheel channel. The wheels supply the CUDA workload
@@ -20,6 +20,12 @@ libraries and cuDNN, avoiding duplication with NVIDIA's larger
 `runtime`/`cudnn-runtime` images. Updating the base to CUDA 13.4.2 does not
 change `torch.version.cuda` from 13.0 or automatically improve inference speed.
 TorchAudio remains included because ComfyUI imports it.
+
+The fork handles versioned CUDA runtime libraries and treats P2P detection
+failures as a request to stage transfers through host memory. It also guards
+CLIP inference with the encoder's actual load device, preventing FP8 encoder
+tensors from being moved onto the diffusion GPU during text encoding.
+These compatibility fixes live in the fork rather than Dockerfile patches.
 
 [NVIDIA's compatibility documentation](https://docs.nvidia.com/deploy/cuda-compatibility/minor-version-compatibility.html)
 lists driver 580 or newer for CUDA 13.x. This host uses driver 615.71.09;
@@ -83,11 +89,12 @@ refs have not changed.
 - `COMFYUI_INSTALL_CUSTOM_NODE_REQUIREMENTS=true` discovers and installs each
   persisted custom node's `requirements.txt`; hashes avoid repeat work on an
   ordinary restart.
-- `COMFYUI_GGUF_REF=main` and `COMFYUI_MULTIGPU_REF=main` capture the latest
-  commits of the image-owned custom nodes during each build. Existing images
-  and containers do not update automatically; rebuild to refresh them. A commit
-  SHA can still be used temporarily when bisecting a regression. Do not update
-  these copies through ComfyUI Manager.
+- `COMFYUI_GGUF_REF=main` captures GGUF during image builds. Rebuild to update it;
+  do not update this image-owned copy through ComfyUI Manager.
+- MultiGPU is maintained in its persistent checkout. Review and update its Git
+  branch there, then run `composectl restart ai-comfyui --json` to load changes.
+  Its development checks and upstream issue review are documented in the fork's
+  `docs/MAINTENANCE.md`.
 
 ComfyUI Manager can mutate `/data/custom_nodes` and install Python packages in
 the container. The nodes persist; their installed packages do not survive a

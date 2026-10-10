@@ -7,8 +7,6 @@ ARG COMFYUI_REPOSITORY=https://github.com/Comfy-Org/ComfyUI.git
 ARG COMFYUI_REF=master
 ARG COMFYUI_GGUF_REPOSITORY=https://github.com/city96/ComfyUI-GGUF.git
 ARG COMFYUI_GGUF_REF=main
-ARG COMFYUI_MULTIGPU_REPOSITORY=https://github.com/pollockjj/ComfyUI-MultiGPU.git
-ARG COMFYUI_MULTIGPU_REF=main
 ARG TORCH_VERSION=2.11.0
 ARG TORCHVISION_VERSION=0.26.0
 ARG TORCHAUDIO_VERSION=2.11.0
@@ -76,10 +74,6 @@ RUN --mount=type=cache,target=/var/cache/uv \
     && git -C /opt/custom_nodes/ComfyUI-GGUF remote add origin "${COMFYUI_GGUF_REPOSITORY}" \
     && git -C /opt/custom_nodes/ComfyUI-GGUF fetch --depth=1 origin "${COMFYUI_GGUF_REF}" \
     && git -C /opt/custom_nodes/ComfyUI-GGUF checkout --detach FETCH_HEAD \
-    && git init /opt/custom_nodes/ComfyUI-MultiGPU \
-    && git -C /opt/custom_nodes/ComfyUI-MultiGPU remote add origin "${COMFYUI_MULTIGPU_REPOSITORY}" \
-    && git -C /opt/custom_nodes/ComfyUI-MultiGPU fetch --depth=1 origin "${COMFYUI_MULTIGPU_REF}" \
-    && git -C /opt/custom_nodes/ComfyUI-MultiGPU checkout --detach FETCH_HEAD \
     && uv pip install --python "${VIRTUAL_ENV}/bin/python" \
         -r /opt/custom_nodes/ComfyUI-GGUF/requirements.txt
 
