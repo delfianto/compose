@@ -16,6 +16,7 @@ GPUs, and APIs without sharing their lifecycle.
 | [ComfyUI MCP](comfyui-mcp/README.md) | Lets MCP clients interact with ComfyUI | Separate server and lifecycle; connects over `genai`, endpoint bound to localhost |
 | [SmartGallery](comfyui-gallery/) | Browses ComfyUI outputs and their workflows | Shares output, input, and model directories with ComfyUI |
 | [Forge Neo](forgeneo/README.md) | Stable Diffusion WebUI for image generation | Custom image; shares ComfyUI assets read-only; uses GPU 0 |
+| [AI Toolkit](toolkit/README.md) | Ostris LoRA trainer for Krea 2, Qwen Image 2.1, and other diffusion bases | On-demand GPU 0; UI at `toolkit.${TRAEFIK_ACME_DOMAIN}`; datasets from `/mnt/exos1/lychee/datasets` |
 | [KoboldCpp](koboldcpp/) | GGUF inference with a browser interface and generation APIs | On-demand inference on GPU 0; models bind-mounted from storage |
 | [Text Generation WebUI](textgen/) | Interactive LLM loading and generation with multiple backends | On-demand GPU 0 workload with persistent user data and cache |
 | [RisuAI](risuai/) | Character-based chat and roleplaying client | Persistent saved content; Traefik web route; uses `compose.yml` |
@@ -35,7 +36,7 @@ browser, not just a Docker container hostname.
 ## GPUs and model storage
 
 This host has an RTX 4080 (GPU 0, 16 GB) and RTX 3060 (GPU 1, 12 GB).
-Ollama, ComfyUI, and Strata expose both. Forge Neo, KoboldCpp, and Text Generation
+Ollama, ComfyUI, and Strata expose both. Forge Neo, AI Toolkit, KoboldCpp, and Text Generation
 WebUI use GPU 0; embedding uses its configured `GPU_ID`. Open WebUI's task-model
 container is CPU-only. CDI grants access without reserving exclusive VRAM.
 Check existing allocations before starting another large model.
