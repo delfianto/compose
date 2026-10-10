@@ -3,7 +3,7 @@ set -Eeuo pipefail
 
 COMFYUI_DIR="${COMFYUI_DIR:-/opt/ComfyUI}"
 COMFYUI_REPOSITORY="${COMFYUI_REPOSITORY:-https://github.com/Comfy-Org/ComfyUI.git}"
-COMFYUI_REF="${COMFYUI_REF:-master}"
+COMFYUI_REF="${COMFYUI_REF:-latest-stable}"
 COMFYUI_AUTO_UPDATE="${COMFYUI_AUTO_UPDATE:-true}"
 COMFYUI_UPDATE_STRICT="${COMFYUI_UPDATE_STRICT:-false}"
 COMFYUI_INSTALL_CUSTOM_NODE_REQUIREMENTS="${COMFYUI_INSTALL_CUSTOM_NODE_REQUIREMENTS:-true}"
@@ -18,11 +18,12 @@ is_true() {
 }
 
 update_comfyui() {
-    local previous_commit
+    local previous_commit resolved_ref
     previous_commit="$(git -C "${COMFYUI_DIR}" rev-parse --short HEAD)"
 
     git -C "${COMFYUI_DIR}" remote set-url origin "${COMFYUI_REPOSITORY}"
-    if git -C "${COMFYUI_DIR}" fetch --depth=1 origin "${COMFYUI_REF}"; then
+    if resolved_ref="$(python /usr/local/bin/comfy-resolve-ref "${COMFYUI_REPOSITORY}" "${COMFYUI_REF}")" \
+        && git -C "${COMFYUI_DIR}" fetch --depth=1 origin "${resolved_ref}"; then
         git -C "${COMFYUI_DIR}" reset --hard FETCH_HEAD
         git -C "${COMFYUI_DIR}" clean -fd
         printf 'ComfyUI update: %s -> %s\n' \

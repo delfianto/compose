@@ -3,8 +3,6 @@
 ARG CUDA_IMAGE=nvidia/cuda:13.4.2-base-ubuntu24.04
 FROM ${CUDA_IMAGE}
 
-ARG COMFYUI_REPOSITORY=https://github.com/Comfy-Org/ComfyUI.git
-ARG COMFYUI_REF=master
 ARG TORCH_VERSION=2.11.0
 ARG TORCHVISION_VERSION=0.26.0
 ARG TORCHAUDIO_VERSION=2.11.0
@@ -48,9 +46,14 @@ RUN --mount=type=cache,target=/var/cache/uv \
         "torchaudio==${TORCHAUDIO_VERSION}" \
         --index-url "${TORCH_INDEX_URL}"
 
+ARG COMFYUI_REPOSITORY=https://github.com/Comfy-Org/ComfyUI.git
+ARG COMFYUI_REF=latest-stable
+COPY --chmod=755 resolve-comfy-ref.py /usr/local/bin/comfy-resolve-ref
+
 RUN git init "${COMFYUI_DIR}" \
     && git -C "${COMFYUI_DIR}" remote add origin "${COMFYUI_REPOSITORY}" \
-    && git -C "${COMFYUI_DIR}" fetch --depth=1 origin "${COMFYUI_REF}" \
+    && resolved_ref="$(python3 /usr/local/bin/comfy-resolve-ref "${COMFYUI_REPOSITORY}" "${COMFYUI_REF}")" \
+    && git -C "${COMFYUI_DIR}" fetch --depth=1 origin "${resolved_ref}" \
     && git -C "${COMFYUI_DIR}" checkout --detach FETCH_HEAD
 
 WORKDIR ${COMFYUI_DIR}
