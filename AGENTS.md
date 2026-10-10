@@ -11,7 +11,7 @@ Docker Compose orchestration for a self-hosted homelab. Modular compose files ma
 
 ```
 .
-├── ai/               # AI/ML services (bifrost, ollama, embedding, openwebui, comfyui, comfyui-mcp, comfyui-gallery, forgeneo, koboldcpp, textgen, risuai)
+├── ai/               # AI/ML services (bifrost, ollama, embedding, openwebui, comfyui, comfyui-mcp, comfyui-gallery, forgeneo, toolkit, koboldcpp, textgen, risuai)
 ├── db/               # Databases (vchord, mariadb, mongo, valkey)
 ├── infra/            # Infrastructure & Reverse proxy (forgejo, traefik)
 ├── media/            # Media services (immich, photoprism, plex, stash)
@@ -102,7 +102,7 @@ All networks are declared `external: true` in compose files. Services connect on
 Dual NVIDIA GPU setup using Compose's CDI device syntax (`devices: - nvidia.com/gpu=<id>`) — not the older `deploy.resources.reservations.devices` block:
 
 - `ai/ollama` and `ai/comfyui` hardcode both `nvidia.com/gpu=0` and `=1` directly (visibility into both GPUs, not a var)
-- `ai/forgeneo`, `ai/koboldcpp`, and `ai/textgen` hardcode `nvidia.com/gpu=0` only — the latter two are on-demand tools not expected to run alongside `ai/ollama`/`ai/comfyui`/`ai/forgeneo` simultaneously
+- `ai/forgeneo`, `ai/toolkit`, `ai/koboldcpp`, and `ai/textgen` hardcode `nvidia.com/gpu=0` only — the latter three are on-demand tools not expected to run alongside `ai/ollama`/`ai/comfyui`/`ai/forgeneo` simultaneously
 - Everything else on a GPU reads `nvidia.com/gpu=${GPU_ID}` from its own `.env`: `ai/embedding`, `media/immich`, `media/photoprism`, `media/plex`, `media/stash` — all currently pinned to `GPU_ID=1`
 - OpenWebUI's sidecar is **CPU-only** (Zen5-optimized llama.cpp, see Custom Builds) — it does not reserve a GPU device
 - CDI device declarations only grant visibility, not an exclusive lock — VRAM budgeting across services sharing a GPU is a manual convention, not enforced by Docker

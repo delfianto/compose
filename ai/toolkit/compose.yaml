@@ -1,0 +1,63 @@
+services:
+  toolkit:
+    image: ostris/aitoolkit:latest
+    container_name: toolkit
+    restart: "no"
+    init: true
+    user: "0:0"
+    entrypoint: ["/secret-env.sh"]
+    command: ["sh", "/entrypoint.sh"]
+    env_file:
+      - toolkit.env
+      - path: toolkit.env.local
+        required: false
+    secrets:
+      - source: huggingface_api_key
+        target: HF_TOKEN
+      - source: aitoolkit_auth
+        target: AI_TOOLKIT_AUTH
+    networks:
+      - proxy
+    volumes:
+      - ${COMPOSE_BASE}/lib/secret-env.sh:/secret-env.sh:ro
+      - ./entrypoint.sh:/entrypoint.sh:ro
+      - ${DATASETS_DIR}:/app/ai-toolkit/datasets
+      - ${DATA_DIR}/output:/app/ai-toolkit/output
+      - ${DATA_DIR}/config:/app/ai-toolkit/config
+      - ${DATA_DIR}/cache/huggingface:/root/.cache/huggingface
+      - ${DATA_DIR}/aitk_db.db:/app/ai-toolkit/aitk_db.db
+    devices:
+      - nvidia.com/gpu=0
+    shm_size: "8gb"
+    healthcheck:
+      # UI returns 401 until the auth token is sent; that still means it is up.
+      test:
+        [
+          "CMD-SHELL",
+          "curl -sS -o /dev/null -w '%{http_code}' http://127.0.0.1:8675/ | grep -qE '200|401'",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 90s
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.toolkit.entrypoints=websecure"
+      - "traefik.http.routers.toolkit.rule=Host(`toolkit.${TRAEFIK_ACME_DOMAIN}`)"
+      - "traefik.http.routers.toolkit.tls.certresolver=cloudflare"
+      - "traefik.http.services.toolkit.loadbalancer.server.port=8675"
+      - "homepage.group=Artificial Intelligence"
+      - "homepage.name=AI Toolkit"
+      - "homepage.icon=mdi-tune-vertical"
+      - "homepage.href=https://toolkit.${TRAEFIK_ACME_DOMAIN}"
+      - "homepage.description=Ostris LoRA trainer (Krea 2, Qwen Image 2.1)"
+
+networks:
+  proxy:
+    external: true
+
+secrets:
+  huggingface_api_key:
+    file: ${SECRET_DIR}/huggingface_api_key
+  aitoolkit_auth:
+    file: ${SECRET_DIR}/aitoolkit_auth
