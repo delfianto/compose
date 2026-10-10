@@ -40,7 +40,7 @@ variable "COMFYUI_REPOSITORY" {
 
 variable "COMFYUI_REF" {
   type    = string
-  default = "master"
+  default = "latest-stable"
 }
 
 group "default" {

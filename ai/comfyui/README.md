@@ -79,7 +79,9 @@ refresh the bundled ComfyUI snapshot even if its configured ref has not changed.
 
 ## Update policy
 
-- `COMFYUI_REF=master` follows current ComfyUI on each container start.
+- `COMFYUI_REF=latest-stable` resolves GitHub's latest stable release at build
+  time and on each container start. Prereleases and unreleased master commits
+  are excluded.
 - Set `COMFYUI_REF` to a tag or commit SHA for a reproducible deployment.
 - `COMFYUI_UPDATE_STRICT=false` allows startup from the image's bundled commit
   when the remote is unavailable. Set it to `true` to fail closed.
