@@ -1,0 +1,23 @@
+ARG BASE_IMAGE=ghcr.io/delfianto/comfyui-nvidia-cuda:latest
+FROM ${BASE_IMAGE}
+
+# Host CachyOS Proton supplies Wine/DXVK/vkd3d/NVAPI through a read-only bind.
+# Keep Linux libraries in the Ubuntu image and Wine state in a separate prefix.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        xvfb xauth vulkan-tools libvulkan1 \
+        libx11-6 libxext6 libxrender1 libxrandr2 libxi6 libxcursor1 libxinerama1 \
+        libfontconfig1 libfreetype6 fonts-liberation libasound2t64 libpulse0 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Proton's bootstrap also invokes its 32-bit loader, even for a 64-bit prefix.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends libc6-i386 lib32gcc-s1 \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN dpkg --add-architecture i386 \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends \
+        libfreetype6:i386 libfontconfig1:i386 libx11-6:i386 libxext6:i386 \
+        libxrender1:i386 libxrandr2:i386 libxi6:i386 libxcursor1:i386 \
+    && rm -rf /var/lib/apt/lists/*

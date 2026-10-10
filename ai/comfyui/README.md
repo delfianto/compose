@@ -167,3 +167,39 @@ The Compose service drops every Linux capability and enables
 `no-new-privileges`. Persistent directories must remain owned and writable by
 the rootless daemon owner. NVIDIA CDI devices and the external `genai` and
 `proxy` networks must be configured for that same rootless daemon.
+
+## Optional Linux DLSS runtime
+
+The local `.env.local` selects `BUILD_TARGET=comfyui-dlss`,
+`IMAGE_NAME=comfyui-dlss` and `IMAGE_TAG=local`. With those overrides, `./build.sh`
+builds the base as a cache-only dependency and exports the DLSS variant.
+`Dockerfile.dlss` adds Proton's Linux dependencies, including its 32-bit
+bootstrap libraries, Xvfb and Vulkan tools. Check the files separately with `./build.sh --check comfyui` and
+`docker build --check -f Dockerfile.dlss .`. BuildKit check mode cannot resolve
+the derived target's linked context; the normal Bake build can. Selecting `comfyui` explicitly builds the base only.
+
+Compose mounts CachyOS Proton SLR read-only at `/opt/proton`; `PROTON_DIR` can
+override the host path. Its dedicated Wine prefix and machine ID persist under
+`${DATA_DIR}/cache/dlss5`. For a fresh deployment, create the machine ID file
+before starting Compose (32 hexadecimal characters plus a newline), then prepare
+Wine while the queue is idle:
+
+```sh
+docker cp init-dlss-prefix.sh comfyui:/tmp/init-dlss-prefix.sh
+docker exec comfyui bash /tmp/init-dlss-prefix.sh
+```
+
+The script bootstraps the prefix and copies DXVK, vkd3d-proton and NVAPI DLLs
+from Proton into it; refresh those copies after Proton updates. The node pack
+manages Xvfb for actual rendering. Native D3D11 must be included in
+`WINEDLLOVERRIDES`, since the mounted Proton NVAPI build depends on it.
+
+NVIDIA CDI already injects the Vulkan ICD and matching graphics libraries.
+Runtime DLLs live outside the image in `${DATA_DIR}/models/dlss5`; the tested NGX
+core is extracted from a Windows NVIDIA driver package. The Linux driver's Wine
+core failed this bridge's initialization. No Windows driver is installed.
+The RTX40 neural runtime is community-patched. Sources, checksums, workflow
+settings and successful RTX 4080 generation/upscale tests are recorded in the
+workspace's `docs/dlss-linux.md`. Rebuild, restart and retest after runtime
+updates; these results establish the recorded combination, not all Proton/GPU
+versions.

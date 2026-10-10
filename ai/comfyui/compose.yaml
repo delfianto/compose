@@ -28,6 +28,11 @@ services:
       COMFYUI_AUTO_UPDATE: ${COMFYUI_AUTO_UPDATE}
       COMFYUI_UPDATE_STRICT: ${COMFYUI_UPDATE_STRICT}
       COMFYUI_INSTALL_CUSTOM_NODE_REQUIREMENTS: ${COMFYUI_INSTALL_CUSTOM_NODE_REQUIREMENTS}
+      DLSS5_WINE: /opt/proton/files/bin/wine
+      DLSS5_WINEPREFIX: /var/cache/dlss5/wineprefix
+      DLSS5_RUNTIME_DIR: /data/models/dlss5
+      # Proton NVAPI imports DXVK D3D11 as well as D3D12/DXGI.
+      WINEDLLOVERRIDES: d3d11,d3d12,d3d12core,nvapi64,dxgi=n,b
     networks:
       - genai
       - proxy
@@ -40,6 +45,19 @@ services:
       - ${DATA_DIR}/cache/huggingface:/var/cache/huggingface
       - ${DATA_DIR}/cache/torch:/var/cache/torch
       - ${DATA_DIR}/cache/uv:/var/cache/uv
+      - ${DATA_DIR}/cache/dlss5:/var/cache/dlss5
+      - type: bind
+        source: ${DATA_DIR}/cache/dlss5/machine-id
+        target: /etc/machine-id
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${PROTON_DIR:-/usr/share/steam/compatibilitytools.d/proton-cachyos-slr}
+        target: /opt/proton
+        read_only: true
+        bind:
+          create_host_path: false
     tmpfs:
       - /data/temp:size=8G,mode=1777
     devices:
