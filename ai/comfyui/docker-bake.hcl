@@ -43,8 +43,13 @@ variable "COMFYUI_REF" {
   default = "latest-stable"
 }
 
+variable "BUILD_TARGET" {
+  type    = string
+  default = "comfyui"
+}
+
 group "default" {
-  targets = ["comfyui"]
+  targets = [BUILD_TARGET]
 }
 
 target "comfyui" {
@@ -61,5 +66,20 @@ target "comfyui" {
     COMFYUI_REPOSITORY           = COMFYUI_REPOSITORY
     COMFYUI_REF                  = COMFYUI_REF
   }
+  output = ["type=docker"]
+}
+
+# Build the base as an internal dependency, then add the Proton Linux libraries.
+target "comfyui-dlss" {
+  context    = "."
+  dockerfile = "Dockerfile.dlss"
+  platforms  = ["linux/amd64"]
+  contexts = {
+    comfyui-base = "target:comfyui"
+  }
+  args = {
+    BASE_IMAGE = "comfyui-base"
+  }
+  tags = ["${IMAGE_NAME}:${IMAGE_TAG}"]
   output = ["type=docker"]
 }
