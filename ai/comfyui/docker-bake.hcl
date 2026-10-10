@@ -53,16 +53,6 @@ variable "COMFYUI_GGUF_REF" {
   default = "main"
 }
 
-variable "COMFYUI_MULTIGPU_REPOSITORY" {
-  type    = string
-  default = "https://github.com/pollockjj/ComfyUI-MultiGPU.git"
-}
-
-variable "COMFYUI_MULTIGPU_REF" {
-  type    = string
-  default = "main"
-}
-
 group "default" {
   targets = ["comfyui"]
 }
@@ -82,8 +72,6 @@ target "comfyui" {
     COMFYUI_REF                  = COMFYUI_REF
     COMFYUI_GGUF_REPOSITORY      = COMFYUI_GGUF_REPOSITORY
     COMFYUI_GGUF_REF             = COMFYUI_GGUF_REF
-    COMFYUI_MULTIGPU_REPOSITORY  = COMFYUI_MULTIGPU_REPOSITORY
-    COMFYUI_MULTIGPU_REF         = COMFYUI_MULTIGPU_REF
   }
   output = ["type=docker"]
 }
