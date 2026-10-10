@@ -5,18 +5,9 @@ services:
     restart: "no"
     env_file:
       - plex.env
-    ports:
-      - 0.0.0.0:1901:1900/udp
-      - 0.0.0.0:3005:3005/tcp
-      - 0.0.0.0:8324:8324/tcp
-      - 0.0.0.0:32400:32400/tcp
-      - 0.0.0.0:32469:32469/tcp
-      - 0.0.0.0:32410:32410/udp
-      - 0.0.0.0:32412:32412/udp
-      - 0.0.0.0:32413:32413/udp
-      - 0.0.0.0:32414:32414/udp
-    networks:
-      - proxy
+    # Rootless Docker >=29.5 exposes the real host network in this mode.
+    # Plex must see the LAN interface to advertise local connections correctly.
+    network_mode: host
     volumes:
       - ${FILE_DIR}:/media
       - ${DATA_DIR}/plex/config:/config
@@ -26,14 +17,14 @@ services:
       - "traefik.http.routers.plex.entrypoints=websecure"
       - "traefik.http.routers.plex.rule=Host(`plex.${TRAEFIK_ACME_DOMAIN}`)"
       - "traefik.http.routers.plex.tls.certresolver=cloudflare"
-      - "traefik.http.services.plex.loadbalancer.server.port=32400"
+      - "traefik.http.services.plex.loadbalancer.server.url=http://${LAN_IP}:32400"
       - "homepage.group=Media"
       - "homepage.name=Plex"
       - "homepage.icon=plex.svg"
       - "homepage.href=https://plex.${TRAEFIK_ACME_DOMAIN}"
       - "homepage.description=Media Server"
       - "homepage.widget.type=plex"
-      - "homepage.widget.url=http://plex:32400"
+      - "homepage.widget.url=http://${LAN_IP}:32400"
       - "homepage.widget.key={{HOMEPAGE_FILE_PLEX_KEY}}"
       - 'homepage.widget.fields=["streams","movies","tv"]'
     devices:
@@ -59,6 +50,9 @@ services:
       - plex
     networks:
       - proxy
+    # Preserve the configured Plex hostname after Plex leaves the proxy bridge.
+    extra_hosts:
+      - "plex:${LAN_IP}"
     volumes:
       - ${DATA_DIR}/tautulli:/config
     labels:

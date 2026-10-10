@@ -1,0 +1,47 @@
+services:
+  jellyfin:
+    image: jellyfin/jellyfin:latest
+    container_name: jellyfin
+    restart: "no"
+    # Container root maps to host geist under rootless Docker.
+    user: "0:0"
+    env_file:
+      - jellyfin.env
+    environment:
+      - JELLYFIN_PublishedServerUrl=http://${LAN_IP}:${PORT}
+    ports:
+      - "${LAN_IP}:${PORT}:8096/tcp"
+      - "${LAN_IP}:7359:7359/udp"
+    networks:
+      - proxy
+    volumes:
+      - ${DATA_DIR}/config:/config
+      - ${DATA_DIR}/cache:/cache
+      - ${FILE_DIR}:/media:ro
+    devices:
+      - nvidia.com/gpu=${GPU_ID}
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.jellyfin.entrypoints=websecure"
+      - "traefik.http.routers.jellyfin.rule=Host(`jellyfin.${TRAEFIK_ACME_DOMAIN}`)"
+      - "traefik.http.routers.jellyfin.tls.certresolver=cloudflare"
+      - "traefik.http.services.jellyfin.loadbalancer.server.port=8096"
+      - "homepage.group=Media"
+      - "homepage.name=Jellyfin"
+      - "homepage.icon=jellyfin.svg"
+      - "homepage.href=https://jellyfin.${TRAEFIK_ACME_DOMAIN}"
+      - "homepage.description=Media Server"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8096/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+    deploy:
+      resources:
+        limits:
+          memory: 2GB
+
+networks:
+  proxy:
+    external: true
