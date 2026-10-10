@@ -69,10 +69,11 @@ Use `composectl restart ai-comfyui` to fetch the configured ComfyUI ref on the
 next start. Rebuild periodically with `./build.sh --pull comfyui` to update
 the PyTorch/CUDA base and to reset any Python packages modified by custom nodes.
 
-ComfyUI MCP now lives in [../comfyui-mcp](../comfyui-mcp/README.md) with its own
+The official Comfy MCP sidecar lives in [../comfyui-mcp](../comfyui-mcp/README.md) with its own
 systemd unit. `composectl restart ai-comfyui` updates ComfyUI without restarting
 MCP. Run `/srv/compose/ai/comfyui-mcp/update.py` to build the latest stable MCP
-release and restart MCP independently.
+release and restart MCP independently. Rebuild MCP after rebuilding the generation
+image to refresh its core workspace snapshot.
 
 Docker caches source-fetching build layers. Add `--no-cache` when rebuilding to
 refresh the bundled ComfyUI snapshot even if its configured ref has not changed.

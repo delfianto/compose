@@ -1,36 +1,32 @@
 services:
   comfyui-mcp:
-    image: comfyui-mcp:latest
+    image: comfy-mcp:latest
     pull_policy: never
     container_name: comfyui-mcp
     restart: "no"
     init: true
-    # Rootless Docker maps container root to the daemon owner (host uid/gid 1000),
-    # allowing the MCP state bind mount to remain owned by the host user.
+    # Rootless container root maps to the host daemon owner.
     user: "0:0"
-    command:
-      - --http
-      - --host
-      - 0.0.0.0
-      - --port
-      - "9100"
-      # The published port is restricted to host loopback below. This opt-out is
-      # therefore not reachable from the LAN or through Traefik.
-      - --allow-unauthenticated-non-loopback
     environment:
-      COMFYUI_URL: http://comfyui:8188
-      COMFYUI_MCP_DATA_DIR: /data/mcp
-      COMFYUI_DOWNLOAD_CACHE_DIR: /data/cache/downloads
-      HOME: /data
-      XDG_CACHE_HOME: /data/cache
-      XDG_CONFIG_HOME: /data/config
+      # Local proxy satisfies the official CLI's loopback-only discovery rule.
+      COMFY_LOCAL_URL: http://127.0.0.1:8188
+      COMFY_PROXY_TARGET: comfyui:8188
+      HOME: /state/official
+      XDG_CACHE_HOME: /state/official/cache
+      XDG_CONFIG_HOME: /state/official/config
     networks:
       - genai
+      # Non-internal network enables rootless Docker's loopback port publishing.
       - proxy
     ports:
       - "127.0.0.1:${MCP_PORT}:9100"
     volumes:
-      - ${MCP_DATA_DIR}:/data
+      - ${MCP_DATA_DIR}:/state
+      - ${DATA_DIR}/models:/data/models
+      - ${DATA_DIR}/input:/data/input
+      - ${DATA_DIR}/user:/data/user
+      - ${DATA_DIR}/custom_nodes:/data/custom_nodes:ro
+      - ${OUTPUT_DIR}:/data/output
     read_only: true
     tmpfs:
       - /tmp:size=256M,mode=1777
@@ -41,10 +37,10 @@ services:
     healthcheck:
       test:
         - CMD
-        - node
-        - -e
-        - "fetch('http://localhost:9100/mcp').then(r => process.exit(r.status < 500 ? 0 : 1)).catch(() => process.exit(1))"
-      interval: 10s
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8188/system_stats', timeout=4).close(); r=urllib.request.Request('http://localhost:9100/mcp', data=b'{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"initialize\",\"params\":{\"protocolVersion\":\"2025-03-26\",\"capabilities\":{},\"clientInfo\":{\"name\":\"healthcheck\",\"version\":\"1\"}}}', headers={'Content-Type':'application/json','Accept':'application/json, text/event-stream'}); assert b'protocolVersion' in urllib.request.urlopen(r, timeout=4).read()"
+      interval: 30s
       timeout: 5s
       retries: 5
       start_period: 30s

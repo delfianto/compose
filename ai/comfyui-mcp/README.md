@@ -1,58 +1,65 @@
-# ComfyUI MCP
+# Official Comfy MCP
 
-Standalone MCP project with its own systemd unit, `ai-comfyui-mcp`. Updating this
-project does not restart ComfyUI. The server connects to `http://comfyui:8188`
-over the external `genai` network and keeps its state in
-`/srv/appdata/comfyui/mcp`. Its HTTP endpoint remains
-`http://127.0.0.1:9100/mcp`, with no LAN or Traefik exposure.
+[Comfy-Org/comfy-mcp](https://github.com/Comfy-Org/comfy-mcp), with official
+`comfy-cli`, runs as the CPU-only `ai-comfyui-mcp` sidecar. The endpoint remains
+**http://127.0.0.1:9100/mcp**. It is restricted to host loopback and has no Traefik
+route. The non-internal `proxy` network enables host port publishing and outbound
+CLI requests; `genai` carries the connection to ComfyUI. Existing clients must reconnect and refresh their tool list: community
+server tool names are replaced by the official ones.
 
-## Update
+Upstream's command serves stdio. Our small `http-server.py` entrypoint serves the
+same official tools through the MCP SDK's Streamable HTTP transport. It removes
+six process/install tools because Compose owns ComfyUI's lifecycle and image;
+use `composectl` and the generation image's build process for those operations.
 
-From anywhere:
+`COMFY_LOCAL_URL=http://127.0.0.1:8188` points every CLI operation at a local
+`socat` proxy, which forwards to `comfyui:8188` on the `genai` network. The CLI
+restricts local node discovery to loopback addresses, so the proxy is needed for
+a separate sidecar. It carries both HTTP and WebSocket traffic, including
+generation, validation, GPU statistics, and cleanup.
+The sidecar has no GPU devices; use `system_stats` for the generator's actual
+hardware, rather than the sidecar's `server_info.hardware` snapshot.
 
-```sh
+Models, inputs, workflows, and outputs share the generation service's mounts.
+Custom nodes are mounted read-only. The lightweight Python image copies only
+the core workspace from the generator's image, without its CUDA/Torch runtime.
+Workspace paths link to `/data`, so model downloads reach the real model folder.
+Official CLI state lives under `/srv/appdata/comfyui/mcp/official`; previous
+community state is preserved separately in the same parent directory.
+
+## Build and update
+
+```bash
 /srv/compose/ai/comfyui-mcp/update.py
 ```
 
-The updater selects GitHub's latest stable release, verifies the matching npm
-package exists, resolves the Git tag to a revision, and builds the published
-package using the local Dockerfile. This avoids depending on an upstream
-Dockerfile, which newer releases no longer provide. Both the version and Git
-revision are recorded in image labels. It tags the image with the release
-version and `comfyui-mcp:latest`, then restarts only `ai-comfyui-mcp` and waits for
-container health. Failed lookups or builds leave the running container alone.
+The updater resolves the latest stable official GitHub release, verifies its
+PyPI package and Git tag, builds `comfy-mcp:<version>` and `comfy-mcp:latest`, then
+restarts only the MCP unit and waits for health. It uses the running generator's
+local image for the core workspace snapshot. Rebuild the MCP after rebuilding
+the generation image to refresh that snapshot; API operations always target the
+live generator. CLI/SDK versions are pinned to the tested versions in Dockerfile.
 
-To build without restarting, or return to a previous release:
-
-```sh
+```bash
 /srv/compose/ai/comfyui-mcp/update.py --build-only
-/srv/compose/ai/comfyui-mcp/update.py --version 0.49.8
-```
-
-The updater needs Python 3, Git, Docker with BuildKit, and `composectl`, plus
-network access to GitHub, npm, and Docker Hub. GitHub's unauthenticated API
-rate limit applies. Run it as the user owning the rootless Docker daemon.
-
-## First installation
-
-```sh
-/srv/compose/ai/comfyui-mcp/update.py --build-only
-composectl deps add ai-comfyui-mcp ai-comfyui
-composectl enable ai-comfyui-mcp
-composectl start ai-comfyui-mcp
-```
-
-The soft systemd dependency starts ComfyUI first without coupling MCP's
-lifecycle to ComfyUI restarts. Startup ordering does not guarantee ComfyUI is
-healthy yet; MCP can reconnect as ComfyUI becomes available.
-
-The Compose image has `pull_policy: never` because it is built locally.
-`docker upgrade` and `composectl update` do not rebuild this image; use the
-updater. Publishing images to a registry would be needed for pull-based updates.
-
-Check status with:
-
-```sh
+/srv/compose/ai/comfyui-mcp/update.py --version 0.10.0
 composectl status ai-comfyui-mcp --json
 docker inspect --format '{{.State.Health.Status}}' comfyui-mcp
 ```
+
+The existing enabled unit and optional `ai-comfyui` startup dependency remain.
+The image is locally built (`pull_policy: never`); `docker upgrade` and
+`composectl update` do not rebuild it.
+
+## Validation
+
+`smoke-test.py` connects over HTTP and checks official node/model discovery,
+workflow validation, one SDXL DisTorch generation, job status, output retrieval,
+and memory cleanup on both GPUs. It refuses to run when the queue is busy.
+
+```bash
+docker exec comfyui-mcp python /app/smoke-test.py
+```
+
+Test artifacts are saved under
+`/srv/appdata/comfyui/user/default/workflow-backups/official-mcp-sidecar-test`.
