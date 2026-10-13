@@ -4,4 +4,4 @@
 set -eu
 cd /app/ai-toolkit/ui
 ./node_modules/.bin/prisma db push --skip-generate
-exec /start.sh
+exec /opt/toolkit-mcp/bin/python /opt/toolkit-mcp-src/supervise.py

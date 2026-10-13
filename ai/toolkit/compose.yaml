@@ -1,6 +1,7 @@
 services:
   toolkit:
-    image: ostris/aitoolkit:latest
+    image: local/aitoolkit-mcp:latest
+    build: .
     container_name: toolkit
     restart: "no"
     init: true
@@ -16,11 +17,14 @@ services:
         target: HF_TOKEN
       - source: aitoolkit_auth
         target: AI_TOOLKIT_AUTH
+    environment:
+      TOOLKIT_MCP_ALLOWED_HOSTS: "localhost:*,127.0.0.1:*,toolkit:*,toolkit-mcp.${TRAEFIK_ACME_DOMAIN}"
     networks:
       - proxy
     volumes:
       - ${COMPOSE_BASE}/lib/secret-env.sh:/secret-env.sh:ro
       - ./entrypoint.sh:/entrypoint.sh:ro
+      - ./mcp_adapter:/opt/toolkit-mcp-src:ro
       # Ubuntu's /usr/lib sitecustomize wins; use a .pth import for our lazy patch.
       - ./sitecustomize.py:/usr/local/lib/python3.12/dist-packages/toolkit_local_models.py:ro
       - ./toolkit-local-models.pth:/usr/local/lib/python3.12/dist-packages/toolkit-local-models.pth:ro
@@ -30,7 +34,8 @@ services:
       - ${DATA_DIR}/output:/app/ai-toolkit/output
       - ${DATA_DIR}/config:/app/ai-toolkit/config
       - ${DATA_DIR}/cache/huggingface:/root/.cache/huggingface
-      - ${DATA_DIR}/aitk_db.db:/app/ai-toolkit/aitk_db.db
+      # Persist the directory, including SQLite WAL/SHM, through an image symlink.
+      - ${DATA_DIR}/database:/app/ai-toolkit/state
     devices:
       # Select per job in the UI: 4080 for training, 3060 for captioning.
       - nvidia.com/gpu=0
@@ -41,7 +46,7 @@ services:
       test:
         [
           "CMD-SHELL",
-          "curl -sS -o /dev/null -w '%{http_code}' http://127.0.0.1:8675/ | grep -qE '200|401'",
+          "curl -fsS http://127.0.0.1:8676/health > /dev/null",
         ]
       interval: 10s
       timeout: 5s
@@ -52,7 +57,13 @@ services:
       - "traefik.http.routers.toolkit.entrypoints=websecure"
       - "traefik.http.routers.toolkit.rule=Host(`toolkit.${TRAEFIK_ACME_DOMAIN}`)"
       - "traefik.http.routers.toolkit.tls.certresolver=cloudflare"
+      - "traefik.http.routers.toolkit.service=toolkit"
       - "traefik.http.services.toolkit.loadbalancer.server.port=8675"
+      - "traefik.http.routers.toolkit-mcp.entrypoints=websecure"
+      - "traefik.http.routers.toolkit-mcp.rule=Host(`toolkit-mcp.${TRAEFIK_ACME_DOMAIN}`)"
+      - "traefik.http.routers.toolkit-mcp.tls.certresolver=cloudflare"
+      - "traefik.http.routers.toolkit-mcp.service=toolkit-mcp"
+      - "traefik.http.services.toolkit-mcp.loadbalancer.server.port=8676"
       - "homepage.group=Artificial Intelligence"
       - "homepage.name=AI Toolkit"
       - "homepage.icon=mdi-tune-vertical"

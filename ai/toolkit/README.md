@@ -6,6 +6,10 @@ Use GPU 0 for training and GPU 1 for captioning. GPU 1
 is also shared by other homelab services; check available VRAM before captioning.
 The UI is at
 `https://toolkit.${TRAEFIK_ACME_DOMAIN}` and is gated by `AI_TOOLKIT_AUTH`.
+The [MCP adapter](mcp_adapter/README.md) runs inside the same container at
+`https://toolkit-mcp.${TRAEFIK_ACME_DOMAIN}/mcp`, using the same bearer token.
+Harnesses can manage UI jobs, datasets, GPU queues, logs, samples and LoRAs
+through reusable tools.
 
 ```sh
 composectl start ai-toolkit
@@ -18,6 +22,26 @@ workload on the 4080. CDI grants visibility, not exclusive VRAM.
 Host paths are set in `.env` (`DATASETS_DIR`, `COMFY_MODELS_DIR`). Optional
 `.env.local` overrides win for compose interpolation.
 
+## Python development in Zed
+
+The captioner, MCP adapter and local-model helper share one host development
+environment, declared in `pyproject.toml` and pinned by `uv.lock`:
+
+```sh
+uv sync
+basedpyright -p .
+```
+
+Open this service folder as a Python subproject in Zed and select
+`/srv/compose/ai/toolkit/.venv/bin/python` in its toolchain selector if needed.
+The project manifest lets Zed distinguish this environment from the other
+Python services in the compose repository. `requirements.txt` files describe
+dependencies for standalone/container use; Zed does not install them.
+The host development venv does not contain Torch or Diffusers; those are
+loaded dynamically by the local-model helper only inside the training container.
+The MCP source directory is named `mcp_adapter` so it does not shadow the SDK's
+`mcp` package. Container runtime dependencies remain isolated from the host venv.
+
 ## Paths
 
 | Host | Container | Purpose |
@@ -28,7 +52,12 @@ Host paths are set in `.env` (`DATASETS_DIR`, `COMFY_MODELS_DIR`). Optional
 | `/srv/appdata/toolkit/config` | `/app/ai-toolkit/config` | Saved job YAML |
 | `/srv/appdata/toolkit/models` | `/app/ai-toolkit/models` (read-only) | Hardlink aliases for existing weights |
 | `/srv/appdata/toolkit/cache/huggingface` | `/root/.cache/huggingface` | Tokenizer / model configuration cache |
-| `/srv/appdata/toolkit/aitk_db.db` | `/app/ai-toolkit/aitk_db.db` | UI job database |
+| `/srv/appdata/toolkit/database` | `/app/ai-toolkit/state` | UI SQLite database and WAL/SHM files |
+
+The upstream database path `/app/ai-toolkit/aitk_db.db` is a symlink to
+`state/aitk_db.db`. Persisting its whole directory preserves SQLite's WAL
+across container recreation. On an existing installation, stop Toolkit and
+checkpoint/backup the database before migrating the old file into `database/`.
 
 Krea 2 snofs raw (this host):
 
@@ -94,10 +123,11 @@ convert quantization or tensor keys into another format, nor populate a Hub
 cache. The local loader handles those formats here; the VAE and text-encoder
 aliases are optional because the patch loads directly from `/models`.
 
-Verified on this host: all checkpoint, diffusion-model, VAE and CLIP
-safetensors are readable; the Snofs transformer, Qwen VAE, Qwen3-VL text
-encoder and tokenizer load successfully on CPU with Hub access disabled.
-This checks loading, not a completed training step or GPU memory fit.
+Verified on this host: the local Snofs transformer, Qwen VAE, Qwen3-VL text
+encoder and tokenizer load with Hub access disabled. A 50-step LoRA test
+completed on the 4080 at 512 resolution, rank 32, 50% transformer offloading,
+with caption embeddings cached and checkpoints saved. VRAM was tight while
+ComfyUI retained models on that GPU.
 
 ## First training job (Krea 2 character LoRA, 16 GB)
 
@@ -107,8 +137,9 @@ This checks loading, not a completed training step or GPU memory fit.
 3. Set **name or path** to either snofs file path above. Keep **quantize**, **quantize TE**,
    and **low VRAM** enabled.
 4. Training: `linear` timesteps, flowmatch, batch 1, gradient accumulation 2,
-   rank/alpha 32, LR `1e-4` to `2e-4`, 750–2500 steps. Cache latents and unload
-   the text encoder.
+   rank/alpha 32, LR `1e-4` to `2e-4`, 750–2500 steps. Cache latents and enable
+   **Cache Text Embeddings**. Leave **Unload Text Encoder** off so captions
+   are used; that option trains with only the trigger/blank prompt.
 5. Sample on Raw during the run; judge the LoRA on Turbo (and on snofs) in ComfyUI.
 
 Copy finished `.safetensors` from `${DATA_DIR}/output` into
