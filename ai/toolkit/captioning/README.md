@@ -69,16 +69,13 @@ Requires Python 3.11+, Pillow, PyYAML, typing_extensions, your Rust llama.rs run
 llama.cpp/ik_llama.cpp server binary. Use a runner with `model_dir`/`model_file`
 and `--mmproj` path resolution support.
 
-```sh
-python3 -m venv .venv
-.venv/bin/pip install -r requirements.txt
-.venv/bin/python pipeline.py --help
-```
-
-From the parent service directory, run checks with:
+For development, use the shared environment from the parent Toolkit service
+directory. Standalone deployments can still install `captioning/requirements.txt`.
 
 ```sh
-python3 -m unittest captioning.test_pipeline -v
-basedpyright captioning/pipeline.py captioning/test_pipeline.py sitecustomize.py
+uv sync
+uv run python captioning/pipeline.py --help
+uv run python -m unittest captioning.test_pipeline -v
+basedpyright -p .
 ruff check captioning sitecustomize.py
 ```

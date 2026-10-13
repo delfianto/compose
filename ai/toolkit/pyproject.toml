@@ -1,0 +1,27 @@
+[project]
+name = "compose-toolkit-dev"
+version = "0.1.0"
+description = "Development environment for Toolkit captioning, MCP and local-model helpers"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "mcp==2.3.0",
+    "Pillow>=10",
+    "PyYAML>=6",
+    "typing_extensions>=4.4",
+]
+
+[tool.uv]
+package = false
+
+[tool.ruff]
+# Captioning also runs standalone on Python 3.11; retain typing_extensions.override.
+target-version = "py311"
+
+[tool.basedpyright]
+venvPath = "."
+venv = ".venv"
+pythonVersion = "3.12"
+typeCheckingMode = "standard"
+include = ["captioning", "mcp_adapter", "sitecustomize.py"]
+exclude = ["**/.venv", "**/__pycache__"]
+extraPaths = ["mcp_adapter"]
