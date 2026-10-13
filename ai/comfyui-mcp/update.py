@@ -7,32 +7,44 @@ import re
 import subprocess
 import time
 import urllib.request
+from dataclasses import dataclass
 from pathlib import Path
+from typing import BinaryIO, cast
+
+from json_data import JsonMapping, items, mapping, text
 
 
-def run(*args, capture=False):
-    return subprocess.run(
+def run(*args: str, capture: bool = False) -> str:
+    result = subprocess.run(
         args, check=True, text=True, stdout=subprocess.PIPE if capture else None
-    ).stdout
+    )
+    return result.stdout or ""
 
 
-def fetch_json(url):
+def fetch_json(url: str) -> JsonMapping:
     request = urllib.request.Request(
         url, headers={"User-Agent": "compose-comfyui-mcp-updater"}
     )
-    with urllib.request.urlopen(request, timeout=30) as response:
-        return json.load(response)
+    with cast(BinaryIO, urllib.request.urlopen(request, timeout=30)) as response:
+        return mapping(cast(object, json.load(response)), "API response")
 
 
-def main():
+@dataclass
+class Options(argparse.Namespace):
+    version: str | None = None
+    build_only: bool = False
+
+
+def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument(
+    _ = parser.add_argument(
         "--build-only", action="store_true", help="build without restarting"
     )
-    parser.add_argument(
+    _ = parser.add_argument(
         "--version", help="explicit stable version for rollback, e.g. 0.10.0"
     )
-    args = parser.parse_args()
+    args = Options()
+    _ = parser.parse_args(namespace=args)
     repo = "https://github.com/Comfy-Org/comfy-mcp"
     if args.version:
         version = args.version.removeprefix("v")
@@ -43,13 +55,13 @@ def main():
         )
         if release["draft"] or release["prerelease"]:
             raise RuntimeError("GitHub returned a draft or prerelease")
-        tag = release["tag_name"]
+        tag = text(release["tag_name"], "release tag")
         version = tag.removeprefix("v")
     if not re.fullmatch(r"(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)", version):
         raise RuntimeError(f"Unexpected stable release version: {version!r}")
     # Verify the official release is available on PyPI before replacing the service.
     package = fetch_json(f"https://pypi.org/pypi/comfy-mcp/{version}/json")
-    if package["info"]["version"] != version:
+    if mapping(package["info"], "package info")["version"] != version:
         raise RuntimeError("PyPI package does not match the requested release")
     refs = run(
         "git",
@@ -76,9 +88,9 @@ def main():
         capture=True,
     ).strip()
     core_tag = "comfy-mcp-workspace:" + core_image.removeprefix("sha256:")[:12]
-    run("docker", "tag", core_image, core_tag)
+    _ = run("docker", "tag", core_image, core_tag)
     print(f"Building comfy-mcp:{version} from release {tag} ({revision})", flush=True)
-    run(
+    _ = run(
         "docker",
         "build",
         "--build-arg",
@@ -95,7 +107,7 @@ def main():
     )
     if args.build_only:
         return
-    run("composectl", "restart", "ai-comfyui-mcp", "--json")
+    _ = run("composectl", "restart", "ai-comfyui-mcp", "--json")
     expected = run(
         "docker",
         "image",
@@ -118,9 +130,12 @@ def main():
         if result.returncode:
             time.sleep(3)
             continue
-        container = json.loads(result.stdout)[0]
-        state = container["State"]
-        health = state.get("Health", {}).get("Status")
+        containers = items(cast(object, json.loads(result.stdout)), "Docker inspection")
+        if not containers:
+            raise RuntimeError("Docker inspection returned no container")
+        container = mapping(containers[0], "container")
+        state = mapping(container["State"], "container state")
+        health = mapping(state.get("Health", {}), "container health").get("Status")
         if container["Image"] == expected and state["Running"] and health == "healthy":
             print(
                 f"ComfyUI MCP {version} is running and healthy; ComfyUI was not restarted."
@@ -142,6 +157,7 @@ if __name__ == "__main__":
         subprocess.CalledProcessError,
         OSError,
         ValueError,
+        TypeError,
         KeyError,
     ) as error:
         raise SystemExit(f"MCP update failed: {error}") from error

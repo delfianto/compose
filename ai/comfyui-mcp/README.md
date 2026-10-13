@@ -63,3 +63,20 @@ docker exec comfyui-mcp python /app/smoke-test.py
 
 Test artifacts are saved under
 `/srv/appdata/comfyui/user/default/workflow-backups/official-mcp-sidecar-test`.
+
+## Python editor checks
+
+Create the gitignored editor environment using the same package versions as
+the Dockerfile:
+
+```bash
+uv venv --python 3.12 .venv
+uv pip install --python .venv/bin/python comfy-mcp==0.10.0 comfy-cli==1.22.0 mcp==2.3.0
+basedpyright .
+ruff check .
+```
+
+`pyrightconfig.json` selects this environment. The small declaration under
+`typings/` types the official server export, since the upstream package does
+not publish typing metadata. `json_data.py` validates JSON values used by the
+updater and smoke test; it is included in the image on the next build.
