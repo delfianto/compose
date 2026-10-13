@@ -6,56 +6,67 @@ import os
 import time
 import urllib.request
 from pathlib import Path
+from typing import BinaryIO, cast
 
 from mcp import ClientSession
 from mcp.client.streamable_http import streamable_http_client
+
+from json_data import JsonMapping, items, mapping, number, text
 
 ROOT = Path("/data/user/default/workflow-backups/official-mcp-sidecar-test")
 CORE = os.environ["COMFY_LOCAL_URL"].rstrip("/")
 
 
-def queue():
-    with urllib.request.urlopen(CORE + "/queue", timeout=10) as response:
-        return json.load(response)
+def queue() -> JsonMapping:
+    with cast(
+        BinaryIO, urllib.request.urlopen(CORE + "/queue", timeout=10)
+    ) as response:
+        return mapping(cast(object, json.load(response)), "queue")
 
 
-async def main():
+async def main() -> None:
     state = queue()
     if state["queue_running"] or state["queue_pending"]:
         raise RuntimeError("Generation queue is busy; retry when idle.")
     ROOT.mkdir(parents=True, exist_ok=True)
     source = Path("/data/user/default/workflow-backups/official-mcp-test/workflow.json")
-    workflow = json.loads(source.read_text())
-    workflow["9"]["inputs"]["filename_prefix"] = "official-mcp-sidecar-test/distorch"
+    workflow = mapping(cast(object, json.loads(source.read_text())), "workflow")
+    output_node = mapping(workflow["9"], "output node")
+    inputs = mapping(output_node["inputs"], "output inputs")
+    inputs["filename_prefix"] = "official-mcp-sidecar-test/distorch"
     path = ROOT / "workflow.json"
-    path.write_text(json.dumps(workflow, indent=2))
-    summary = {}
+    _ = path.write_text(json.dumps(workflow, indent=2))
+    summary: JsonMapping = {}
     async with (
         streamable_http_client("http://127.0.0.1:9100/mcp") as (read, write),
         ClientSession(read, write) as session,
     ):
         init = await session.initialize()
-        summary["server"] = init.server_info.model_dump()
+        summary["server"] = mapping(
+            cast(object, init.server_info.model_dump()), "server info"
+        )
         tools = await session.list_tools()
         summary["tools"] = [tool.name for tool in tools.tools]
         assert "clear_vram" not in summary["tools"]
         assert "free_memory" in summary["tools"]
 
-        async def call(name, args, label=None):
+        async def call(
+            name: str, args: JsonMapping, label: str | None = None
+        ) -> JsonMapping:
             start = time.monotonic()
             result = await asyncio.wait_for(session.call_tool(name, args), 150)
             label = label or name
-            (ROOT / (label + ".json")).write_text(result.model_dump_json(indent=2))
-            text = next(c.text for c in result.content if c.type == "text")
+            _ = (ROOT / (label + ".json")).write_text(result.model_dump_json(indent=2))
+            content = next(c.text for c in result.content if c.type == "text")
             if result.is_error:
-                raise RuntimeError(name + ": " + text)
-            data = json.loads(text)
+                raise RuntimeError(name + ": " + content)
+            data = mapping(cast(object, json.loads(content)), "tool response")
             summary[label] = {"seconds": round(time.monotonic() - start, 2)}
             print(label, "passed", flush=True)
             return data
 
         info = await call("server_info", {})
-        assert info["server"]["running"]
+        assert mapping(info["server"], "ComfyUI server")["running"]
         nodes = await call(
             "nodes",
             {
@@ -63,21 +74,21 @@ async def main():
                 "query": "CheckpointLoaderAdvancedDisTorch2MultiGPU",
             },
         )
-        assert nodes["count"] >= 1
+        assert number(nodes["count"], "node count") >= 1
         models = await call(
             "search_models", {"query": "intorealism", "folder": "checkpoints"}
         )
-        assert models["total"] >= 1
+        assert number(models["total"], "model count") >= 1
         valid = await call("validate_workflow", {"workflow_path": str(path)})
         assert valid["valid"]
-        await call("system_stats", {}, "stats-before")
+        _ = await call("system_stats", {}, "stats-before")
         try:
             result = await call(
                 "run_workflow",
                 {"workflow_path": str(path), "wait": True, "timeout_seconds": 110},
             )
             assert result["status"] == "completed"
-            prompt_id = result["prompt_id"]
+            prompt_id = text(result["prompt_id"], "prompt ID")
             summary["prompt_id"] = prompt_id
             status = await call("job", {"action": "status", "prompt_id": prompt_id})
             assert status["status"] == "completed"
@@ -86,23 +97,41 @@ async def main():
                 {"prompt_id": prompt_id, "out_dir": str(ROOT / "retrieved")},
             )
             assert outputs["files"]
-            for output in outputs["files"]:
-                image = Path(output["path"])
+            for output in items(outputs["files"], "output files"):
+                image = Path(
+                    text(mapping(output, "output file")["path"], "output path")
+                )
                 assert image.read_bytes().startswith(b"\x89PNG\r\n\x1a\n")
             loaded = await call("system_stats", {}, "stats-loaded")
         finally:
             state = queue()
             if not state["queue_running"] and not state["queue_pending"]:
-                await call("free_memory", {"unload_models": True, "free_memory": True})
+                _ = await call(
+                    "free_memory", {"unload_models": True, "free_memory": True}
+                )
         await asyncio.sleep(4)
         freed = await call("system_stats", {}, "stats-freed")
         summary["gpu_reclaimed_gib"] = {
-            before["name"]: round(
-                (after["vram_free"] - before["vram_free"]) / 1024**3, 2
+            text(before["name"], "GPU name"): round(
+                (
+                    number(after["vram_free"], "free VRAM")
+                    - number(before["vram_free"], "loaded VRAM")
+                )
+                / 1024**3,
+                2,
             )
-            for before, after in zip(loaded["devices"], freed["devices"])
+            for before, after in zip(
+                [
+                    mapping(device, "loaded device")
+                    for device in items(loaded["devices"], "loaded devices")
+                ],
+                [
+                    mapping(device, "freed device")
+                    for device in items(freed["devices"], "freed devices")
+                ],
+            )
         }
-    (ROOT / "report.json").write_text(json.dumps(summary, indent=2))
+    _ = (ROOT / "report.json").write_text(json.dumps(summary, indent=2))
     print(json.dumps(summary, indent=2))
 
 

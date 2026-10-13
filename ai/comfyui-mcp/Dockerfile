@@ -34,7 +34,7 @@ ENV PATH=/opt/mcp/bin:$PATH \
     PYTHONUNBUFFERED=1 \
     DO_NOT_TRACK=1 \
     COMFY_NO_TELEMETRY=1
-COPY http-server.py smoke-test.py /app/
+COPY http-server.py smoke-test.py json_data.py /app/
 COPY --chmod=755 entrypoint.sh /app/entrypoint.sh
 WORKDIR /opt/ComfyUI
 EXPOSE 9100

@@ -16,7 +16,7 @@ GPUs, and APIs without sharing their lifecycle.
 | [ComfyUI MCP](comfyui-mcp/README.md) | Lets MCP clients interact with ComfyUI | Separate server and lifecycle; connects over `genai`, endpoint bound to localhost |
 | [SmartGallery](comfyui-gallery/) | Browses ComfyUI outputs and their workflows | Shares output, input, and model directories with ComfyUI |
 | [Forge Neo](forgeneo/README.md) | Stable Diffusion WebUI for image generation | Custom image; shares ComfyUI assets read-only; uses GPU 0 |
-| [AI Toolkit](toolkit/README.md) | Ostris LoRA trainer for Krea 2, Qwen Image 2.1, and other diffusion bases | On-demand GPU 0; UI at `toolkit.${TRAEFIK_ACME_DOMAIN}`; datasets from `/mnt/exos1/lychee/datasets` |
+| [AI Toolkit](toolkit/README.md) | Ostris LoRA trainer for Krea 2, Qwen Image 2.1, and other diffusion bases | GPU 0 for training, GPU 1 for captioning; UI at `toolkit.${TRAEFIK_ACME_DOMAIN}`; datasets under `/srv/appdata/toolkit/datasets`; ComfyUI models at `/models` |
 | [KoboldCpp](koboldcpp/) | GGUF inference with a browser interface and generation APIs | On-demand inference on GPU 0; models bind-mounted from storage |
 | [Text Generation WebUI](textgen/) | Interactive LLM loading and generation with multiple backends | On-demand GPU 0 workload with persistent user data and cache |
 | [RisuAI](risuai/) | Character-based chat and roleplaying client | Persistent saved content; Traefik web route; uses `compose.yml` |
