@@ -1,4 +1,4 @@
-"""Prefer ComfyUI-local Krea 2 extras over Hugging Face weight downloads.
+"""Load local Krea 2 components and compatible community checkpoint repacks.
 
 Imported by toolkit-local-models.pth. Stays lazy: torch is not loaded until
 ai-toolkit imports the VAE / text-encoder modules.
@@ -9,6 +9,7 @@ from __future__ import annotations
 import importlib
 import importlib.abc
 import importlib.machinery
+import json
 import sys
 from collections.abc import Callable, Sequence
 from types import ModuleType
@@ -33,6 +34,15 @@ class LocalModelClass(Protocol):
 
 class ExecutableLoader(Protocol):
     exec_module: Callable[[ModuleType], None]
+
+
+class FloatingTensor(Protocol):
+    def __mul__(self, other: object) -> object: ...
+
+
+class QuantizedTensor(Protocol):
+    def float(self) -> FloatingTensor: ...
+    def tolist(self) -> list[int]: ...
 
 
 def _patch_vae(mod: ModuleType) -> None:
@@ -69,9 +79,60 @@ def _patch_te(mod: ModuleType) -> None:
     }
 
 
+def _patch_krea(mod: ModuleType) -> None:
+    cls = cast(LocalModelClass, mod.SingleStreamDiT)
+    orig = cls.convert_state_dict_on_load.__func__
+
+    def convert(c: type[object], state_dict: StateDict) -> StateDict:
+        state_dict = orig(c, state_dict)
+        # Some RAW repacks carry these auxiliary matrices (and quant markers).
+        # Neither the official LastLayer nor ComfyUI uses them. The quantized
+        # importer otherwise tries to attach them as nonexistent Linear layers.
+        # Preserve every other key so the upstream strict load still checks
+        # missing weights, shapes and unexpected tensors.
+        skipped = {
+            key for key in state_dict if key.startswith(("last.down.", "last.up."))
+        }
+        if skipped:
+            print(
+                f"Skipping {len(skipped)} auxiliary Krea2 last.down/last.up tensors",
+                flush=True,
+            )
+        converted = {
+            key: value for key, value in state_dict.items() if key not in skipped
+        }
+        # This 12 -> 1 layer is explicitly excluded from toolkit quantization,
+        # but a repack may already quantize it. _int_mm cannot accept K=12.
+        # Decode its plain per-row INT8 weights exactly; leave all large layers
+        # in their encoded format. The checkpoint on disk remains unchanged.
+        prefix = "txtfusion.projector"
+        marker = prefix + ".comfy_quant"
+        if marker in converted:
+            quant_config = json.loads(
+                bytes(cast(QuantizedTensor, converted[marker]).tolist()).decode()
+            )
+            if quant_config.get("format") != "int8_tensorwise" or quant_config.get(
+                "convrot"
+            ):
+                raise ValueError(
+                    "Unsupported quantization for Krea2's tiny text projector"
+                )
+            weight_key, scale_key = prefix + ".weight", prefix + ".weight_scale"
+            converted[weight_key] = (
+                cast(QuantizedTensor, converted[weight_key]).float()
+                * converted[scale_key]
+            )
+            del converted[scale_key], converted[marker]
+            print("Decoded tiny Krea2 text projector to floating point", flush=True)
+        return converted
+
+    cls.convert_state_dict_on_load = classmethod(convert)
+
+
 _PATCHERS: dict[str, Callable[[ModuleType], None]] = {
     "toolkit.models.v2.vae.qwen_image": _patch_vae,
     "toolkit.models.v2.text_encoders.qwen3_vl": _patch_te,
+    "extensions_built_in.diffusion_models.krea2.src.mmdit": _patch_krea,
 }
 
 

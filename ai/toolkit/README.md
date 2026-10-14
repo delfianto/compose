@@ -59,21 +59,21 @@ The upstream database path `/app/ai-toolkit/aitk_db.db` is a symlink to
 across container recreation. On an existing installation, stop Toolkit and
 checkpoint/backup the database before migrating the old file into `database/`.
 
-Krea 2 snofs raw (this host):
+Krea 2 RAW (this host, user-provided INT8 ConvRot conversion):
 
 ```
-/models/diffusion_models/krea2-snofs-raw-v1.4-int8-convrot.safetensors
+/models/diffusion_models/krea2-raw-int8-convrot-mixed.safetensors
 ```
 
-That file is an AI Toolkit merge quantized to convrot8 for ComfyUI. The
-trainer loads it as `name_or_path`. It also has a hardlink alias:
+The trainer loads this local conversion as `name_or_path`, preserving its
+embedded quantization. It also has a hardlink alias:
 
 ```
-/app/ai-toolkit/models/krea2-snofs-raw/raw.safetensors
+/app/ai-toolkit/models/krea2-official-raw/raw.safetensors
 ```
 
 Use either file path with architecture **Krea 2 (raw)** (`krea2`). If using
-the directory `/app/ai-toolkit/models/krea2-snofs-raw`, set
+the directory `/app/ai-toolkit/models/krea2-official-raw`, set
 `model.model_kwargs.checkpoint_filename: raw.safetensors`.
 
 `MODELS_PATH=/models` makes the shared ComfyUI tree the toolkit model search
@@ -89,6 +89,15 @@ image: the native Qwen VAE/text-encoder classes register no local ComfyUI
 candidates, and the local VAE also needs tensor-key conversion. Gemma4
 captioning runs outside this container and does not use the patch. Recheck
 these native loaders after updating the toolkit image before removing it.
+
+Some RAW repacks include auxiliary `last.down.*` and `last.up.*` tensors.
+The patch removes only those keys before quantized loading because the
+[official LastLayer](https://github.com/krea-ai/krea-2/blob/main/mmdit.py) and
+ComfyUI do not use them. All other upstream weight/shape checks remain strict;
+checkpoint files are unchanged. Re-evaluate this compatibility hook on upgrades.
+The hook also decodes the tiny text-layer projector from plain INT8 to floating
+point in memory when a repack quantizes it: its 12 inputs do not meet the CUDA
+INT8 kernel alignment requirement. Main transformer layers stay quantized.
 
 `HF_HUB_OFFLINE=1` and `TRANSFORMERS_OFFLINE=1` in `toolkit.env` block Hub
 downloads. Tokenizer and configuration files must already be in the mounted
@@ -110,9 +119,9 @@ second copy of the weights:
 Create links on the host, before exposing them as separate container mounts:
 
 ```sh
-mkdir -p /srv/appdata/toolkit/models/krea2-snofs-raw
-ln /srv/appdata/comfyui/models/diffusion_models/krea2-snofs-raw-v1.4-int8-convrot.safetensors \
-   /srv/appdata/toolkit/models/krea2-snofs-raw/raw.safetensors
+mkdir -p /srv/appdata/toolkit/models/krea2-official-raw
+ln /srv/appdata/comfyui/models/diffusion_models/krea2-raw-int8-convrot-mixed.safetensors \
+   /srv/appdata/toolkit/models/krea2-official-raw/raw.safetensors
 ```
 
 `ln` refuses to overwrite an existing alias. Hardlinks cannot cross
@@ -144,6 +153,14 @@ ComfyUI retained models on that GPU.
 
 Copy finished `.safetensors` from `${DATA_DIR}/output` into
 `/srv/appdata/comfyui/models/loras` when you want them in ComfyUI.
+
+## Preparing a larger character dataset
+
+The [dataset preparation pipeline](dataset_prep/README.md) audits source albums,
+filters small or soft faces, balances album coverage, and exports native portrait
+crops plus wider context images. Keep its audit, review exclusions and output
+in the runtime data directory. Visually review selections and generate fresh
+captions before adding the exported folders to a training job.
 
 ## Auto-captioning on the RTX 3060
 
