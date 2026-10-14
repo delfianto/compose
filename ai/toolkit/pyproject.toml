@@ -8,6 +8,8 @@ dependencies = [
     "Pillow>=10",
     "PyYAML>=6",
     "typing_extensions>=4.4",
+    "opencv-python-headless>=4.10,<5",
+    "numpy>=2,<3",
 ]
 
 [tool.uv]
@@ -22,6 +24,6 @@ venvPath = "."
 venv = ".venv"
 pythonVersion = "3.12"
 typeCheckingMode = "standard"
-include = ["captioning", "mcp_adapter", "sitecustomize.py"]
+include = ["captioning", "mcp_adapter", "dataset_prep", "sitecustomize.py"]
 exclude = ["**/.venv", "**/__pycache__"]
 extraPaths = ["mcp_adapter"]
