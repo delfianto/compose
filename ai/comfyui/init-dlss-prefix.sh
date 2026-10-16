@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Run inside the idle ComfyUI container after building Dockerfile.dlss.
+# Run inside the idle ComfyUI container after building the ComfyUI image.
 set -euo pipefail
 export WINEPREFIX="${DLSS5_WINEPREFIX:-/var/cache/dlss5/wineprefix}"
 export WINEARCH=win64 WINEDEBUG=-all
