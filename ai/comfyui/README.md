@@ -1,11 +1,14 @@
 # ComfyUI
 
-Locally built ComfyUI runtime using NVIDIA's Ubuntu 24.04 CUDA 13.4.2 base image. The
-container updates the ComfyUI checkout to `COMFYUI_REF` whenever it starts and
-installs changed core/Manager requirements before launching.
+Locally built ComfyUI runtime using NVIDIA's Ubuntu 26.04 LTS CUDA 13.4.2 base image. The
+container runs the bundled ComfyUI release and installs changed core/Manager
+requirements before launching. Startup source updates are opt-in.
 
 The resulting local image is tagged
-`ghcr.io/delfianto/comfyui-nvidia-cuda:latest`; building does not publish it.
+`comfyui-nvidia-cuda:latest` with a version alias such as
+`comfyui-nvidia-cuda:v0.3.60`; building does not publish it. CUDA and the Linux
+DLSS dependencies are always included. Even an older version build updates
+`:latest` to the image just built.
 
 Custom nodes are persistent Git checkouts under `/srv/appdata/comfyui/custom_nodes`,
 mounted at `/data/custom_nodes`, including
@@ -21,6 +24,12 @@ libraries and cuDNN, avoiding duplication with NVIDIA's larger
 change `torch.version.cuda` from 13.0 or automatically improve inference speed.
 TorchAudio remains included because ComfyUI imports it.
 
+Ubuntu 26.04 supplies Python 3.14. The configured Torch trio has CPython 3.14
+Linux x86_64 wheels on the CUDA 13.0 channel. Custom nodes must also support that
+Python version. The reusable base tag includes `ubuntu26.04` so it cannot
+accidentally reuse the previous Ubuntu 24.04 base. Rebuild `base` before the
+runtime when upgrading the OS.
+
 The fork handles versioned CUDA runtime libraries and treats P2P detection
 failures as a request to stage transfers through host memory. It also guards
 CLIP inference with the encoder's actual load device, preventing FP8 encoder
@@ -30,9 +39,10 @@ These compatibility fixes live in the fork rather than Dockerfile patches.
 [NVIDIA's compatibility documentation](https://docs.nvidia.com/deploy/cuda-compatibility/minor-version-compatibility.html)
 lists driver 580 or newer for CUDA 13.x. This host uses driver 615.71.09;
 compatibility also depends on the libraries and features a workflow uses.
-The CUDA 13.4.2 image passed FP16 matrix multiplication, convolution, and
-attention checks on both the RTX 4080 and RTX 3060, plus ComfyUI startup and an
-HTTP `/system_stats` probe. These checks do not cover every custom workflow.
+The previous Ubuntu 24.04 CUDA 13.4.2 image passed FP16 matrix multiplication,
+convolution, and attention checks on both the RTX 4080 and RTX 3060, plus ComfyUI
+startup and an HTTP `/system_stats` probe. Those results do not validate the
+Ubuntu 26.04 image or every custom workflow.
 
 The source checkout and Python environment are intentionally disposable
 container state. Models, inputs, user data, custom nodes, and download caches
@@ -52,24 +62,30 @@ a BuildKit cache mount for `uv` without embedding its cache in image layers.
 
 [docker-bake.hcl](docker-bake.hcl) owns the build definition; Compose owns the
 runtime configuration. `./build.sh` loads shell-compatible `.env` assignments
-and then optional `.env.local` overrides before invoking Docker Buildx Bake.
-The default target builds for `linux/amd64` and loads the image into the local
-Docker daemon with the configured `IMAGE_NAME:IMAGE_TAG`. It does not push it.
-
-Inspect the resolved build settings with `./build.sh --print`, or validate the
-Dockerfile with `./build.sh --check comfyui` (without exporting an image), then
-build the reusable base once, followed by the runtime:
+and optional `.env.local` overrides, then resolves the latest stable ComfyUI
+release through GitHub before invoking Docker Buildx Bake. The explicit tag is
+passed into the build, so new releases invalidate the source layer automatically.
+The default target builds for `linux/amd64` and loads both tags locally.
 
 ```sh
-./build.sh --pull base
-./build.sh comfyui
+./build.sh --pull base     # Once on a fresh host, or to refresh the base
+./build.sh                 # Latest stable release, with CUDA and DLSS
+./build.sh --version v0.3.60 # Older release for troubleshooting
+./build.sh --version 0.3.60  # Leading v is optional
+./build.sh --print          # Inspect without building
+./build.sh --check          # Dockerfile checks without exporting an image
 composectl start ai-comfyui
 ```
 
-Use `composectl restart ai-comfyui` to fetch the configured ComfyUI ref on the
-next start. Rebuild the base periodically with `./build.sh --pull --no-cache base` to refresh
-Ubuntu packages and the configured CUDA/PyTorch stack, then rebuild the runtime
-to use it and reset Python packages modified by custom nodes.
+`--version latest` also selects the latest stable release. Explicit versions are
+checked against upstream Git tags before starting the build. GitHub resolution
+failures stop the build rather than silently reusing a stale release. An older
+release must still support the configured Python, Torch and Manager stack.
+
+Restart with `composectl restart ai-comfyui` after rebuilding. Builds do not
+restart services. Startup auto-update is disabled by default so a troubleshooting
+image keeps its selected version. With a version tag in Compose, also set
+`COMFYUI_AUTO_UPDATE=false` to retain it.
 
 The official Comfy MCP sidecar lives in [../comfyui-mcp](../comfyui-mcp/README.md) with its own
 systemd unit. `composectl restart ai-comfyui` updates ComfyUI without restarting
@@ -81,21 +97,14 @@ image to refresh its core workspace snapshot.
 
 `Dockerfile.base` installs the CUDA/Ubuntu system packages, Python, `uv`, and
 matched PyTorch trio. The `base` Bake target saves it locally under `BASE_IMAGE`
-(default: `ghcr.io/delfianto/comfyui-base:cuda13.4.2-torch2.11.0`). It is built
+(default: `ghcr.io/delfianto/comfyui-base:cuda13.4.2-torch2.11.0-ubuntu26.04`). It is built
 separately, so clearing build cache does not remove the tagged image and
 `--no-cache` on an application build does not reinstall its base dependencies.
 
 `Dockerfile` starts from that saved image and adds ComfyUI, its requirements,
-and the entrypoint. Docker caches source-fetching build layers, so use
-`--no-cache` to bundle a new release when `COMFYUI_REF=latest-stable` is unchanged:
-
-```sh
-./build.sh --no-cache
-```
-
-This builds the target selected by `BUILD_TARGET` (including the local DLSS
-variant). Use `./build.sh --no-cache comfyui` for the plain runtime explicitly.
-The DLSS variant still adds its Proton system packages after the ComfyUI build.
+Proton's Linux dependencies and the entrypoint. Normal builds resolve a release
+before checking Docker's cache. Use `./build.sh --no-cache` only when you need to
+refresh packages or rebuild the same source release without cached layers.
 
 Build `base` first on a fresh host; normal runtime builds require that local
 image or registry access to a published copy. Reserve `--pull` for base builds
@@ -117,10 +126,12 @@ does not run a distribution upgrade.
 
 ## Update policy
 
-- `COMFYUI_REF=latest-stable` resolves GitHub's latest stable release at build
-  time and on each container start. Prereleases and unreleased master commits
-  are excluded.
-- Set `COMFYUI_REF` to a tag or commit SHA for a reproducible deployment.
+- Omitted `--version` resolves GitHub's latest stable release at build time.
+  Prereleases and unreleased master commits are excluded.
+- `--version vX.Y.Z` bundles that release and creates its matching image alias.
+- `COMFYUI_AUTO_UPDATE=false` preserves the bundled release. If explicitly
+  enabled, startup updates use the image's bundled `COMFYUI_REF`; override that
+  runtime environment variable to `latest-stable` to follow releases on startup.
 - `COMFYUI_UPDATE_STRICT=false` allows startup from the image's bundled commit
   when the remote is unavailable. Set it to `true` to fail closed.
 - Core and Manager dependency files are hashed. Pip runs only after those files
@@ -205,17 +216,11 @@ The Compose service drops every Linux capability and enables
 the rootless daemon owner. NVIDIA CDI devices and the external `genai` and
 `proxy` networks must be configured for that same rootless daemon.
 
-## Optional Linux DLSS runtime
+## Linux DLSS runtime
 
-The local `.env.local` selects `BUILD_TARGET=comfyui-dlss`,
-`IMAGE_NAME=comfyui-dlss` and `IMAGE_TAG=local`. With those overrides, `./build.sh`
-builds ComfyUI as a cache-only dependency using the saved `BASE_IMAGE`, then
-exports the DLSS variant.
-`Dockerfile.dlss` adds Proton's Linux dependencies, including its 32-bit
-bootstrap libraries, Xvfb and Vulkan tools. Check the files separately with `./build.sh --check base`,
-`./build.sh --check comfyui` and
-`docker build --check -f Dockerfile.dlss .`. BuildKit check mode cannot resolve
-the derived target's linked context; the normal Bake build can. Selecting `comfyui` explicitly builds the plain runtime only.
+Every runtime build includes Proton's Linux dependencies, including its 32-bit
+bootstrap libraries, Xvfb and Vulkan tools. There is one runtime Bake target,
+`comfyui`; `./build.sh` and `./build.sh comfyui` build the same image.
 
 Compose mounts CachyOS Proton SLR read-only at `/opt/proton`; `PROTON_DIR` can
 override the host path. Its dedicated Wine prefix and machine ID persist under

@@ -1,22 +1,17 @@
 variable "IMAGE_NAME" {
   type    = string
-  default = "ghcr.io/delfianto/comfyui-nvidia-cuda"
-}
-
-variable "IMAGE_TAG" {
-  type    = string
-  default = "latest"
+  default = "comfyui-nvidia-cuda"
 }
 
 # Build this separately and load it before building ComfyUI.
 variable "BASE_IMAGE" {
   type    = string
-  default = "ghcr.io/delfianto/comfyui-base:cuda13.4.2-torch2.11.0"
+  default = "ghcr.io/delfianto/comfyui-base:cuda13.4.2-torch2.11.0-ubuntu26.04"
 }
 
 variable "CUDA_IMAGE" {
   type    = string
-  default = "nvidia/cuda:13.4.2-base-ubuntu24.04"
+  default = "nvidia/cuda:13.4.2-base-ubuntu26.04"
 }
 
 variable "TORCH_VERSION" {
@@ -49,13 +44,8 @@ variable "COMFYUI_REF" {
   default = "latest-stable"
 }
 
-variable "BUILD_TARGET" {
-  type    = string
-  default = "comfyui"
-}
-
 group "default" {
-  targets = [BUILD_TARGET]
+  targets = ["comfyui"]
 }
 
 # Intentionally independent: --no-cache on ComfyUI must not rebuild this image.
@@ -78,26 +68,11 @@ target "comfyui" {
   context    = "."
   dockerfile = "Dockerfile"
   platforms  = ["linux/amd64"]
-  tags       = ["${IMAGE_NAME}:${IMAGE_TAG}"]
+  tags       = ["${IMAGE_NAME}:latest", "${IMAGE_NAME}:${COMFYUI_REF}"]
   args = {
     BASE_IMAGE         = BASE_IMAGE
     COMFYUI_REPOSITORY = COMFYUI_REPOSITORY
     COMFYUI_REF        = COMFYUI_REF
   }
-  output = ["type=docker"]
-}
-
-# Build ComfyUI as an internal dependency, then add the Proton Linux libraries.
-target "comfyui-dlss" {
-  context    = "."
-  dockerfile = "Dockerfile.dlss"
-  platforms  = ["linux/amd64"]
-  contexts = {
-    comfyui-base = "target:comfyui"
-  }
-  args = {
-    BASE_IMAGE = "comfyui-base"
-  }
-  tags = ["${IMAGE_NAME}:${IMAGE_TAG}"]
   output = ["type=docker"]
 }
