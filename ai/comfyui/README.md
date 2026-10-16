@@ -58,16 +58,18 @@ Docker daemon with the configured `IMAGE_NAME:IMAGE_TAG`. It does not push it.
 
 Inspect the resolved build settings with `./build.sh --print`, or validate the
 Dockerfile with `./build.sh --check comfyui` (without exporting an image), then
-build:
+build the reusable base once, followed by the runtime:
 
 ```sh
-./build.sh --pull comfyui
+./build.sh --pull base
+./build.sh comfyui
 composectl start ai-comfyui
 ```
 
 Use `composectl restart ai-comfyui` to fetch the configured ComfyUI ref on the
-next start. Rebuild periodically with `./build.sh --pull comfyui` to update
-the PyTorch/CUDA base and to reset any Python packages modified by custom nodes.
+next start. Rebuild the base periodically with `./build.sh --pull --no-cache base` to refresh
+Ubuntu packages and the configured CUDA/PyTorch stack, then rebuild the runtime
+to use it and reset Python packages modified by custom nodes.
 
 The official Comfy MCP sidecar lives in [../comfyui-mcp](../comfyui-mcp/README.md) with its own
 systemd unit. `composectl restart ai-comfyui` updates ComfyUI without restarting
@@ -75,8 +77,43 @@ MCP. Run `/srv/compose/ai/comfyui-mcp/update.py` to build the latest stable MCP
 release and restart MCP independently. Rebuild MCP after rebuilding the generation
 image to refresh its core workspace snapshot.
 
-Docker caches source-fetching build layers. Add `--no-cache` when rebuilding to
-refresh the bundled ComfyUI snapshot even if its configured ref has not changed.
+### Reusable base image
+
+`Dockerfile.base` installs the CUDA/Ubuntu system packages, Python, `uv`, and
+matched PyTorch trio. The `base` Bake target saves it locally under `BASE_IMAGE`
+(default: `ghcr.io/delfianto/comfyui-base:cuda13.4.2-torch2.11.0`). It is built
+separately, so clearing build cache does not remove the tagged image and
+`--no-cache` on an application build does not reinstall its base dependencies.
+
+`Dockerfile` starts from that saved image and adds ComfyUI, its requirements,
+and the entrypoint. Docker caches source-fetching build layers, so use
+`--no-cache` to bundle a new release when `COMFYUI_REF=latest-stable` is unchanged:
+
+```sh
+./build.sh --no-cache
+```
+
+This builds the target selected by `BUILD_TARGET` (including the local DLSS
+variant). Use `./build.sh --no-cache comfyui` for the plain runtime explicitly.
+The DLSS variant still adds its Proton system packages after the ComfyUI build.
+
+Build `base` first on a fresh host; normal runtime builds require that local
+image or registry access to a published copy. Reserve `--pull` for base builds
+when the base is local-only: passing it to a runtime build forces a registry
+lookup for `BASE_IMAGE`. Building does not publish either image. To share the
+base, explicitly push its configured tag to your registry.
+
+CUDA and Torch settings apply only when building `base`. When changing those
+versions, also choose a matching `BASE_IMAGE` tag in `.env` or `.env.local`, build
+it, then rebuild the runtime. For an OS/package refresh with the same versions:
+
+```sh
+./build.sh --pull --no-cache base
+./build.sh --no-cache
+```
+
+The base installs current packages from Ubuntu's configured repositories; it
+does not run a distribution upgrade.
 
 ## Update policy
 
@@ -172,11 +209,13 @@ the rootless daemon owner. NVIDIA CDI devices and the external `genai` and
 
 The local `.env.local` selects `BUILD_TARGET=comfyui-dlss`,
 `IMAGE_NAME=comfyui-dlss` and `IMAGE_TAG=local`. With those overrides, `./build.sh`
-builds the base as a cache-only dependency and exports the DLSS variant.
+builds ComfyUI as a cache-only dependency using the saved `BASE_IMAGE`, then
+exports the DLSS variant.
 `Dockerfile.dlss` adds Proton's Linux dependencies, including its 32-bit
-bootstrap libraries, Xvfb and Vulkan tools. Check the files separately with `./build.sh --check comfyui` and
+bootstrap libraries, Xvfb and Vulkan tools. Check the files separately with `./build.sh --check base`,
+`./build.sh --check comfyui` and
 `docker build --check -f Dockerfile.dlss .`. BuildKit check mode cannot resolve
-the derived target's linked context; the normal Bake build can. Selecting `comfyui` explicitly builds the base only.
+the derived target's linked context; the normal Bake build can. Selecting `comfyui` explicitly builds the plain runtime only.
 
 Compose mounts CachyOS Proton SLR read-only at `/opt/proton`; `PROTON_DIR` can
 override the host path. Its dedicated Wine prefix and machine ID persist under
