@@ -151,8 +151,9 @@ the container. The nodes persist; their installed packages do not survive a
 container recreation. The entrypoint restores declared node requirements,
 while a rebuild provides a clean runtime when node dependencies become tangled.
 
-No host port is published. Access is through the existing Traefik `proxy`
-network at `https://comfyui.${TRAEFIK_ACME_DOMAIN}`.
+Port 8188 is published only on host loopback at `http://127.0.0.1:8188`.
+Traefik access remains available through the existing `proxy` network at
+`https://comfyui.${TRAEFIK_ACME_DOMAIN}`.
 
 Forge Neo mounts the same `${DATA_DIR}` and uses
 `--forge-ref-comfy-home /comfyui` to discover compatible ComfyUI model folders.
