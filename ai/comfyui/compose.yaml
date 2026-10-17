@@ -32,6 +32,8 @@ services:
       DLSS5_RUNTIME_DIR: /data/models/dlss5
       # Proton NVAPI imports DXVK D3D11 as well as D3D12/DXGI.
       WINEDLLOVERRIDES: d3d11,d3d12,d3d12core,nvapi64,dxgi=n,b
+    ports:
+      - "127.0.0.1:8188:8188"
     networks:
       - genai
       - proxy
