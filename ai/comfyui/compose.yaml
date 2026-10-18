@@ -27,6 +27,8 @@ services:
       COMFYUI_AUTO_UPDATE: ${COMFYUI_AUTO_UPDATE}
       COMFYUI_UPDATE_STRICT: ${COMFYUI_UPDATE_STRICT}
       COMFYUI_INSTALL_CUSTOM_NODE_REQUIREMENTS: ${COMFYUI_INSTALL_CUSTOM_NODE_REQUIREMENTS}
+      # Deno image loaders may reuse generated images through the output bind mount.
+      DENO_EXTERNAL_IMAGE_ROOTS: /data/output
       DLSS5_WINE: /opt/proton/files/bin/wine
       DLSS5_WINEPREFIX: /var/cache/dlss5/wineprefix
       DLSS5_RUNTIME_DIR: /data/models/dlss5
