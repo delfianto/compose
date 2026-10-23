@@ -1,6 +1,6 @@
 services:
   comfyui-mcp:
-    image: comfy-mcp:latest
+    image: ghcr.io/delfianto/comfyui-mcp:latest
     pull_policy: never
     container_name: comfyui-mcp
     restart: "no"
