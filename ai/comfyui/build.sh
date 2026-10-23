@@ -18,7 +18,7 @@ runtime_target=false
 for arg do
     case "$arg" in
         --help|-h)
-            printf 'Usage: ./build.sh [--version VERSION] [BAKE OPTIONS] [TARGETS]\n\nOmit --version (or use latest) for the latest stable ComfyUI release.\nBuilds comfyui-nvidia-cuda:latest and :vX.Y.Z, with CUDA and DLSS.\nUse target base to build only the reusable CUDA/PyTorch base.\n'
+            printf 'Usage: ./build.sh [--version VERSION] [BAKE OPTIONS] [TARGETS]\n\nOmit --version (or use latest) for the latest stable ComfyUI release.\nBuilds ghcr.io/delfianto/comfyui-app:latest and :vX.Y.Z, with CUDA and DLSS.\nUse target base to build only the reusable CUDA/PyTorch base.\n'
             exit 0
             ;;
         base) needs_version=false ;;

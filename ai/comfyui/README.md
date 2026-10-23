@@ -5,8 +5,8 @@ container runs the bundled ComfyUI release and installs changed core/Manager
 requirements before launching. Startup source updates are opt-in.
 
 The resulting local image is tagged
-`comfyui-nvidia-cuda:latest` with a version alias such as
-`comfyui-nvidia-cuda:v0.3.60`; building does not publish it. CUDA and the Linux
+`ghcr.io/delfianto/comfyui-app:latest` with a version alias such as
+`ghcr.io/delfianto/comfyui-app:v0.3.60`; building does not publish it. CUDA and the Linux
 DLSS dependencies are always included. Even an older version build updates
 `:latest` to the image just built.
 
@@ -97,7 +97,7 @@ image to refresh its core workspace snapshot.
 
 `Dockerfile.base` installs the CUDA/Ubuntu system packages, Python, `uv`, and
 matched PyTorch trio. The `base` Bake target saves it locally under `BASE_IMAGE`
-(default: `ghcr.io/delfianto/comfyui-base:cuda13.4.2-torch2.11.0-ubuntu26.04`). It is built
+(default: `ghcr.io/delfianto/comfyui-cuda:13.4.2-base-ubuntu26.04`). It is built
 separately, so clearing build cache does not remove the tagged image and
 `--no-cache` on an application build does not reinstall its base dependencies.
 

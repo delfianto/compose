@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1.7
-ARG COMFYUI_IMAGE=comfyui-nvidia-cuda:latest
+ARG COMFYUI_IMAGE=ghcr.io/delfianto/comfyui-app:latest
 FROM ${COMFYUI_IMAGE} AS workspace
 
 FROM python:3.12-slim-bookworm

@@ -1,0 +1,56 @@
+services:
+  lychee:
+    image: ${IMAGE_NAME}:${IMAGE_TAG}
+    container_name: lychee
+    restart: "no"
+    init: true
+    # Container root maps to host geist under this host's rootless Docker.
+    user: "0:0"
+    entrypoint: ["/secret-env.sh"]
+    command: ["python", "-m", "uvicorn", "deployment:app", "--host", "0.0.0.0", "--port", "8000"]
+    env_file:
+      - lychee.env
+      - path: lychee.env.local
+        required: false
+    secrets:
+      - source: lychee_secret
+        target: LYCHEE_SECRET_KEY
+    networks:
+      - proxy
+    volumes:
+      - ${COMPOSE_BASE}/lib/secret-env.sh:/secret-env.sh:ro
+      - ${DATA_DIR}:/data
+      - ${LIBRARY_DIR}:/library
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/health', timeout=4)"
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.lychee.rule=Host(`lychee.${TRAEFIK_ACME_DOMAIN}`)"
+      - "traefik.http.routers.lychee.entrypoints=websecure"
+      - "traefik.http.routers.lychee.tls.certresolver=cloudflare"
+      - "traefik.http.services.lychee.loadbalancer.server.port=8000"
+      - "homepage.group=Media"
+      - "homepage.name=Lychee"
+      - "homepage.icon=mdi-book-open-page-variant"
+      - "homepage.href=https://lychee.${TRAEFIK_ACME_DOMAIN}"
+      - "homepage.description=Manga, comics, and galleries"
+
+networks:
+  proxy:
+    external: true
+
+secrets:
+  lychee_secret:
+    file: ${SECRET_DIR}/lychee_secret

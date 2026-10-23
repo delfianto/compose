@@ -34,7 +34,7 @@ community state is preserved separately in the same parent directory.
 ```
 
 The updater resolves the latest stable official GitHub release, verifies its
-PyPI package and Git tag, builds `comfy-mcp:<version>` and `comfy-mcp:latest`, then
+PyPI package and Git tag, builds `ghcr.io/delfianto/comfyui-mcp:<version>` and `ghcr.io/delfianto/comfyui-mcp:latest`, then
 restarts only the MCP unit and waits for health. It uses the running generator's
 local image for the core workspace snapshot. Rebuild the MCP after rebuilding
 the generation image to refresh that snapshot; API operations always target the

@@ -1,12 +1,12 @@
 variable "IMAGE_NAME" {
   type    = string
-  default = "comfyui-nvidia-cuda"
+  default = "ghcr.io/delfianto/comfyui-app"
 }
 
 # Build this separately and load it before building ComfyUI.
 variable "BASE_IMAGE" {
   type    = string
-  default = "ghcr.io/delfianto/comfyui-base:cuda13.4.2-torch2.11.0-ubuntu26.04"
+  default = "ghcr.io/delfianto/comfyui-cuda:13.4.2-base-ubuntu26.04"
 }
 
 variable "CUDA_IMAGE" {

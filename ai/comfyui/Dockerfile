@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1.7
 
-ARG BASE_IMAGE=ghcr.io/delfianto/comfyui-base:cuda13.4.2-torch2.11.0-ubuntu26.04
+ARG BASE_IMAGE=ghcr.io/delfianto/comfyui-cuda:13.4.2-base-ubuntu26.04
 FROM ${BASE_IMAGE}
 
 # Host CachyOS Proton supplies Wine/DXVK/vkd3d/NVAPI through a read-only bind.

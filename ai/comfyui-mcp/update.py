@@ -89,7 +89,7 @@ def main() -> None:
     ).strip()
     core_tag = "comfy-mcp-workspace:" + core_image.removeprefix("sha256:")[:12]
     _ = run("docker", "tag", core_image, core_tag)
-    print(f"Building comfy-mcp:{version} from release {tag} ({revision})", flush=True)
+    print(f"Building ghcr.io/delfianto/comfyui-mcp:{version} from release {tag} ({revision})", flush=True)
     _ = run(
         "docker",
         "build",
@@ -100,9 +100,9 @@ def main() -> None:
         "--build-arg",
         f"MCP_REVISION={revision}",
         "--tag",
-        f"comfy-mcp:{version}",
+        f"ghcr.io/delfianto/comfyui-mcp:{version}",
         "--tag",
-        "comfy-mcp:latest",
+        "ghcr.io/delfianto/comfyui-mcp:latest",
         str(Path(__file__).resolve().parent),
     )
     if args.build_only:
@@ -114,7 +114,7 @@ def main() -> None:
         "inspect",
         "--format",
         "{{.Id}}",
-        "comfy-mcp:latest",
+        "ghcr.io/delfianto/comfyui-mcp:latest",
         capture=True,
     ).strip()
     deadline = time.monotonic() + 90
