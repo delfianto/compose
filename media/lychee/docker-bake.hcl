@@ -1,8 +1,8 @@
 variable "IMAGE_NAME" { default = "ghcr.io/delfianto/lychee" }
 variable "LYCHEE_REPOSITORY" { default = "https://github.com/delfianto/lychee.git" }
-variable "LYCHEE_REF" { default = "v0.1.0-beta.4" }
-variable "LYCHEE_IMAGE_TAG" { default = "v0.1.0-beta.4" }
-variable "LYCHEE_VERSION" { default = "0.1.0-beta.4" }
+variable "LYCHEE_REF" { default = "v0.1.0-beta.5" }
+variable "LYCHEE_IMAGE_TAG" { default = "v0.1.0-beta.5" }
+variable "LYCHEE_VERSION" { default = "0.1.0-beta.5" }
 variable "PYTHON_IMAGE" { default = "python:3.14-slim-trixie" }
 variable "NODE_IMAGE" { default = "node:24-trixie-slim" }
 variable "BUN_IMAGE" { default = "oven/bun:1.4.4" }
