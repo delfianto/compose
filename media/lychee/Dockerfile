@@ -59,9 +59,11 @@ COPY --from=frontend /build/frontend/dist/ /app/frontend/
 COPY deployment.py ./deployment.py
 ARG LYCHEE_REPOSITORY=https://github.com/delfianto/lychee.git
 ARG LYCHEE_REF=main
+ARG LYCHEE_VERSION
 LABEL org.opencontainers.image.title="Lychee" \
       org.opencontainers.image.source="${LYCHEE_REPOSITORY}" \
       org.opencontainers.image.revision="${LYCHEE_REF}" \
+      org.opencontainers.image.version="${LYCHEE_VERSION}" \
       org.opencontainers.image.licenses="MIT"
 EXPOSE 8000
 # Keep one worker: the task queue and SSE event broker are process-local.

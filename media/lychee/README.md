@@ -6,17 +6,22 @@ used. Like `ai/comfyui`, builds use `build.sh` and `docker-bake.hcl`.
 
 ```sh
 ./build.sh --pull
-# Select a branch, tag, or full commit:
-./build.sh --ref main
+# Select a release tag:
+./build.sh --ref v0.1.0-beta.1
 # Inspect the resolved build without building:
 ./build.sh --print
 ```
 
-Every build resolves the requested ref to an exact commit, tagging the image as
-`ghcr.io/delfianto/lychee:latest` and `ghcr.io/delfianto/lychee:<short-commit>`
-(seven-character Git hash). Rebuilding after an upstream commit
-invalidates the source layer. To roll back, set `IMAGE_TAG=<short-commit>` in
-`.env.local`. Use `./build.sh` to rebuild; restarting alone keeps the existing image.
+Every build fetches an explicit Git release tag and resolves it to an exact commit.
+The tag must match `v` plus the version in the release's `frontend/package.json`.
+The image gets `ghcr.io/delfianto/lychee:v0.1.0-beta.1` and `:latest`; commit-hash
+image tags are retired. The OCI version label records the app version and the
+revision label retains the exact source commit. Builds require host Python 3
+for reading the release version.
+
+Compose pins `IMAGE_TAG` to the release tag. For an upgrade or rollback, select the
+release in `.env.local` (`LYCHEE_REF=v...` and `IMAGE_TAG=v...`), run `./build.sh`,
+then `composectl restart media-lychee`. Restarting alone does not rebuild.
 Builds load into Docker by default; use `./build.sh --push` to publish to GHCR.
 
 The build uses upstream's frozen Bun and uv lockfiles, Python 3.14, Node 24, and
