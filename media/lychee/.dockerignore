@@ -1,4 +1,0 @@
-# Only the deployment adapter is copied from this directory.
-*
-!Dockerfile
-!deployment.py
