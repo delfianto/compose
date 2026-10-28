@@ -6,6 +6,32 @@ The repository describes available projects; a directory's presence does not imp
 
 ---
 
+## Architecture Overview
+
+```mermaid
+flowchart TB
+    Client["Client / Browser / API"] -->|"HTTPS :443 (Cloudflare DNS-01)"| Traefik["Traefik Reverse Proxy"]
+
+    subgraph Networks["Docker Bridge Networks"]
+        Traefik -->|"proxy network (172.20.0.0/24)"| IngressApps["Traefik-Exposed Web UIs<br>(Open WebUI, ComfyUI, Forgejo, Immich, etc.)"]
+        IngressApps -->|"genai network (172.23.0.0/24)"| GenAIServices["AI Foundation & APIs<br>(Ollama, Bifrost, TEI Embedding, API Proxy)"]
+        IngressApps -->|"database network (172.22.0.0/24)"| DBServices[("Shared Databases<br>VectorChord, MariaDB, Mongo, Valkey")]
+        GenAIServices -->|"database network"| DBServices
+    end
+
+    subgraph Hardware["Hardware Acceleration (NVIDIA CDI)"]
+        GPU0["RTX 4080 16GB (GPU 0)<br>Heavy UNet/DiT Sampling & LLM Training"]
+        GPU1["RTX 3060 12GB (GPU 1)<br>Embeddings, Media Transcoding, Offload"]
+    end
+
+    GPU0 -.->|"nvidia.com/gpu=0"| GenAIServices
+    GPU0 -.->|"nvidia.com/gpu=0"| IngressApps
+    GPU1 -.->|"nvidia.com/gpu=1"| GenAIServices
+    GPU1 -.->|"nvidia.com/gpu=1"| IngressApps
+```
+
+---
+
 ## Repository Index & Projects
 
 Projects are organized by category under `category/service`. All 29 services are cataloged below in alphabetical order by category:
