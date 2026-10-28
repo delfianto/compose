@@ -6,10 +6,10 @@ reach them by container name over the external `database` network.
 
 | Project | Purpose | Current integration |
 | --- | --- | --- |
-| [VectorChord / PostgreSQL](vchord/) | Relational storage with vector and text-search extensions | PostgreSQL for Bifrost, Open WebUI, Forgejo, and Immich; initializes VectorChord, BM25, and tokenizer extensions |
 | [MariaDB](mariadb/) | MySQL-compatible relational storage | PhotoPrism database; persistent data and file-backed user/root credentials |
 | [MongoDB](mongo/) | Document-oriented database | Available for document-backed applications; official entrypoint handles privilege dropping |
 | [Valkey](valkey/) | Redis-compatible cache and key-value store | Bifrost and Immich dependencies; Infisical runtime config also references it |
+| [VectorChord / PostgreSQL](vchord/) | Relational storage with vector and text-search extensions | PostgreSQL for Bifrost, Open WebUI, Forgejo, and Immich; initializes VectorChord, BM25, and tokenizer extensions |
 
 ## Storage and access
 
@@ -30,9 +30,9 @@ The checked-in [dependency mirror](../service.toml)
 records the configured Bifrost, Open WebUI, Forgejo, and Immich requirements.
 PhotoPrism's runtime config names MariaDB, and Infisical references Valkey,
 but these relationships are not currently recorded there. Cross-project
-dependency management is explained in the [repository guide](../README.md#designed-for-compose-utils).
+dependency management is explained in the [repository guide](../README.md#orchestration-with-compose-utils).
 
-Read the [rootless ownership guidance](../README.md#rootless-docker)
+Read the [rootless ownership guidance](../README.md#rootless-docker-user-mapping)
 before adjusting data permissions. An image's own privilege-dropping entrypoint
 can require a different mapped owner from container root.
 

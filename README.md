@@ -1,219 +1,226 @@
 # Homelab Compose
 
-A modular Docker Compose homelab for local AI, databases, media, infrastructure,
-and management tools. Each application is an independent Compose project with
-its own configuration and persistent data. The deployment uses rootless Docker,
-systemd for service lifecycle, NVIDIA CDI for GPU access, and Traefik for HTTPS.
+A modular Docker Compose homelab for local generative AI, databases, media streaming, infrastructure, and management tools. Each application is an independent Compose project with its own configuration and persistent data. Deployed with rootless Docker, systemd service lifecycle management via `composectl`, NVIDIA CDI for dual-GPU allocation, and Traefik for automated HTTPS routing.
 
-The files describe available projects; a directory's presence does not mean the
-service is running or enabled at boot.
+The repository describes available projects; a directory's presence does not imply the service is currently running or enabled at boot.
 
-## Explore the repository
+---
 
-| Directory | What belongs here | Guide |
-| --- | --- | --- |
-| `ai/` | LLM inference, chat clients, embeddings, and image generation | [AI services](ai/README.md) |
-| `db/` | Shared relational databases, document storage, and caches | [Databases](db/README.md) |
-| `infra/` | HTTPS routing, certificates, Git hosting, and secret management | [Infrastructure](infra/README.md) |
-| `media/` | Photo libraries, streaming, and media organization | [Media](media/README.md) |
-| `panel/` | Service discovery dashboards and container management | [Management panels](panel/README.md) |
-| `lib/` | Scripts shared across container entrypoints | [Shared helpers](lib/README.md) |
+## Repository Index & Projects
+
+Projects are organized by category under `category/service`. All 29 services are cataloged below in alphabetical order by category:
+
+### AI & Machine Learning (`ai/`)
+[AI services guide](ai/README.md)
+
+| Service | Path | Description | Integration |
+| :--- | :--- | :--- | :--- |
+| **AI Toolkit** | [`ai/toolkit`](ai/toolkit/README.md) | Ostris LoRA trainer for Krea 2, Qwen Image 2.1, and diffusion models | GPU 0 for training, GPU 1 for captioning; UI at `toolkit.${TRAEFIK_ACME_DOMAIN}` |
+| **Bifrost** | [`ai/bifrost`](ai/bifrost/) | Unified AI proxy gateway across local and remote model providers | Upstream for Open WebUI; uses VectorChord (PostgreSQL) and Valkey |
+| **ComfyUI** | [`ai/comfyui`](ai/comfyui/README.md) | Node-based generative AI workflow engine (`comfyui-app`) + API v2 proxy (`comfyui-proxy`) | Dual GPUs visible via CDI; Linux DLSS5 via Proton; loopback ports 8188 and 8189; Traefik UI |
+| **Embedding** | [`ai/embedding`](ai/embedding/) | Text embedding and reranking microservice for RAG pipelines | TEI embedder, reranker, and proxy on GPU 1; used by Open WebUI |
+| **Forge Neo** | [`ai/forgeneo`](ai/forgeneo/README.md) | Stable Diffusion WebUI Forge for fast image generation | Shares ComfyUI assets read-only; dedicated to GPU 0 |
+| **Hollama** | [`ai/hollama`](ai/hollama/README.md) | Lightweight browser-side client for local LLM APIs | Connects directly to Ollama API from the browser |
+| **KoboldCpp** | [`ai/koboldcpp`](ai/koboldcpp/) | GGUF LLM inference with built-in browser UI and generation APIs | On-demand inference on GPU 0; bind-mounts model storage |
+| **Ollama** | [`ai/ollama`](ai/ollama/) | Downloads and serves quantized local language models | Exposes both GPUs via CDI; internal API on `genai` network |
+| **Open WebUI** | [`ai/openwebui`](ai/openwebui/) | Full-featured chat interface for local and remote models | Integrates Bifrost, TEI embeddings, PostgreSQL, and CPU task inference sidecar |
+| **RisuAI** | [`ai/risuai`](ai/risuai/) | Character-based LLM chat and roleplaying client | Traefik web route; persistent storage; uses `compose.yml` |
+| **SmartGallery** | [`ai/comfyui-gallery`](ai/comfyui-gallery/) | Visual gallery and workflow browser for ComfyUI outputs | Shares ComfyUI output, input, and model directories |
+| **Strata** | [`ai/strata`](ai/strata/README.md) | High-throughput Qwen3.8-Flash-Next inference engine | Dual-GPU layer split (RTX 4080 + RTX 3060) with CPU offloading; custom Bake build |
+| **Text Generation WebUI** | [`ai/textgen`](ai/textgen/) | Multi-backend LLM loading and interactive generation interface | On-demand GPU 0 workload with persistent user data and cache |
+
+### Databases (`db/`)
+[Databases guide](db/README.md)
+
+| Service | Path | Description | Integration |
+| :--- | :--- | :--- | :--- |
+| **MariaDB** | [`db/mariadb`](db/mariadb/) | MySQL-compatible relational database | Backing database for PhotoPrism; file-backed secrets |
+| **MongoDB** | [`db/mongo`](db/mongo/) | Document-oriented database | Document store for compatible applications; internal privilege dropping |
+| **Valkey** | [`db/valkey`](db/valkey/) | High-speed Redis-compatible in-memory cache and key-value store | Caching layer for Bifrost and Immich |
+| **VectorChord / PostgreSQL** | [`db/vchord`](db/vchord/) | Relational database with vector search, BM25, and tokenizer extensions | Central database backing Bifrost, Forgejo, Immich, and Open WebUI |
+
+### Infrastructure & Reverse Proxy (`infra/`)
+[Infrastructure guide](infra/README.md)
+
+| Service | Path | Description | Integration |
+| :--- | :--- | :--- | :--- |
+| **Forgejo** | [`infra/forgejo`](infra/forgejo/) | Self-hosted Git forge and collaboration platform | Web at `git.${TRAEFIK_ACME_DOMAIN}`; SSH on host port 222; uses VectorChord |
+| **Infisical** | [`infra/infisical`](infra/infisical/) | Centralized secrets management and distribution platform | Web at `infisical.${TRAEFIK_ACME_DOMAIN}`; host port 8080 |
+| **Traefik** | [`infra/traefik`](infra/traefik/) | Reverse proxy, ACME TLS certificate manager, and container router | Host ports 80/443; Cloudflare DNS-01 challenges; dashboard at `traefik.${TRAEFIK_ACME_DOMAIN}` |
+
+### Media Services (`media/`)
+[Media services guide](media/README.md)
+
+| Service | Path | Description | Integration |
+| :--- | :--- | :--- | :--- |
+| **Immich** | [`media/immich`](media/immich/) | Self-hosted photo and video backup platform | CUDA-accelerated machine learning on GPU 1; uses VectorChord and Valkey |
+| **Jellyfin** | [`media/jellyfin`](media/jellyfin/) | Media streaming server | Hardware NVENC/NVDEC transcoding on GPU 1; LAN ports 8096 and 7359 |
+| **Lychee** | [`media/lychee`](media/lychee/) | Manga, comic, and image gallery reader | Traefik web route; secret-file key management; connects to library storage |
+| **PhotoPrism** | [`media/photoprism`](media/photoprism/) | AI-powered photo indexing and organization | MariaDB storage; read-only media library mounts; GPU 1 acceleration |
+| **Plex + Tautulli** | [`media/plex`](media/plex/) | Video streaming server and monitoring analytics | NVDEC/NVENC hardware transcoding on GPU 1; direct media discovery ports |
+| **Stash** | [`media/stash`](media/stash/) | Adult media catalog and organization platform | Hardware-accelerated image on GPU 1; persistent metadata and previews |
+
+### Management Panels (`panel/`)
+[Panels guide](panel/README.md)
+
+| Service | Path | Description | Integration |
+| :--- | :--- | :--- | :--- |
+| **Homepage** | [`panel/homepage`](panel/homepage/) | Homelab application dashboard | Auto-discovers `homepage.*` labels; live status widgets; `home.${TRAEFIK_ACME_DOMAIN}` |
+| **Portainer** | [`panel/portainer`](panel/portainer/) | Web-based container management UI | Direct Docker socket integration; `panel.${TRAEFIK_ACME_DOMAIN}` |
+| **Tugtainer** | [`panel/tugtainer`](panel/tugtainer/) | Container image update tracker | Tracks image digests and alerts on updates; `updates.${TRAEFIK_ACME_DOMAIN}` |
+
+### Shared Libraries (`lib/`)
+[Shared helpers guide](lib/README.md)
+
+- [`lib/secret-env.sh`](lib/secret-env.sh) — POSIX entrypoint shim bind-mounted into containers requiring `/run/secrets/` file translation to uppercase environment variables with recursive `$VAR` variable expansion.
+
+---
+
+## Directory Layout
 
 ```text
 compose/
-├── ai/<project>/
-├── db/<project>/
-├── infra/<project>/
-├── media/<project>/
-├── panel/<project>/
-├── lib/
-├── service.toml
-└── AGENTS.md
+├── ai/                     # AI/ML services (toolkit, bifrost, comfyui, comfyui-gallery, embedding, forgeneo, hollama, koboldcpp, ollama, openwebui, risuai, strata, textgen)
+├── db/                     # Databases (mariadb, mongo, valkey, vchord)
+├── infra/                  # Infrastructure (forgejo, infisical, traefik)
+├── media/                  # Media streaming & photo libraries (immich, jellyfin, lychee, photoprism, plex, stash)
+├── panel/                  # Dashboards and management (homepage, portainer, tugtainer)
+├── lib/                    # Shared container entrypoint scripts (secret-env.sh)
+├── service.toml            # Systemd inter-service dependency graph
+└── AGENTS.md               # Architecture standards and agent instructions
 ```
 
-Project directories normally contain `compose.yaml` and `.env`, plus
-application-specific runtime env files. `ai/risuai` uses `compose.yml`.
-Persistent data belongs outside the checkout, usually under `/srv/appdata/`,
-with larger models and media on separately configured storage mounts.
+---
 
-## Designed for compose-utils
+## Orchestration with `compose-utils`
 
-[compose-utils](https://github.com/delfianto/compose-utils) provides two commands
-from one Rust binary: `compose` wraps direct Docker Compose operations, while
-`composectl` manages projects through systemd, including startup, updates,
-boot persistence, and dependencies. It supports rootless Docker and centralized
-host configuration.
+[compose-utils](https://github.com/delfianto/compose-utils) provides two complementary personas from a single Rust binary:
 
-**compose-utils is optional; it makes life much easier.** Every project can run
-with ordinary `docker compose` commands. The tools save you from typing the
-full project path and env-file arguments each time, and provide a consistent
-way to manage startup, updates, and dependencies across projects.
+- **`compose`**: Thin project-level wrapper for direct Docker Compose operations (`compose ps`, `compose pull`, `compose up`).
+- **`composectl`**: Systemd-integrated lifecycle manager that handles startup, updates, dependencies, and boot persistence (`composectl start <service>`, `composectl update <service>`, `composectl deps`).
 
-This repository's `category/project` layout is intentional. With `COMPOSE_BASE`
-pointing at the checkout, `ai/ollama` resolves to `ai-ollama` and
-`infra/traefik` to `infra-traefik`. Hyphens inside project names are preserved:
-`ai/comfyui-gallery` becomes `ai-comfyui-gallery`. One project can contain multiple
-containers; for example, `media/plex` manages Plex and Tautulli together.
+### Why `composectl`?
 
-Compose `depends_on` coordinates services within one Compose project; it does
-not manage dependencies between separate projects in this repository. Systemd
-provides that cross-project ordering through `Requires=`, `Wants=`, and `After=`.
-Services declare `restart: "no"` because systemd also owns their lifecycle and
-failure recovery on this host. `composectl` is the convenient way to use that
-setup:
+Every service in this repository declares `restart: "no"`. Systemd (`compose@.service`) owns container lifecycle, restart-on-failure, and inter-service dependencies.
 
-```sh
-composectl status infra-traefik --json
-composectl start ai-ollama --json
-composectl update ai-ollama --json
-composectl enable ai-ollama --json
+```bash
+# Manage services from anywhere on the host
+composectl status ai-comfyui --json
+composectl start ai-comfyui
+composectl update ai-comfyui
+composectl restart ai-comfyui
+composectl enable ai-comfyui
 ```
 
-Without compose-utils, the equivalent direct startup command looks like this
-(include each project env file only if it exists):
+### Systemd Dependency Mapping
 
-```sh
-docker compose \
-  --project-directory /srv/compose/ai/ollama \
-  --env-file "$HOME/.config/docker/compose.env" \
-  --env-file /srv/compose/ai/ollama/.env \
-  --env-file /srv/compose/ai/ollama/.env.local \
-  up -d
+Compose `depends_on` only coordinates containers *within* a single Compose project. Cross-project dependencies (e.g. `ai-openwebui` needing `db-vchord` and `ai-bifrost`) are enforced by systemd drop-in units managed via `composectl deps` and documented in [`service.toml`](service.toml):
+
+```toml
+[ai-bifrost]
+requires = ["db-vchord", "db-valkey"]
+
+[ai-openwebui]
+requires = ["db-vchord", "ai-bifrost", "ai-embedding"]
+wants = ["ai-ollama"]
+
+[infra-forgejo]
+requires = ["db-vchord"]
+
+[media-immich]
+requires = ["db-vchord", "db-valkey"]
 ```
 
-You also need to arrange cross-project startup order and failure recovery
-yourself, through systemd units or another lifecycle manager. Plain Compose
-does not provide dependency management between these separate projects.
+---
 
-The direct `compose` command is useful for inspection and initial iteration from
-a project directory. If you use the systemd setup, after direct container lifecycle changes use
-`composectl sync --json` to reconcile systemd's tracked state. Locally built
-images may need their project's build script instead of a pull-based update.
+## Configuration Layering & Secrets
 
-[service.toml](service.toml) documents cross-project dependencies. The installed
-systemd overrides are managed separately with `composectl deps`; updating that
-file alone does not change the live dependency graph. Keep both in sync.
-Ordering starts a dependency first but does not prove its application is ready.
+| Layer | Path | Purpose | Tracked in Git? |
+| :--- | :--- | :--- | :--- |
+| **Machine-wide config** | `~/.config/docker/compose.env` | Host-wide defaults: `COMPOSE_BASE`, `COMPOSE_DATA`, ACME settings, Docker socket | No |
+| **Project defaults** | `<service>/.env` | Interpolation variables: image tags, paths, GPU IDs | Yes |
+| **Project overrides** | `<service>/.env.local` | Local interpolation overrides (evaluated last) | No (`.gitignore`) |
+| **Container runtime** | `<service>/<service>.env` | Application runtime environment variables | Yes |
+| **Container secrets** | `<service>/<service>.env.local` | Local runtime secrets (when referenced via `env_file`) | No (`.gitignore`) |
+| **Central Secret Store** | `/srv/appdata/secret/` | File-backed credentials mounted as Docker secrets (`mode 0600`) | No |
 
-## Configuration and secrets
+**Interpolation Precedence**: `~/.config/docker/compose.env` < `.env` < `.env.local`.
 
-| File or location | Purpose | Versioned? |
-| --- | --- | --- |
-| `~/.config/docker/compose.env` | Host-wide paths, domain, ACME settings, and Docker endpoint | Outside this repository |
-| `<project>/.env` | Compose interpolation defaults: image tags, mounts, GPU IDs | Yes |
-| `<project>/.env.local` | Local interpolation overrides, loaded by compose-utils | No |
-| `<project>/<service>.env` | Application runtime settings | Yes |
-| `<project>/<service>.env.local` | Local runtime overrides, when referenced by `env_file` | No |
-| `/srv/appdata/secret/` | File-backed credentials mounted as Docker secrets | No |
+### Secret Management Pattern
 
-`compose` and `composectl` load existing interpolation files in order:
-`~/.config/docker/compose.env`, the project's `.env`, then `.env.local`.
-Later files override earlier ones; missing files are skipped, so projects do not
-need an empty `.env`. The tools ignore inherited `COMPOSE_ENV_FILES`.
-Explicit shell variables still take precedence for direct commands. Systemd
-launches read global defaults through the files so project overrides can win.
+Passwords and API keys must never be committed to git. Secrets are stored centrally in `/srv/appdata/secret/` (`SECRET_DIR`, owned by host `geist:geist` mode `0700`, files mode `0600`) and mounted via Compose secrets:
 
-Raw `docker compose` commands need equivalent `--env-file` arguments;
-[Strata](ai/strata/README.md) supplies `./compose.sh` for this purpose.
-Runtime `env_file` entries are a separate mechanism; an `environment:` value
-overrides them.
-
-Keep real passwords and tokens out of tracked files. The preferred pattern is
-one credential per file in `SECRET_DIR`, with directory mode `0700` and file mode
-`0600`, mounted using Compose `secrets`. Applications that lack native secret-file
-support use [lib/secret-env.sh](lib/README.md). Some older projects retain
-service-specific secret paths; their Compose definitions are authoritative.
-
-After editing a project, validate without printing resolved credentials:
-
-```sh
-docker compose config --quiet
+```yaml
+secrets:
+  my_secret:
+    file: ${SECRET_DIR}/my_secret
 ```
 
-## Networks and HTTPS
+Containers that do not natively read `/run/secrets/` mount [`lib/secret-env.sh`](lib/secret-env.sh) as `/secret-env.sh:ro` and set `entrypoint: ["/secret-env.sh"]`.
 
-Networks are created outside individual projects and declared `external: true`.
-The host's `~/.config/docker/networks.toml` defines their shared addressing.
+---
 
-| Network | Subnet | Internal | Role |
-| --- | --- | --- | --- |
-| `proxy` | `172.20.0.0/24` | No | Traefik-facing applications and outbound connectivity |
-| `metrics` | `172.21.0.0/24` | Yes | Monitoring connectivity |
-| `database` | `172.22.0.0/24` | Yes | Application-to-database traffic |
-| `genai` | `172.23.0.0/24` | Yes | AI APIs and inter-service traffic |
-| `auth` | `172.24.0.0/24` | Yes | Reserved authentication connectivity |
+## Networks & Reverse Proxy
 
-Traefik is the shared HTTP entrypoint: DNS directs a hostname to the host,
-Traefik selects a router from container labels, terminates TLS, and forwards to
-the application's internal port over `proxy`. Cloudflare DNS-01 handles ACME
-certificate validation. Traefik routes requests; it does not create application
-DNS records. See the [infrastructure guide](infra/README.md#traefik-routing-and-certificates)
-for the full flow and a label example.
+Five isolated Docker bridge networks are defined in `~/.config/docker/networks.toml` and declared as `external: true`:
 
-Connect services only to the networks they need. Some database projects also
-use a per-project `default` network, and some applications publish direct API,
-SSH, or media-discovery ports in addition to their Traefik routes.
+| Network | Subnet | Internal | Purpose |
+| :--- | :--- | :--- | :--- |
+| `proxy` | `172.20.0.0/24` | No | Inbound Traefik routing and external outbound internet access |
+| `metrics` | `172.21.0.0/24` | Yes | Prometheus and monitoring telemetry |
+| `database` | `172.22.0.0/24` | Yes | Database-to-application traffic (VectorChord, MariaDB, Mongo, Valkey) |
+| `genai` | `172.23.0.0/24` | Yes | Inter-service AI inference APIs and sidecars |
+| `auth` | `172.24.0.0/24` | Yes | Centralized authentication connectivity |
 
-## Rootless Docker
+Traefik terminates TLS at port 443 with Cloudflare DNS-01 ACME certificates and routes to internal services over `proxy` using container labels:
 
-These services run on a rootless Docker daemon. Use the configured Docker
-context or `DOCKER_HOST` without `sudo`; running Docker with `sudo` may
-select a different daemon.
-
-Container UID/GID `0:0` maps to the daemon owner's host UID/GID (`1000:1000`
-on this host). Nonzero container IDs map to subordinate host IDs: container
-UID 1000 maps to host UID 100999 with this host's current mapping. For a
-service that needs to write a daemon-user-owned bind mount, use container
-`user: "0:0"` unless the application requires another user. If the image
-drops privileges itself, prepare ownership for that application's mapped
-UID instead. Do not recursively change data ownership to host UID 1000
-without checking which container user actually writes it.
-
-Create bind-mounted data directories as the daemon owner before starting
-the service. Projects can use `bind.create_host_path: false` to catch
-missing or incorrect paths instead of creating directories automatically.
-NVIDIA services use CDI device declarations (`nvidia.com/gpu=0`, etc.);
-privileged mode and host networking are not required for GPU access.
-
-Containers cannot raise their memlock limit beyond the rootless daemon's
-inherited hard limit. This host currently allows **32 GiB**
-(`34359738368` bytes); requesting unlimited memlock (`-1`) fails container
-creation with `error setting rlimit type 8: operation not permitted`.
-For inference services that pin RAM, set a finite Compose `ulimits.memlock`
-within that ceiling and match any application-specific pinning limit.
-Memlock limits pinned memory, not total application RAM.
-
-Verify the daemon and its current limits with:
-
-```sh
-docker info --format '{{json .SecurityOptions}}'
-systemctl --user show docker.service -p LimitMEMLOCK -p LimitMEMLOCKSoft
+```yaml
+labels:
+  - "traefik.enable=true"
+  - "traefik.docker.network=proxy"
+  - "traefik.http.routers.app.rule=Host(`app.${TRAEFIK_ACME_DOMAIN}`)"
+  - "traefik.http.routers.app.entrypoints=websecure"
+  - "traefik.http.routers.app.tls.certresolver=cloudflare"
+  - "traefik.http.services.app.loadbalancer.server.port=8080"
 ```
 
-Shared Docker networks remain available to rootless containers. HTTP services
-can use Traefik without publishing their own host ports.
+---
 
-## Bringing up a project
+## Hardware & Dual-GPU Allocation
 
-1. Configure the rootless Docker endpoint and host-wide values in `compose.env`.
-2. Create the external networks and prepare the project's data and secret files.
-3. Review the project's env files, mounts, GPU allocation, and build instructions.
-4. Validate the Compose configuration and arrange cross-project startup order
-   (with systemd dependencies if using the composectl setup).
-5. Start the project, check health, and enable boot startup when appropriate.
+The host features dual NVIDIA GPUs managed through Container Device Interface (CDI) declarations:
 
-Databases generally start before their consumers. Traefik must be running for
-domain-based access. GPU device visibility is shared, not exclusive: Ollama,
-ComfyUI, Strata, and other inference services can compete for the same VRAM.
-Category guides explain their integration points and service-specific exceptions.
+- **GPU 0** (`nvidia.com/gpu=0`): NVIDIA GeForce RTX 4080 (16 GB VRAM). Primary compute for heavy UNet/DiT sampling (ComfyUI), LoRA training (AI Toolkit), and text generation (Forge Neo, KoboldCpp, Textgen).
+- **GPU 1** (`nvidia.com/gpu=1`): NVIDIA GeForce RTX 3060 (12 GB VRAM). Pinned via `GPU_ID=1` in service `.env` files for embeddings (TEI), media transcoding (Immich ML, Jellyfin, PhotoPrism, Plex, Stash), and ComfyUI VAE/CLIP offloading.
+- **Shared Access**: CDI device assignment grants container visibility, not exclusive locks. VRAM budgeting is managed cooperatively across services.
 
-[AGENTS.md](AGENTS.md) contains the detailed repository conventions and editing
-guidance. [docker-conf](https://github.com/delfianto/docker-conf) provides the
-companion network definitions and Docker CLI plugins used on this host.
+---
 
-# Disclaimer
+## Rootless Docker User Mapping
 
-This project comes without any warranty of any kind. By using this software, you accept all risks, including but not limited to:
+All services run on a rootless Docker daemon under user `geist` (host UID 1000):
+
+- **UID `0:0` inside container**: Maps directly to host UID `1000:1000` (`geist:geist`). Bind mounts owned by `geist` on the host are writable without permission errors when containers run as `user: "0:0"`.
+- **Non-zero UID inside container**: Maps into subordinate UIDs (container UID `1000` maps to host UID `100999`).
+- **Privilege Dropping**: Containers drop all Linux capabilities (`cap_drop: - ALL`) and enforce `no-new-privileges: true`.
+
+---
+
+## Custom Builds & Publishing
+
+Standalone repositories handle container builds and automatically publish images to GitHub Container Registry (GHCR):
+
+- **ComfyUI & API Proxy**: Built in [delfianto/comfyui-docker](https://github.com/delfianto/comfyui-docker) (CUDA 13.4.2, Python 3.14, Linux DLSS5 via Proton, and Comfy API v2 proxy).
+- **Forge Neo SD WebUI**: Built in [delfianto/sd-webui-forge-docker](https://github.com/delfianto/sd-webui-forge-docker) (CUDA 13.2, Python 3.13).
+- **Zen5-optimized CPU Inference**: Open WebUI sidecar container built in its dedicated repository.
+
+Images are pulled from `ghcr.io/delfianto/` during standard `composectl update` cycles.
+
+---
+
+## Disclaimer
+
+This project comes without warranty of any kind. Use at your own risk:
 
 - The Borg may invade your neighborhood.
 - Your dog may suddenly hate you.
@@ -221,8 +228,8 @@ This project comes without any warranty of any kind. By using this software, you
 - Spontaneous interpretive dance outbreaks are possible.
 - The universe may collapse into a potato.
 
-I am not responsible for any of these (or other) outcomes. Use at your own risk!
+---
 
-# License
+## License
 
-[MIT License](https://github.com/delfianto/compose/blob/main/LICENSE)
+[MIT License](LICENSE)

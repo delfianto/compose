@@ -6,26 +6,26 @@ GPUs, and APIs without sharing their lifecycle.
 
 | Project | Purpose | Integration |
 | --- | --- | --- |
-| [Bifrost](bifrost/) | Gateway for accessing model providers through a common API | Connects AI clients to configured providers; uses PostgreSQL and Valkey |
-| [Ollama](ollama/) | Downloads and serves local language models | API on `genai`; exposes both GPUs |
-| [Embedding](embedding/) | Text embedding and reranking for retrieval | TEI embedder, reranker, and proxy; GPU selected by `GPU_ID` |
-| [Open WebUI](openwebui/) | Browser chat interface for local and remote models | Uses Bifrost, embeddings, and PostgreSQL; includes CPU task inference and Open Terminal containers |
-| [Hollama](hollama/README.md) | Minimal browser client for local LLM APIs | Browser-side settings and conversations; configure an endpoint reachable from the browser |
-| [Strata](strata/README.md) | Runs Qwen3.8-Flash-Next using GPU caches and CPU/RAM offload | Release-tagged Bake build; RTX 4080 + RTX 3060 layer split |
-| [ComfyUI](comfyui/README.md) | Workflow-based image, video, and other generative media processing | Custom NVIDIA image; both GPUs visible; persistent models, workflows, and outputs; local API proxy |
-| [SmartGallery](comfyui-gallery/) | Browses ComfyUI outputs and their workflows | Shares output, input, and model directories with ComfyUI |
-| [Forge Neo](forgeneo/README.md) | Stable Diffusion WebUI for image generation | Custom image; shares ComfyUI assets read-only; uses GPU 0 |
 | [AI Toolkit](toolkit/README.md) | Ostris LoRA trainer for Krea 2, Qwen Image 2.1, and other diffusion bases | GPU 0 for training, GPU 1 for captioning; UI at `toolkit.${TRAEFIK_ACME_DOMAIN}`; datasets under `/srv/appdata/toolkit/datasets`; ComfyUI models at `/models` |
+| [Bifrost](bifrost/) | Gateway for accessing model providers through a common API | Connects AI clients to configured providers; uses PostgreSQL (VectorChord) and Valkey |
+| [ComfyUI](comfyui/README.md) | Workflow-based image, video, and generative media engine (`comfyui-app`) + official API proxy (`comfyui-proxy`) | Images from GHCR (`comfyui-docker`); both GPUs visible; persistent models, workflows, and outputs; local API proxy |
+| [Embedding](embedding/) | Text embedding and reranking for retrieval-augmented generation | TEI embedder, reranker, and proxy; GPU selected by `GPU_ID` |
+| [Forge Neo](forgeneo/README.md) | Stable Diffusion WebUI for image generation | Images from GHCR (`sd-webui-forge-docker`); shares ComfyUI assets read-only; uses GPU 0 |
+| [Hollama](hollama/README.md) | Minimal browser client for local LLM APIs | Browser-side settings and conversations; configure an endpoint reachable from the browser |
 | [KoboldCpp](koboldcpp/) | GGUF inference with a browser interface and generation APIs | On-demand inference on GPU 0; models bind-mounted from storage |
-| [Text Generation WebUI](textgen/) | Interactive LLM loading and generation with multiple backends | On-demand GPU 0 workload with persistent user data and cache |
+| [Ollama](ollama/) | Downloads and serves local language models | API on `genai`; exposes both GPUs |
+| [Open WebUI](openwebui/) | Browser chat interface for local and remote models | Uses Bifrost, embeddings, and PostgreSQL; includes CPU task inference and Open Terminal containers |
 | [RisuAI](risuai/) | Character-based chat and roleplaying client | Persistent saved content; Traefik web route; uses `compose.yml` |
+| [SmartGallery](comfyui-gallery/) | Browses ComfyUI outputs and their workflows | Shares output, input, and model directories with ComfyUI |
+| [Strata](strata/README.md) | Runs Qwen3.8-Flash-Next using GPU caches and CPU/RAM offload | Release-tagged Bake build; RTX 4080 + RTX 3060 layer split |
+| [Text Generation WebUI](textgen/) | Interactive LLM loading and generation with multiple backends | On-demand GPU 0 workload with persistent user data and cache |
 
 ## How the projects fit together
 
-Open WebUI is the main consumer-facing chat project. It uses PostgreSQL,
+Open WebUI is the main consumer-facing chat project. It uses PostgreSQL (VectorChord),
 Bifrost, and the embedding APIs, with Ollama as an optional model backend.
 Bifrost uses PostgreSQL and Valkey. ComfyUI includes an official local API proxy
-for SDK integrations.
+sidecar (`comfyui-proxy`) for SDK integrations.
 
 The `genai` network carries internal APIs where projects declare it. Browser
 interfaces use Traefik on `proxy`; direct API ports remain configured for some
@@ -36,7 +36,7 @@ browser, not just a Docker container hostname.
 
 This host has an RTX 4080 (GPU 0, 16 GB) and RTX 3060 (GPU 1, 12 GB).
 Ollama, ComfyUI, and Strata expose both. Forge Neo, AI Toolkit, KoboldCpp, and Text Generation
-WebUI use GPU 0; embedding uses its configured `GPU_ID`. Open WebUI's task-model
+WebUI use GPU 0; embedding uses its configured `GPU_ID` (GPU 1). Open WebUI's task-model
 container is CPU-only. CDI grants access without reserving exclusive VRAM.
 Check existing allocations before starting another large model.
 
@@ -45,9 +45,11 @@ Sharing directories avoids duplicate assets, but write access varies: Forge Neo
 reads shared ComfyUI data, while ComfyUI and SmartGallery can write their outputs.
 Large-model startup may need substantial system RAM as well as VRAM.
 
-Custom images require a build, not just an image pull. Follow the project README
-for ComfyUI, Forge Neo, or Strata before using an update command.
-Strata supplies a standalone wrapper for configuration checks and Bake builds;
-compose-utils also loads its `.env.local` storage override automatically.
+ComfyUI and Forge Neo container images are built externally in dedicated GitHub
+repositories ([`comfyui-docker`](https://github.com/delfianto/comfyui-docker) and
+[`sd-webui-forge-docker`](https://github.com/delfianto/sd-webui-forge-docker)) and
+published to GHCR; they update via standard `composectl update`. Strata supplies a
+standalone wrapper for configuration checks and Bake builds; compose-utils also
+loads its `.env.local` storage override automatically.
 
 [Repository configuration and lifecycle](../README.md) · [Dependency mirror](../service.toml)

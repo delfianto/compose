@@ -11,10 +11,10 @@ Docker Compose orchestration for a self-hosted homelab. Modular compose files ma
 
 ```
 .
-├── ai/               # AI/ML services (bifrost, ollama, embedding, openwebui, comfyui, comfyui-gallery, forgeneo, toolkit, koboldcpp, textgen, risuai)
-├── db/               # Databases (vchord, mariadb, mongo, valkey)
-├── infra/            # Infrastructure & Reverse proxy (forgejo, traefik)
-├── media/            # Media services (immich, photoprism, plex, stash)
+├── ai/               # AI/ML services (bifrost, comfyui, comfyui-gallery, embedding, forgeneo, hollama, koboldcpp, ollama, openwebui, risuai, strata, textgen, toolkit)
+├── db/               # Databases (mariadb, mongo, valkey, vchord)
+├── infra/            # Infrastructure & Reverse proxy (forgejo, infisical, traefik)
+├── media/            # Media services (immich, jellyfin, lychee, photoprism, plex, stash)
 ├── panel/            # Dashboard & management (homepage, portainer, tugtainer)
 ├── lib/              # Shared scripts bind-mounted into containers (e.g. secret-env.sh)
 ├── service.toml      # Service dependency graph
