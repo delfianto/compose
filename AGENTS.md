@@ -28,7 +28,7 @@ Each service lives in its own subdirectory with a `compose.yaml` and env files. 
 ### Naming
 
 - **Directories**: lowercase, generally no hyphens within a service name (e.g., `openwebui`, `forgeneo`); `ai/comfyui-gallery` is an explicit exception.
-- **Compose files**: always `compose.yaml` (not `docker-compose.yml`), except `ai/risuai` which uses `compose.yml`
+- **Compose files**: always `compose.yaml` (not `docker-compose.yml` or `compose.yml`) across all services
 - **Service names in compose**: lowercase simple names matching the directory (e.g., `ollama`, `vchord`)
 - **Container names**: set explicitly via `container_name:`
 - **Systemd service names**: `category-service` with path separators flattened to hyphens (e.g., `ai-ollama` -> `ai/ollama`). The updated `composectl` resolver preserves hyphens inside existing directory names.
