@@ -81,11 +81,11 @@ composectl restart ai-comfyui
 
 ### Official Local API Proxy & SDK Integration
 
-The project includes an official local API proxy service (`comfyui-proxy`) exposing
-the **Comfy API v2** surface at `http://127.0.0.1:8189`. It connects upstream to
-ComfyUI over the internal `genai` network (`http://comfyui:8188`) and shares the
-model and data directories (`/data`) for atomic model placement, input uploads,
-and SQLite persistence (`/data/user/proxy`).
+The project includes an official local API proxy service (`comfyui-proxy`) alongside
+the main ComfyUI service container (`comfyui-app`), exposing the **Comfy API v2** surface
+at `http://127.0.0.1:8189`. It connects upstream to ComfyUI over the internal `genai` network
+(`http://comfyui:8188`) and shares the model and data directories (`/data`) for atomic model
+placement, input uploads, and SQLite persistence (`/data/user/proxy`).
 
 Port `8189` is bound exclusively to host loopback (`127.0.0.1:8189`), providing a
 standard v2 contract for local code using the official Python (`comfy-sdk`) or
