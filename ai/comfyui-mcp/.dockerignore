@@ -1,6 +1,0 @@
-*
-!Dockerfile
-!http-server.py
-!entrypoint.sh
-!smoke-test.py
-!json_data.py

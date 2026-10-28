@@ -1,2 +1,0 @@
-[lint.isort]
-known-first-party = ["json_data"]
