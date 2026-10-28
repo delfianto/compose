@@ -15,7 +15,7 @@ GPUs, and APIs without sharing their lifecycle.
 | [KoboldCpp](koboldcpp/) | GGUF inference with a browser interface and generation APIs | On-demand inference on GPU 0; models bind-mounted from storage |
 | [Ollama](ollama/) | Downloads and serves local language models | API on `genai`; exposes both GPUs |
 | [Open WebUI](openwebui/) | Browser chat interface for local and remote models | Uses Bifrost, embeddings, and PostgreSQL; includes CPU task inference and Open Terminal containers |
-| [RisuAI](risuai/) | Character-based chat and roleplaying client | Persistent saved content; Traefik web route; uses `compose.yml` |
+| [RisuAI](risuai/) | Character-based chat and roleplaying client | Persistent saved content; Traefik web route |
 | [SmartGallery](comfyui-gallery/) | Browses ComfyUI outputs and their workflows | Shares output, input, and model directories with ComfyUI |
 | [Strata](strata/README.md) | Runs Qwen3.8-Flash-Next using GPU caches and CPU/RAM offload | Release-tagged Bake build; RTX 4080 + RTX 3060 layer split |
 | [Text Generation WebUI](textgen/) | Interactive LLM loading and generation with multiple backends | On-demand GPU 0 workload with persistent user data and cache |

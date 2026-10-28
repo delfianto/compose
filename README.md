@@ -24,7 +24,7 @@ Projects are organized by category under `category/service`. All 29 services are
 | **KoboldCpp** | [`ai/koboldcpp`](ai/koboldcpp/) | GGUF LLM inference with built-in browser UI and generation APIs | On-demand inference on GPU 0; bind-mounts model storage |
 | **Ollama** | [`ai/ollama`](ai/ollama/) | Downloads and serves quantized local language models | Exposes both GPUs via CDI; internal API on `genai` network |
 | **Open WebUI** | [`ai/openwebui`](ai/openwebui/) | Full-featured chat interface for local and remote models | Integrates Bifrost, TEI embeddings, PostgreSQL, and CPU task inference sidecar |
-| **RisuAI** | [`ai/risuai`](ai/risuai/) | Character-based LLM chat and roleplaying client | Traefik web route; persistent storage; uses `compose.yml` |
+| **RisuAI** | [`ai/risuai`](ai/risuai/) | Character-based LLM chat and roleplaying client | Traefik web route; persistent storage |
 | **SmartGallery** | [`ai/comfyui-gallery`](ai/comfyui-gallery/) | Visual gallery and workflow browser for ComfyUI outputs | Shares ComfyUI output, input, and model directories |
 | **Strata** | [`ai/strata`](ai/strata/README.md) | High-throughput Qwen3.8-Flash-Next inference engine | Dual-GPU layer split (RTX 4080 + RTX 3060) with CPU offloading; custom Bake build |
 | **Text Generation WebUI** | [`ai/textgen`](ai/textgen/) | Multi-backend LLM loading and interactive generation interface | On-demand GPU 0 workload with persistent user data and cache |
