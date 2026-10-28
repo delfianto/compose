@@ -6,9 +6,9 @@ and routes each hostname to the correct container.
 
 | Project | Purpose | Access and integration |
 | --- | --- | --- |
-| [Traefik](traefik/) | Reverse proxy, HTTPS certificate management, and Docker-label routing | Host ports 80/443; `proxy` network; dashboard at `traefik.${TRAEFIK_ACME_DOMAIN}` |
 | [Forgejo](forgejo/) | Self-hosted Git repositories, code review, and collaboration | Web at `git.${TRAEFIK_ACME_DOMAIN}`; SSH host port 222; PostgreSQL on `database` |
 | [Infisical](infisical/) | Application for managing and distributing secrets | Web at `infisical.${TRAEFIK_ACME_DOMAIN}`; database URI and Valkey configured separately |
+| [Traefik](traefik/) | Reverse proxy, HTTPS certificate management, and Docker-label routing | Host ports 80/443; `proxy` network; dashboard at `traefik.${TRAEFIK_ACME_DOMAIN}` |
 
 ## Traefik routing and certificates
 

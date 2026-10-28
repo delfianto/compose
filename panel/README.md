@@ -25,7 +25,8 @@ consistent with that level of control.
 ## Image updates
 
 Custom local images need their build workflow; a registry pull cannot
-rebuild ComfyUI, ComfyUI MCP, or Strata's source.
+rebuild Strata's local source. Images published to GHCR (such as ComfyUI and
+Forge Neo) are pulled and updated directly through `composectl update`.
 
 The companion `docker upgrade` command from
 [docker-conf](https://github.com/delfianto/docker-conf) refreshes local images

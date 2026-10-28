@@ -7,6 +7,8 @@ moving or duplicating the media collection.
 | Project | Purpose | Integration |
 | --- | --- | --- |
 | [Immich](immich/) | Photo/video backup, browsing, and machine-learning search | Server plus CUDA machine-learning container; PostgreSQL/VectorChord and Valkey |
+| [Jellyfin](jellyfin/) | Open-source media streaming server | Hardware NVENC/NVDEC transcoding on GPU 1; LAN ports 8096 and 7359 |
+| [Lychee](lychee/) | Manga, comic, and image gallery reader | Traefik web route; secret-file key management; connects to library storage |
 | [PhotoPrism](photoprism/) | Indexes and organizes an existing photo/video library | MariaDB storage; original files mounted read-only; separate writable application storage |
 | [Plex + Tautulli](plex/) | Streams a media library and reports playback activity | Plex hardware transcoding plus Tautulli monitoring in one Compose project |
 | [Stash](stash/) | Catalogs and organizes an adult-media library | Persistent metadata, generated previews, and caches; hardware-accelerated image |
@@ -24,14 +26,14 @@ them. Image updates do not migrate your source collection to a new host path.
 
 ## Networks, databases, and GPUs
 
-Web interfaces use Traefik on `proxy`; Plex also publishes its own streaming and
+Web interfaces use Traefik on `proxy`; Plex and Jellyfin also publish direct streaming and
 discovery ports. Immich and PhotoPrism join `database` for their storage services.
 Immich has recorded requirements on `db-vchord` and `db-valkey`; PhotoPrism names
 MariaDB in runtime config, but that dependency is not in the current mirror.
 
 GPU-enabled containers use their project's `GPU_ID`, currently GPU 1 on this
-host. Immich's machine-learning sidecar uses CUDA; PhotoPrism, Plex, and Stash
-also declare NVIDIA access. These workloads share the 3060 with AI services,
+host. Immich's machine-learning sidecar uses CUDA; Jellyfin, PhotoPrism, Plex, and Stash
+also declare NVIDIA access. These workloads share the RTX 3060 with AI services,
 so transcoding and inference can compete for VRAM.
 
 [Repository guide](../README.md) · [Databases](../db/README.md) · [Traefik](../infra/README.md)
