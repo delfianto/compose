@@ -15,16 +15,26 @@ The Compose stack runs two complementary containers connected over the internal 
 | `comfyui-app` | `ghcr.io/delfianto/comfyui-app:latest` | `127.0.0.1:8188`<br>`comfyui.${TRAEFIK_ACME_DOMAIN}` | Core ComfyUI web UI and node inference engine running Python 3.14 on CUDA 13.4.2 (PyTorch 2.11). Dual-GPU CDI access (`gpu=0` and `gpu=1`). |
 | `comfyui-proxy` | `ghcr.io/delfianto/comfyui-proxy:latest` | `127.0.0.1:8189` | Official Comfy API v2 proxy sidecar (`comfy-api-proxy`). Handles v2 job queues, model downloads, and SDK communication without cloud egress. |
 
-```
-                              [ Traefik Proxy ]
-                                      │
-                         (https://comfyui.example.com)
-                                      ▼
-[ Host / Local SDK ] ────▶ [ comfyui-app :8188 ] ◀────┐
-   (127.0.0.1:8188)                   ▲               │ (Internal genai
-                                      │ depends_on    │  network :8188)
-[ Host / Local SDK ] ────▶ [ comfyui-proxy :8189 ] ───┘
-   (127.0.0.1:8189)
+```mermaid
+flowchart TD
+    Traefik["Traefik Reverse Proxy<br>comfyui.${TRAEFIK_ACME_DOMAIN}"]
+    HostClient["Host / Local SDK Client"]
+
+    subgraph ComfyStack["ComfyUI Compose Stack"]
+        ComfyApp["comfyui-app<br>Port 8188 (UI & Inference)"]
+        ComfyProxy["comfyui-proxy<br>Port 8189 (Comfy API v2)"]
+        Storage[("Persistent Storage<br>/data (models, inputs, user db)")]
+    end
+
+    Traefik -->|"HTTPS (:443) / proxy network"| ComfyApp
+    HostClient -->|"HTTP (127.0.0.1:8188)"| ComfyApp
+    HostClient -->|"HTTP (127.0.0.1:8189)<br>Comfy SDK / API v2"| ComfyProxy
+
+    ComfyProxy -->|"Internal genai network<br>http://comfyui:8188"| ComfyApp
+    ComfyProxy -.->|"depends_on (service_healthy)"| ComfyApp
+
+    ComfyApp --- Storage
+    ComfyProxy --- Storage
 ```
 
 ---
