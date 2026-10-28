@@ -87,14 +87,14 @@ print(f"Active jobs: {len(jobs.jobs)}")
 A verification script is provided in the `comfyui-docker` repository:
 
 ```bash
-uv run --with comfy-sdk python /srv/project/github/comfyui-docker/smoke-test-proxy.py
+uv run --with comfy-sdk python <path-to-comfyui-docker>/smoke-test-proxy.py
 ```
 
 ---
 
 ## Data Paths & Volume Layout
 
-All valuable and persistent data lives outside the container under `${DATA_DIR}` (`/srv/appdata/comfyui` by default) and `${OUTPUT_DIR}`:
+All valuable and persistent data lives outside the container under `${DATA_DIR}` and `${OUTPUT_DIR}`:
 
 | Host Path | Container Mount | Purpose |
 | :--- | :--- | :--- |
@@ -102,7 +102,7 @@ All valuable and persistent data lives outside the container under `${DATA_DIR}`
 | `${DATA_DIR}/custom_nodes` | `/data/custom_nodes` | Persistent custom node Git checkouts |
 | `${DATA_DIR}/input` | `/data/input` | Input images, audio, and reference assets |
 | `${DATA_DIR}/user` | `/data/user` | SQLite database (`comfyui.db`), user settings, LoRA metadata, proxy storage |
-| `${OUTPUT_DIR}` | `/data/output` | Generated renders (`~/Pictures/ComfyUI`) |
+| `${OUTPUT_DIR}` | `/data/output` | Generated renders |
 | `${DATA_DIR}/cache/uv` | `/var/cache/uv` | Persistent cache for `uv pip` custom node dependencies |
 | `${DATA_DIR}/cache/torch` | `/var/cache/torch` | PyTorch hub model cache |
 | `${DATA_DIR}/cache/huggingface` | `/var/cache/huggingface` | Hugging Face model cache |
@@ -111,7 +111,7 @@ All valuable and persistent data lives outside the container under `${DATA_DIR}`
 
 ### Custom Node Dependency Management
 
-Custom nodes survive container recreation because they live in `/srv/appdata/comfyui/custom_nodes`. When `COMFYUI_INSTALL_CUSTOM_NODE_REQUIREMENTS=true` is set:
+Custom nodes survive container recreation because they live in `${DATA_DIR}/custom_nodes`. When `COMFYUI_INSTALL_CUSTOM_NODE_REQUIREMENTS=true` is set:
 
 1. The entrypoint hashes declared `requirements.txt` across all custom nodes.
 2. If dependencies changed, `uv pip` synchronizes packages into `/opt/venv` using the persistent cache at `/var/cache/uv`.
@@ -144,7 +144,7 @@ The runtime image includes 32-bit bootstrap libraries, Xvfb, and Vulkan tools to
 - DLSS runtime libraries live in `${DATA_DIR}/models/dlss5`.
 - For initial Wineprefix setup or after Proton upgrades, run `init-dlss-prefix.sh` from the [comfyui-docker](https://github.com/delfianto/comfyui-docker) repository:
   ```bash
-  docker cp /srv/project/github/comfyui-docker/init-dlss-prefix.sh comfyui-app:/tmp/init-dlss-prefix.sh
+  docker cp <path-to-comfyui-docker>/init-dlss-prefix.sh comfyui-app:/tmp/init-dlss-prefix.sh
   docker exec comfyui-app bash /tmp/init-dlss-prefix.sh
   ```
 
@@ -168,8 +168,8 @@ COMFYUI_UPDATE_STRICT=false
 COMFYUI_INSTALL_CUSTOM_NODE_REQUIREMENTS=true
 
 # Persistent paths
-DATA_DIR=/srv/appdata/comfyui
-OUTPUT_DIR=${HOME}/Pictures/ComfyUI
+DATA_DIR=/path/to/appdata/comfyui
+OUTPUT_DIR=/path/to/output
 
 # API proxy loopback port
 PROXY_PORT=8189
@@ -179,6 +179,6 @@ PROXY_PORT=8189
 
 ## Container Security & Rootless Docker
 
-- **Rootless User Namespace**: Containers run as container uid `0:0`, which safely maps to the unprivileged host user (`geist`, UID 1000) under rootless Docker.
+- **Rootless User Namespace**: Containers run as container uid `0:0`, which safely maps to the unprivileged host user (e.g. UID 1000) under rootless Docker.
 - **Privilege Dropping**: All Linux capabilities are dropped (`cap_drop: - ALL`) and `no-new-privileges: true` is enforced on both services.
 - **Read-Only Rootfs**: The `comfyui-proxy` container runs with a read-only root filesystem (`read_only: true`), mounting isolated `tmpfs` at `/tmp`.

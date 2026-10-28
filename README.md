@@ -168,13 +168,13 @@ requires = ["db-vchord", "db-valkey"]
 | **Project overrides** | `<service>/.env.local` | Local interpolation overrides (evaluated last) | No (`.gitignore`) |
 | **Container runtime** | `<service>/<service>.env` | Application runtime environment variables | Yes |
 | **Container secrets** | `<service>/<service>.env.local` | Local runtime secrets (when referenced via `env_file`) | No (`.gitignore`) |
-| **Central Secret Store** | `/srv/appdata/secret/` | File-backed credentials mounted as Docker secrets (`mode 0600`) | No |
+| **Central Secret Store** | `${SECRET_DIR}` (e.g. `${COMPOSE_DATA}/secret/`) | File-backed credentials mounted as Docker secrets (`mode 0600`) | No |
 
 **Interpolation Precedence**: `~/.config/docker/compose.env` < `.env` < `.env.local`.
 
 ### Secret Management Pattern
 
-Passwords and API keys must never be committed to git. Secrets are stored centrally in `/srv/appdata/secret/` (`SECRET_DIR`, owned by host `geist:geist` mode `0700`, files mode `0600`) and mounted via Compose secrets:
+Passwords and API keys must never be committed to git. Secrets are stored centrally in `${SECRET_DIR}` (owned by the host daemon owner, directory mode `0700`, files mode `0600`) and mounted via Compose secrets:
 
 ```yaml
 secrets:
@@ -224,10 +224,10 @@ The host features dual NVIDIA GPUs managed through Container Device Interface (C
 
 ## Rootless Docker User Mapping
 
-All services run on a rootless Docker daemon under user `geist` (host UID 1000):
+All services run on a rootless Docker daemon under an unprivileged host user:
 
-- **UID `0:0` inside container**: Maps directly to host UID `1000:1000` (`geist:geist`). Bind mounts owned by `geist` on the host are writable without permission errors when containers run as `user: "0:0"`.
-- **Non-zero UID inside container**: Maps into subordinate UIDs (container UID `1000` maps to host UID `100999`).
+- **UID `0:0` inside container**: Maps directly to the rootless daemon owner on the host (e.g. host UID 1000). Bind mounts owned by the daemon user on the host are writable without permission errors when containers run as `user: "0:0"`.
+- **Non-zero UID inside container**: Maps into subordinate UIDs in the user namespace (e.g. container UID `1000` maps to subordinate host UID `100000+`).
 - **Privilege Dropping**: Containers drop all Linux capabilities (`cap_drop: - ALL`) and enforce `no-new-privileges: true`.
 
 ---
