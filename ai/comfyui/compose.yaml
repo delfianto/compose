@@ -1,7 +1,7 @@
 services:
   comfyui:
     image: ${IMAGE_NAME}:${IMAGE_TAG}
-    container_name: comfyui
+    container_name: comfyui-app
     restart: "no"
     init: true
     # Use default node caching; workflow-boundary cleanup is requested separately.
