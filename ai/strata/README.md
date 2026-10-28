@@ -15,8 +15,8 @@ building does not publish it to GHCR.
 ```
 
 `./compose.sh` loads existing host-wide defaults, `.env`, and `.env.local`
-in that order, so `DATA_DIR=/mnt/sata1/models/strata` wins over the tracked
-`/srv/appdata/strata` default. Updated `compose-utils` uses the same file order
+in that order, so a `DATA_DIR` override in `.env.local` wins over the tracked
+`.env` default. Updated `compose-utils` uses the same file order
 automatically. Shell environment variables still take precedence for direct
 commands, as usual with Compose.
 
@@ -37,7 +37,7 @@ See the repository's [rootless Docker guidance](../../README.md#rootless-docker)
 Prepare the data directory before starting:
 
 ```sh
-mkdir -p /mnt/sata1/models/strata
+mkdir -p "${DATA_DIR}"
 ```
 
 Strata uses `user: "0:0"`, `MEMLOCK_BYTES=34359738368`, and the local

@@ -33,7 +33,7 @@ basedpyright -p .
 ```
 
 Open this service folder as a Python subproject in Zed and select
-`/srv/compose/ai/toolkit/.venv/bin/python` in its toolchain selector if needed.
+`.venv/bin/python` in its toolchain selector if needed.
 The project manifest lets Zed distinguish this environment from the other
 Python services in the compose repository. `requirements.txt` files describe
 dependencies for standalone/container use; Zed does not install them.
@@ -46,13 +46,13 @@ The MCP source directory is named `mcp_adapter` so it does not shadow the SDK's
 
 | Host | Container | Purpose |
 | --- | --- | --- |
-| `/srv/appdata/toolkit/datasets` | `/app/ai-toolkit/datasets` | Training image folders |
-| `/srv/appdata/comfyui/models` | `/models` (read-only) | Diffusion, VAE, CLIP, LoRA files |
-| `/srv/appdata/toolkit/output` | `/app/ai-toolkit/output` | Checkpoints and sample images |
-| `/srv/appdata/toolkit/config` | `/app/ai-toolkit/config` | Saved job YAML |
-| `/srv/appdata/toolkit/models` | `/app/ai-toolkit/models` (read-only) | Hardlink aliases for existing weights |
-| `/srv/appdata/toolkit/cache/huggingface` | `/root/.cache/huggingface` | Tokenizer / model configuration cache |
-| `/srv/appdata/toolkit/database` | `/app/ai-toolkit/state` | UI SQLite database and WAL/SHM files |
+| `${DATA_DIR}/datasets` | `/app/ai-toolkit/datasets` | Training image folders |
+| `${COMFY_DATA_DIR}/models` | `/models` (read-only) | Diffusion, VAE, CLIP, LoRA files |
+| `${DATA_DIR}/output` | `/app/ai-toolkit/output` | Checkpoints and sample images |
+| `${DATA_DIR}/config` | `/app/ai-toolkit/config` | Saved job YAML |
+| `${DATA_DIR}/models` | `/app/ai-toolkit/models` (read-only) | Hardlink aliases for existing weights |
+| `${DATA_DIR}/cache/huggingface` | `/root/.cache/huggingface` | Tokenizer / model configuration cache |
+| `${DATA_DIR}/database` | `/app/ai-toolkit/state` | UI SQLite database and WAL/SHM files |
 
 The upstream database path `/app/ai-toolkit/aitk_db.db` is a symlink to
 `state/aitk_db.db`. Persisting its whole directory preserves SQLite's WAL
@@ -119,9 +119,9 @@ second copy of the weights:
 Create links on the host, before exposing them as separate container mounts:
 
 ```sh
-mkdir -p /srv/appdata/toolkit/models/krea2-official-raw
-ln /srv/appdata/comfyui/models/diffusion_models/krea2-raw-int8-convrot-mixed.safetensors \
-   /srv/appdata/toolkit/models/krea2-official-raw/raw.safetensors
+mkdir -p "${DATA_DIR}/models/krea2-official-raw"
+ln "${COMFY_DATA_DIR}/models/diffusion_models/krea2-raw-int8-convrot-mixed.safetensors" \
+   "${DATA_DIR}/models/krea2-official-raw/raw.safetensors"
 ```
 
 `ln` refuses to overwrite an existing alias. Hardlinks cannot cross
@@ -152,7 +152,7 @@ ComfyUI retained models on that GPU.
 5. Sample on Raw during the run; judge the LoRA on Turbo (and on snofs) in ComfyUI.
 
 Copy finished `.safetensors` from `${DATA_DIR}/output` into
-`/srv/appdata/comfyui/models/loras` when you want them in ComfyUI.
+`${COMFY_DATA_DIR}/models/loras` when you want them in ComfyUI.
 
 ## Preparing a larger character dataset
 
@@ -171,11 +171,11 @@ the six dataset folders through your Rust llama.rs runner and ik_llama.cpp:
 caption-datasets --json
 ```
 
-The launcher lives at `/srv/appdata/toolkit/captioning/caption-datasets`;
+The launcher lives at `${DATA_DIR}/captioning/caption-datasets`;
 `caption-datasets` on PATH is a symlink to it. It supplies the dataset root
 and private runner path.
 System instructions, model and compute settings live in the local profile
-`/srv/compose/ai/toolkit/captioning/gemma4-captioning.yaml`. There is no pipeline TOML file; the
+`captioning/gemma4-captioning.yaml`. There is no pipeline TOML file; the
 repository contains only a generic pipeline and example YAML. This profile
 uses GPU 1 with CPU expert offloading and the local GGUF plus its vision
 projector. It needs no Hugging Face download. The pipeline saves matching

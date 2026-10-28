@@ -25,7 +25,7 @@ import os
 import secrets
 from pathlib import Path
 
-directory = Path('/srv/appdata/secret')
+directory = Path(os.environ.get('SECRET_DIR', '/path/to/secret'))
 directory.mkdir(mode=0o700, parents=True, exist_ok=True)
 key = directory / 'lychee_secret'
 if not key.exists():
@@ -33,7 +33,7 @@ if not key.exists():
     with os.fdopen(fd, 'w') as stream:
         stream.write(secrets.token_urlsafe(48))
 PY
-mkdir -p /srv/appdata/lychee /srv/appdata/lychee/library
+mkdir -p "${DATA_DIR}" "${DATA_DIR}/library"
 docker compose --env-file "$HOME/.config/docker/compose.env" --env-file .env config --quiet
 composectl enable media-lychee
 composectl start media-lychee
@@ -48,7 +48,7 @@ mount to `:ro` if only reading existing media. No host port is published.
 (such as thumbnails). `STORAGE_PATH=/library` also makes this mount the root of
 Lychee's library/import folder browser. `LIBRARY_DIR` chooses its host location;
 inside Lychee, use `/library` paths. Back up both and
-`/srv/appdata/secret/lychee_secret`; changing or losing
+`${SECRET_DIR}/lychee_secret`; changing or losing
 the key makes stored account credentials unreadable. No external database or GPU
 is required, so no `service.toml` dependency entry is needed.
 

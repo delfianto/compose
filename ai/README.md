@@ -6,7 +6,7 @@ GPUs, and APIs without sharing their lifecycle.
 
 | Project | Purpose | Integration |
 | --- | --- | --- |
-| [AI Toolkit](toolkit/README.md) | Ostris LoRA trainer for Krea 2, Qwen Image 2.1, and other diffusion bases | GPU 0 for training, GPU 1 for captioning; UI at `toolkit.${TRAEFIK_ACME_DOMAIN}`; datasets under `/srv/appdata/toolkit/datasets`; ComfyUI models at `/models` |
+| [AI Toolkit](toolkit/README.md) | Ostris LoRA trainer for Krea 2, Qwen Image 2.1, and other diffusion bases | GPU 0 for training, GPU 1 for captioning; UI at `toolkit.${TRAEFIK_ACME_DOMAIN}`; datasets under `${DATA_DIR}/datasets`; ComfyUI models at `/models` |
 | [Bifrost](bifrost/) | Gateway for accessing model providers through a common API | Connects AI clients to configured providers; uses PostgreSQL (VectorChord) and Valkey |
 | [ComfyUI](comfyui/README.md) | Workflow-based image, video, and generative media engine (`comfyui-app`) + official API proxy (`comfyui-proxy`) | Images from GHCR (`comfyui-docker`); both GPUs visible; persistent models, workflows, and outputs; local API proxy |
 | [Embedding](embedding/) | Text embedding and reranking for retrieval-augmented generation | TEI embedder, reranker, and proxy; GPU selected by `GPU_ID` |
