@@ -107,6 +107,45 @@ services:
       - "homepage.widget.mappings[2].field=system.ram_free"
       - "homepage.widget.mappings[2].format=bytes"
 
+  proxy:
+    image: ${IMAGE_PROXY_NAME:-ghcr.io/delfianto/comfyui-proxy}:${IMAGE_PROXY_TAG:-latest}
+    container_name: comfyui-proxy
+    restart: "no"
+    init: true
+    # Rootless container root maps to the host daemon owner.
+    user: "0:0"
+    ports:
+      - "127.0.0.1:${PROXY_PORT:-8189}:8189"
+    networks:
+      - genai
+      # Non-internal network enables rootless Docker's loopback port publishing.
+      - proxy
+    volumes:
+      - ${DATA_DIR}/models:/data/models
+      - ${DATA_DIR}/input:/data/input
+      - ${DATA_DIR}/user:/data/user
+      - ${OUTPUT_DIR}:/data/output
+    depends_on:
+      comfyui:
+        condition: service_healthy
+    read_only: true
+    tmpfs:
+      - /tmp:size=2G,mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://localhost:8189/api/v2/health', timeout=4)"
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
 networks:
   genai:
     external: true

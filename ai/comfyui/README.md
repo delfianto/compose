@@ -60,69 +60,47 @@ a BuildKit cache mount for `uv` without embedding its cache in image layers.
 
 ## Build and run
 
-[docker-bake.hcl](docker-bake.hcl) owns the build definition; Compose owns the
-runtime configuration. `./build.sh` loads shell-compatible `.env` assignments
-and optional `.env.local` overrides, then resolves the latest stable ComfyUI
-release through GitHub before invoking Docker Buildx Bake. The explicit tag is
-passed into the build, so new releases invalidate the source layer automatically.
-The default target builds for `linux/amd64` and loads both tags locally.
+Docker images (`ghcr.io/delfianto/comfyui-app`, `ghcr.io/delfianto/comfyui-cuda`,
+and `ghcr.io/delfianto/comfyui-proxy`) are built in the dedicated
+[comfyui-docker](https://github.com/delfianto/comfyui-docker) repository
+(`/srv/project/github/comfyui-docker`). Refer to that repository for Bake targets,
+build scripts, and Dockerfiles.
+
+This repository manages the runtime Compose deployment:
 
 ```sh
-./build.sh --pull base     # Once on a fresh host, or to refresh the base
-./build.sh                 # Latest stable release, with CUDA and DLSS
-./build.sh --version v0.3.60 # Older release for troubleshooting
-./build.sh --version 0.3.60  # Leading v is optional
-./build.sh --print          # Inspect without building
-./build.sh --check          # Dockerfile checks without exporting an image
+# Start ComfyUI and the API proxy via composectl
 composectl start ai-comfyui
+
+# Inspect status
+composectl status ai-comfyui --json
+
+# Restart after pulling new images
+composectl restart ai-comfyui
 ```
 
-`--version latest` also selects the latest stable release. Explicit versions are
-checked against upstream Git tags before starting the build. GitHub resolution
-failures stop the build rather than silently reusing a stale release. An older
-release must still support the configured Python, Torch and Manager stack.
+### Official Local API Proxy & SDK Integration
 
-Restart with `composectl restart ai-comfyui` after rebuilding. Builds do not
-restart services. Startup auto-update is disabled by default so a troubleshooting
-image keeps its selected version. With a version tag in Compose, also set
-`COMFYUI_AUTO_UPDATE=false` to retain it.
+The project includes an official local API proxy service (`comfyui-proxy`) exposing
+the **Comfy API v2** surface at `http://127.0.0.1:8189`. It connects upstream to
+ComfyUI over the internal `genai` network (`http://comfyui:8188`) and shares the
+model and data directories (`/data`) for atomic model placement, input uploads,
+and SQLite persistence (`/data/user/proxy`).
 
-The official Comfy MCP sidecar lives in [../comfyui-mcp](../comfyui-mcp/README.md) with its own
-systemd unit. `composectl restart ai-comfyui` updates ComfyUI without restarting
-MCP. Run `/srv/compose/ai/comfyui-mcp/update.py` to build the latest stable MCP
-release and restart MCP independently. Rebuild MCP after rebuilding the generation
-image to refresh its core workspace snapshot.
+Port `8189` is bound exclusively to host loopback (`127.0.0.1:8189`), providing a
+standard v2 contract for local code using the official Python (`comfy-sdk`) or
+TypeScript (`@comfyorg/sdk`) SDK without requiring cloud routing:
 
-### Reusable base image
-
-`Dockerfile.base` installs the CUDA/Ubuntu system packages, Python, `uv`, and
-matched PyTorch trio. The `base` Bake target saves it locally under `BASE_IMAGE`
-(default: `ghcr.io/delfianto/comfyui-cuda:13.4.2-base-ubuntu26.04`). It is built
-separately, so clearing build cache does not remove the tagged image and
-`--no-cache` on an application build does not reinstall its base dependencies.
-
-`Dockerfile` starts from that saved image and adds ComfyUI, its requirements,
-Proton's Linux dependencies and the entrypoint. Normal builds resolve a release
-before checking Docker's cache. Use `./build.sh --no-cache` only when you need to
-refresh packages or rebuild the same source release without cached layers.
-
-Build `base` first on a fresh host; normal runtime builds require that local
-image or registry access to a published copy. Reserve `--pull` for base builds
-when the base is local-only: passing it to a runtime build forces a registry
-lookup for `BASE_IMAGE`. Building does not publish either image. To share the
-base, explicitly push its configured tag to your registry.
-
-CUDA and Torch settings apply only when building `base`. When changing those
-versions, also choose a matching `BASE_IMAGE` tag in `.env` or `.env.local`, build
-it, then rebuild the runtime. For an OS/package refresh with the same versions:
-
-```sh
-./build.sh --pull --no-cache base
-./build.sh --no-cache
+```bash
+# Point the official SDK client to the local proxy:
+export COMFY_BASE_URL="http://127.0.0.1:8189"
 ```
 
-The base installs current packages from Ubuntu's configured repositories; it
-does not run a distribution upgrade.
+```python
+from comfy_sdk import Comfy
+
+client = Comfy()
+```
 
 ## Update policy
 

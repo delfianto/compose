@@ -11,7 +11,7 @@ Docker Compose orchestration for a self-hosted homelab. Modular compose files ma
 
 ```
 .
-├── ai/               # AI/ML services (bifrost, ollama, embedding, openwebui, comfyui, comfyui-mcp, comfyui-gallery, forgeneo, toolkit, koboldcpp, textgen, risuai)
+├── ai/               # AI/ML services (bifrost, ollama, embedding, openwebui, comfyui, comfyui-gallery, forgeneo, toolkit, koboldcpp, textgen, risuai)
 ├── db/               # Databases (vchord, mariadb, mongo, valkey)
 ├── infra/            # Infrastructure & Reverse proxy (forgejo, traefik)
 ├── media/            # Media services (immich, photoprism, plex, stash)
@@ -27,11 +27,11 @@ Each service lives in its own subdirectory with a `compose.yaml` and env files. 
 
 ### Naming
 
-- **Directories**: lowercase, generally no hyphens within a service name (e.g., `openwebui`, `forgeneo`); `ai/comfyui-mcp` and `ai/comfyui-gallery` are explicit exceptions.
+- **Directories**: lowercase, generally no hyphens within a service name (e.g., `openwebui`, `forgeneo`); `ai/comfyui-gallery` is an explicit exception.
 - **Compose files**: always `compose.yaml` (not `docker-compose.yml`), except `ai/risuai` which uses `compose.yml`
 - **Service names in compose**: lowercase simple names matching the directory (e.g., `ollama`, `vchord`)
 - **Container names**: set explicitly via `container_name:`
-- **Systemd service names**: `category-service` with path separators flattened to hyphens (e.g., `ai-ollama` -> `ai/ollama`, `ai-comfyui-mcp` -> `ai/comfyui-mcp`). The updated `composectl` resolver preserves hyphens inside existing directory names.
+- **Systemd service names**: `category-service` with path separators flattened to hyphens (e.g., `ai-ollama` -> `ai/ollama`). The updated `composectl` resolver preserves hyphens inside existing directory names.
 - **Subdomains**: `{shortname}.${TRAEFIK_ACME_DOMAIN}` (e.g., `webui.example.com`)
 
 ### Environment Files
@@ -141,7 +141,6 @@ Defined in `service.toml` and mirrored via `composectl deps`:
 
 ```
 ai-bifrost       -> db-vchord, db-valkey
-ai-comfyui-mcp      -> ai-comfyui (optional startup dependency)
 ai-openwebui     -> db-vchord, ai-bifrost, ai-embedding (+ ai-ollama, optional)
 infra-forgejo    -> db-vchord
 media-immich     -> db-vchord, db-valkey
@@ -203,6 +202,7 @@ Every subcommand on both personas accepts `--json` for machine-parseable output 
 
 ## Custom Builds
 
+- ComfyUI & API Proxy (CUDA 13.4.2, Python 3.14, DLSS, and API proxy): build moved to its own repo (`comfyui-docker`)
 - Forge Neo SD WebUI (CUDA 13.2, Python 3.13, `ai/forgeneo`'s `forgeneo` service): build moved to its own repo (`sd-webui-forge-docker`)
 - Zen5-optimized llama.cpp CPU inference (OpenWebUI's `sidecar` service): build moved to its own repo
 - Images pushed to `ghcr.io/delfianto/`

@@ -52,7 +52,7 @@ way to manage startup, updates, and dependencies across projects.
 This repository's `category/project` layout is intentional. With `COMPOSE_BASE`
 pointing at the checkout, `ai/ollama` resolves to `ai-ollama` and
 `infra/traefik` to `infra-traefik`. Hyphens inside project names are preserved:
-`ai/comfyui-mcp` becomes `ai-comfyui-mcp`. One project can contain multiple
+`ai/comfyui-gallery` becomes `ai-comfyui-gallery`. One project can contain multiple
 containers; for example, `media/plex` manages Plex and Tautulli together.
 
 Compose `depends_on` coordinates services within one Compose project; it does

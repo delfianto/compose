@@ -12,8 +12,7 @@ GPUs, and APIs without sharing their lifecycle.
 | [Open WebUI](openwebui/) | Browser chat interface for local and remote models | Uses Bifrost, embeddings, and PostgreSQL; includes CPU task inference and Open Terminal containers |
 | [Hollama](hollama/README.md) | Minimal browser client for local LLM APIs | Browser-side settings and conversations; configure an endpoint reachable from the browser |
 | [Strata](strata/README.md) | Runs Qwen3.8-Flash-Next using GPU caches and CPU/RAM offload | Release-tagged Bake build; RTX 4080 + RTX 3060 layer split |
-| [ComfyUI](comfyui/README.md) | Workflow-based image, video, and other generative media processing | Custom NVIDIA image; both GPUs visible; persistent models, workflows, and outputs |
-| [ComfyUI MCP](comfyui-mcp/README.md) | Lets MCP clients interact with ComfyUI | Separate server and lifecycle; connects over `genai`, endpoint bound to localhost |
+| [ComfyUI](comfyui/README.md) | Workflow-based image, video, and other generative media processing | Custom NVIDIA image; both GPUs visible; persistent models, workflows, and outputs; local API proxy |
 | [SmartGallery](comfyui-gallery/) | Browses ComfyUI outputs and their workflows | Shares output, input, and model directories with ComfyUI |
 | [Forge Neo](forgeneo/README.md) | Stable Diffusion WebUI for image generation | Custom image; shares ComfyUI assets read-only; uses GPU 0 |
 | [AI Toolkit](toolkit/README.md) | Ostris LoRA trainer for Krea 2, Qwen Image 2.1, and other diffusion bases | GPU 0 for training, GPU 1 for captioning; UI at `toolkit.${TRAEFIK_ACME_DOMAIN}`; datasets under `/srv/appdata/toolkit/datasets`; ComfyUI models at `/models` |
@@ -25,8 +24,8 @@ GPUs, and APIs without sharing their lifecycle.
 
 Open WebUI is the main consumer-facing chat project. It uses PostgreSQL,
 Bifrost, and the embedding APIs, with Ollama as an optional model backend.
-Bifrost uses PostgreSQL and Valkey. ComfyUI MCP connects to ComfyUI while
-remaining independently updatable from the generation backend.
+Bifrost uses PostgreSQL and Valkey. ComfyUI includes an official local API proxy
+for SDK integrations.
 
 The `genai` network carries internal APIs where projects declare it. Browser
 interfaces use Traefik on `proxy`; direct API ports remain configured for some
@@ -47,7 +46,7 @@ reads shared ComfyUI data, while ComfyUI and SmartGallery can write their output
 Large-model startup may need substantial system RAM as well as VRAM.
 
 Custom images require a build, not just an image pull. Follow the project README
-for ComfyUI, ComfyUI MCP, Forge Neo, or Strata before using an update command.
+for ComfyUI, Forge Neo, or Strata before using an update command.
 Strata supplies a standalone wrapper for configuration checks and Bake builds;
 compose-utils also loads its `.env.local` storage override automatically.
 
