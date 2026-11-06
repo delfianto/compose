@@ -21,6 +21,69 @@ StateDict = dict[str, object]
 WeightCandidates = dict[str | tuple[str, str], list[str]]
 
 
+class CheckpointLoader(Protocol):
+    load_file: Callable[..., StateDict]
+
+
+def _restore_quantization_markers(
+    state_dict: StateDict, metadata: dict[str, str]
+) -> StateDict:
+    """Translate header-only Comfy quantization into Toolkit's tensor markers."""
+    raw = metadata.get("_quantization_metadata")
+    if raw is None:
+        return state_dict
+    config = json.loads(raw)
+    if (
+        not isinstance(config, dict)
+        or config.get("format_version") != "1.0"
+        or not isinstance(config.get("layers"), dict)
+    ):
+        raise ValueError("Unsupported Krea2 quantization metadata schema")
+    # Keep imports lazy: the .pth hook is also loaded by non-training tools.
+    torch = importlib.import_module("torch")
+    converted = dict(state_dict)
+    for prefix, layer_config in config["layers"].items():
+        if not isinstance(layer_config, dict) or layer_config.get("format") not in {
+            "int8_tensorwise",
+            "nvfp4",
+            "float8_e4m3fn",
+        }:
+            raise ValueError(f"Unsupported Krea2 quantization metadata for {prefix}")
+        for suffix in (".weight", ".weight_scale"):
+            if prefix + suffix not in converted:
+                raise ValueError(f"Missing quantized Krea2 tensor: {prefix + suffix}")
+        marker = prefix + ".comfy_quant"
+        if marker in converted:
+            existing = json.loads(
+                bytes(cast(QuantizedTensor, converted[marker]).tolist()).decode()
+            )
+            if existing != layer_config:
+                raise ValueError(f"Conflicting Krea2 quantization metadata: {prefix}")
+        else:
+            converted[marker] = torch.tensor(
+                list(json.dumps(layer_config).encode()), dtype=torch.uint8
+            )
+    print(
+        f"Restored quantization markers for {len(config['layers'])} Krea2 layers from header",
+        flush=True,
+    )
+    return converted
+
+
+def _patch_krea_loader(mod: ModuleType) -> None:
+    loader = cast(CheckpointLoader, mod)
+    original = loader.load_file
+
+    def load_file(path: str, *args: object, **kwargs: object) -> StateDict:
+        safetensors = importlib.import_module("safetensors")
+        with safetensors.safe_open(path, framework="pt", device="cpu") as handle:
+            metadata = handle.metadata() or {}
+        return _restore_quantization_markers(original(path, *args, **kwargs), metadata)
+
+    # Only Krea's file reader changes; other safetensors consumers are untouched.
+    loader.load_file = load_file
+
+
 class BoundConverter(Protocol):
     @property
     def __func__(self) -> Callable[[type[object], StateDict], StateDict]: ...
@@ -133,6 +196,7 @@ _PATCHERS: dict[str, Callable[[ModuleType], None]] = {
     "toolkit.models.v2.vae.qwen_image": _patch_vae,
     "toolkit.models.v2.text_encoders.qwen3_vl": _patch_te,
     "extensions_built_in.diffusion_models.krea2.src.mmdit": _patch_krea,
+    "extensions_built_in.diffusion_models.krea2.krea2": _patch_krea_loader,
 }
 
 

@@ -5,9 +5,9 @@ The container is on-demand and exposes GPU 0 (RTX 4080) and GPU 1 (RTX 3060).
 Use GPU 0 for training and GPU 1 for captioning. GPU 1
 is also shared by other homelab services; check available VRAM before captioning.
 The UI is at
-`https://toolkit.${TRAEFIK_ACME_DOMAIN}` and is gated by `AI_TOOLKIT_AUTH`.
+`https://ostris.${TRAEFIK_ACME_DOMAIN}` and is gated by `AI_TOOLKIT_AUTH`.
 The [MCP adapter](mcp_adapter/README.md) runs inside the same container at
-`https://toolkit-mcp.${TRAEFIK_ACME_DOMAIN}/mcp`, using the same bearer token.
+`https://ostris-mcp.${TRAEFIK_ACME_DOMAIN}/mcp`, using the same bearer token.
 Harnesses can manage UI jobs, datasets, GPU queues, logs, samples and LoRAs
 through reusable tools.
 
@@ -47,10 +47,10 @@ The MCP source directory is named `mcp_adapter` so it does not shadow the SDK's
 | Host | Container | Purpose |
 | --- | --- | --- |
 | `${DATA_DIR}/datasets` | `/app/ai-toolkit/datasets` | Training image folders |
-| `${COMFY_DATA_DIR}/models` | `/models` (read-only) | Diffusion, VAE, CLIP, LoRA files |
+| `${COMFY_MODELS_DIR}` | `/models` (read-only) | Shared ComfyUI diffusion, VAE, CLIP, LoRA files |
 | `${DATA_DIR}/output` | `/app/ai-toolkit/output` | Checkpoints and sample images |
 | `${DATA_DIR}/config` | `/app/ai-toolkit/config` | Saved job YAML |
-| `${DATA_DIR}/models` | `/app/ai-toolkit/models` (read-only) | Hardlink aliases for existing weights |
+| `${DATA_DIR}/models` | `/app/ai-toolkit/models` (read-only) | Legacy paths used by previous jobs |
 | `${DATA_DIR}/cache/huggingface` | `/root/.cache/huggingface` | Tokenizer / model configuration cache |
 | `${DATA_DIR}/database` | `/app/ai-toolkit/state` | UI SQLite database and WAL/SHM files |
 
@@ -59,22 +59,17 @@ The upstream database path `/app/ai-toolkit/aitk_db.db` is a symlink to
 across container recreation. On an existing installation, stop Toolkit and
 checkpoint/backup the database before migrating the old file into `database/`.
 
-Krea 2 RAW (this host, user-provided INT8 ConvRot conversion):
+Krea 2 Lustify v10 RAW (this host, INT8 ConvRot conversion):
 
 ```
-/models/diffusion_models/krea2-raw-int8-convrot-mixed.safetensors
+/models/diffusion_models/krea2-lustify-v10-raw.safetensors
 ```
 
-The trainer loads this local conversion as `name_or_path`, preserving its
-embedded quantization. It also has a hardlink alias:
-
-```
-/app/ai-toolkit/models/krea2-official-raw/raw.safetensors
-```
-
-Use either file path with architecture **Krea 2 (raw)** (`krea2`). If using
-the directory `/app/ai-toolkit/models/krea2-official-raw`, set
-`model.model_kwargs.checkpoint_filename: raw.safetensors`.
+Use this exact container path as `model.name_or_path` with architecture
+**Krea 2 (raw)** (`krea2`). The complete shared model directory is mounted
+read-only at `/models`; no symlink, hardlink, renamed checkpoint or duplicate
+weights are needed. The bind mount refuses a missing host source. Other RAW
+finetunes can use their own direct `/models/diffusion_models/<file>` path.
 
 `MODELS_PATH=/models` makes the shared ComfyUI tree the toolkit model search
 root. The Qwen3-VL-4B text encoder and Qwen-Image VAE are the files already
@@ -99,38 +94,36 @@ The hook also decodes the tiny text-layer projector from plain INT8 to floating
 point in memory when a repack quantizes it: its 12 inputs do not meet the CUDA
 INT8 kernel alignment requirement. Main transformer layers stay quantized.
 
+Lustify v10 RAW stores its quantization configuration in safetensors header
+`_quantization_metadata` version 1.0 instead of per-layer `.comfy_quant`
+tensors. The Krea file-reader hook translates those entries into Toolkit's
+in-memory markers before loading, preserving the original INT8 weights,
+scales and ConvRot group sizes. The source file is unchanged. Missing scales,
+unsupported schemas and conflicting markers fail explicitly. Recheck upstream
+header support after image upgrades before removing this compatibility hook.
+
 `HF_HUB_OFFLINE=1` and `TRANSFORMERS_OFFLINE=1` in `toolkit.env` block Hub
 downloads. Tokenizer and configuration files must already be in the mounted
 Hugging Face cache; the Qwen files are seeded on this host. Missing cache
 entries fail offline. All shared weights are mounted read-only.
 
-## Hardlinks
+## Legacy paths and verification
 
-The ComfyUI and toolkit data directories currently share the same host
-filesystem. These aliases share the original files' inodes and consume no
-second copy of the weights:
+The `/app/ai-toolkit/models` mount remains for previous saved jobs. New jobs
+use `/models` directly, including the VAE and text encoder. No new aliases
+should be created. Replacing a checkpoint under its normal ComfyUI filename
+is visible on the next load through the shared directory mount.
 
-| Toolkit models alias | ComfyUI models source |
-| --- | --- |
-| `krea2-snofs-raw/raw.safetensors` | `diffusion_models/krea2-snofs-raw-v1.4-int8-convrot.safetensors` |
-| `vae/qwen-image-vae-bf16.safetensors` | `vae/qwen-image-vae-bf16.safetensors` |
-| `clip/qwen3-vl-4b-fp8-scaled.safetensors` | `clip/qwen3-vl-4b-fp8-scaled.safetensors` |
+The UI draft `jenada_krea2_lustify_raw_v1_2000` uses this direct Lustify path
+and preserves the portrait/context datasets and settings from
+`jenada_krea2_official_raw_v3_2000`. Its exported job is saved under
+`${DATA_DIR}/config/jenada_krea2_lustify_raw_v1_2000.json`. It has not been
+queued for training.
 
-Create links on the host, before exposing them as separate container mounts:
-
-```sh
-mkdir -p "${DATA_DIR}/models/krea2-official-raw"
-ln "${COMFY_DATA_DIR}/models/diffusion_models/krea2-raw-int8-convrot-mixed.safetensors" \
-   "${DATA_DIR}/models/krea2-official-raw/raw.safetensors"
-```
-
-`ln` refuses to overwrite an existing alias. Hardlinks cannot cross
-filesystems or link directories. Editing either link changes the same file;
-replacing a source file by rename leaves the alias pointing at the old inode.
-Refresh the alias after replacing a model. A matching filename does not
-convert quantization or tensor keys into another format, nor populate a Hub
-cache. The local loader handles those formats here; the VAE and text-encoder
-aliases are optional because the patch loads directly from `/models`.
+Lustify v10 RAW passed a strict transformer load on CPU using the live
+container's loader: all parameters materialized and all 256 INT8 ConvRot
+layers retained rotation group size 256. This verifies checkpoint loading,
+not training quality or GPU memory requirements.
 
 Verified on this host: the local Snofs transformer, Qwen VAE, Qwen3-VL text
 encoder and tokenizer load with Hub access disabled. A 50-step LoRA test
@@ -143,16 +136,18 @@ ComfyUI retained models on that GPU.
 1. Open the UI and create a dataset from a folder under `/app/ai-toolkit/datasets`
    (for example `my_subject`). Captions are optional for a character LoRA.
 2. New job → architecture **Krea 2 (K2)**.
-3. Set **name or path** to either snofs file path above. Keep **quantize**, **quantize TE**,
+3. Set **name or path** to `/models/diffusion_models/krea2-lustify-v10-raw.safetensors`.
+   Keep **quantize**, **quantize TE**,
    and **low VRAM** enabled.
 4. Training: `linear` timesteps, flowmatch, batch 1, gradient accumulation 2,
    rank/alpha 32, LR `1e-4` to `2e-4`, 750–2500 steps. Cache latents and enable
    **Cache Text Embeddings**. Leave **Unload Text Encoder** off so captions
    are used; that option trains with only the trigger/blank prompt.
-5. Sample on Raw during the run; judge the LoRA on Turbo (and on snofs) in ComfyUI.
+5. Sample on Raw during the run; evaluate the LoRA on your chosen compatible
+   Krea base in ComfyUI.
 
 Copy finished `.safetensors` from `${DATA_DIR}/output` into
-`${COMFY_DATA_DIR}/models/loras` when you want them in ComfyUI.
+`${COMFY_MODELS_DIR}/loras` when you want them in ComfyUI.
 
 ## Preparing a larger character dataset
 

@@ -18,7 +18,7 @@ services:
       - source: aitoolkit_auth
         target: AI_TOOLKIT_AUTH
     environment:
-      TOOLKIT_MCP_ALLOWED_HOSTS: "localhost:*,127.0.0.1:*,toolkit:*,toolkit-mcp.${TRAEFIK_ACME_DOMAIN}"
+      TOOLKIT_MCP_ALLOWED_HOSTS: "localhost:*,127.0.0.1:*,toolkit:*,ostris-mcp.${TRAEFIK_ACME_DOMAIN}"
     networks:
       - proxy
     volumes:
@@ -29,7 +29,15 @@ services:
       - ./sitecustomize.py:/usr/local/lib/python3.12/dist-packages/toolkit_local_models.py:ro
       - ./toolkit-local-models.pth:/usr/local/lib/python3.12/dist-packages/toolkit-local-models.pth:ro
       - ${DATASETS_DIR}:/app/ai-toolkit/datasets
-      - ${COMFY_MODELS_DIR}:/models:ro
+      # Direct shared paths for training checkpoints, VAE and text encoders.
+      # Refuse a missing source instead of silently creating an empty model tree.
+      - type: bind
+        source: ${COMFY_MODELS_DIR}
+        target: /models
+        read_only: true
+        bind:
+          create_host_path: false
+      # Legacy job paths only; new jobs use /models directly without aliases.
       - ${DATA_DIR}/models:/app/ai-toolkit/models:ro
       - ${DATA_DIR}/output:/app/ai-toolkit/output
       - ${DATA_DIR}/config:/app/ai-toolkit/config
@@ -55,19 +63,19 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.toolkit.entrypoints=websecure"
-      - "traefik.http.routers.toolkit.rule=Host(`toolkit.${TRAEFIK_ACME_DOMAIN}`)"
+      - "traefik.http.routers.toolkit.rule=Host(`ostris.${TRAEFIK_ACME_DOMAIN}`)"
       - "traefik.http.routers.toolkit.tls.certresolver=cloudflare"
       - "traefik.http.routers.toolkit.service=toolkit"
       - "traefik.http.services.toolkit.loadbalancer.server.port=8675"
       - "traefik.http.routers.toolkit-mcp.entrypoints=websecure"
-      - "traefik.http.routers.toolkit-mcp.rule=Host(`toolkit-mcp.${TRAEFIK_ACME_DOMAIN}`)"
+      - "traefik.http.routers.toolkit-mcp.rule=Host(`ostris-mcp.${TRAEFIK_ACME_DOMAIN}`)"
       - "traefik.http.routers.toolkit-mcp.tls.certresolver=cloudflare"
       - "traefik.http.routers.toolkit-mcp.service=toolkit-mcp"
       - "traefik.http.services.toolkit-mcp.loadbalancer.server.port=8676"
       - "homepage.group=Artificial Intelligence"
       - "homepage.name=AI Toolkit"
       - "homepage.icon=mdi-tune-vertical"
-      - "homepage.href=https://toolkit.${TRAEFIK_ACME_DOMAIN}"
+      - "homepage.href=https://ostris.${TRAEFIK_ACME_DOMAIN}"
       - "homepage.description=Ostris LoRA trainer (Krea 2, Qwen Image 2.1)"
 
 networks:

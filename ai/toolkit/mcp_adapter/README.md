@@ -6,7 +6,7 @@ appear in the UI, and UI jobs are available through MCP.
 
 ## Connect a harness
 
-Streamable HTTP endpoint: `https://toolkit-mcp.${TRAEFIK_ACME_DOMAIN}/mcp`.
+Streamable HTTP endpoint: `https://ostris-mcp.${TRAEFIK_ACME_DOMAIN}/mcp`.
 Send `Authorization: Bearer <Toolkit UI token>` on **every** request.
 The token is the existing `aitoolkit_auth` secret, not the Hugging Face key.
 Use your harness's secret/environment facility; do not commit a real token.
@@ -18,7 +18,7 @@ For a client accepting an `mcpServers` JSON configuration:
   "mcpServers": {
     "toolkit": {
       "type": "http",
-      "url": "https://toolkit-mcp.your-domain.example/mcp",
+      "url": "https://ostris-mcp.your-domain.example/mcp",
       "headers": {"Authorization": "Bearer <Toolkit UI token>"}
     }
   }
@@ -120,4 +120,4 @@ docker exec toolkit /opt/toolkit-mcp/bin/python /opt/toolkit-mcp-src/smoke_test.
 The test authenticates, discovers tools, reads datasets/jobs/logs/outputs,
 clones a temporary draft, edits it and removes that draft through the UI API.
 It never queues training. Omit `--exercise-writes` for read-only checks.
-Pass `--url https://toolkit-mcp.your-domain.example/mcp` to test TLS routing.
+Pass `--url https://ostris-mcp.your-domain.example/mcp` to test TLS routing.
