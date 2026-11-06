@@ -21,6 +21,9 @@ services:
       - /etc/timezone:/etc/timezone:ro
       - ${DATA_DIR}/acme.json:/etc/traefik/acme.json
       - ${DOCKER_SOCK}:/var/run/docker.sock:ro
+      # Host routes and public backend trust certificates are local runtime data.
+      - ${DATA_DIR}/dynamic:/etc/traefik/dynamic:ro
+      - ${DATA_DIR}/backend-certs:/etc/traefik/backend-certs:ro
     command:
       # Traefik log level
       # Possible values: DEBUG, INFO, WARN, ERROR, FATAL
@@ -30,6 +33,9 @@ services:
       - --providers.docker=true
       - --providers.docker.exposedbydefault=false
       - --providers.docker.network=proxy
+      # Routes for services running directly on the host
+      - --providers.file.directory=/etc/traefik/dynamic
+      - --providers.file.watch=true
       # Entry points
       - --api.dashboard=true
       - --entrypoints.web.address=:80

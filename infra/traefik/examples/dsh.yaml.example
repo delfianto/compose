@@ -1,0 +1,36 @@
+# Copy into ${DATA_DIR}/dynamic/dsh.yaml and replace the example values.
+# This file is read by Traefik, not Compose: ${VARIABLE} is not interpolated.
+http:
+  routers:
+    dsh:
+      rule: Host(`dsh.example.com`)
+      entryPoints:
+        - websecure
+      service: dsh
+      tls:
+        certResolver: cloudflare
+    dsh-http:
+      rule: Host(`dsh.example.com`)
+      entryPoints:
+        - web
+      middlewares:
+        - dsh-https
+      service: dsh
+  middlewares:
+    dsh-https:
+      redirectScheme:
+        scheme: https
+        permanent: true
+  services:
+    dsh:
+      loadBalancer:
+        serversTransport: dsh-tls
+        servers:
+          # Use a backend address reachable from the Traefik container.
+          - url: https://192.0.2.10:3080
+  serversTransports:
+    dsh-tls:
+      # Must match a DNS name in the backend certificate's SAN extension.
+      serverName: dsh.example.com
+      rootCAs:
+        - /etc/traefik/backend-certs/dsh.crt

@@ -1,0 +1,2 @@
+# Resolved host routes belong under ${DATA_DIR}/dynamic, outside the repository.
+/dynamic/
