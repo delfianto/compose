@@ -102,7 +102,8 @@ All networks are declared `external: true` in compose files. Services connect on
 Dual NVIDIA GPU setup using Compose's CDI device syntax (`devices: - nvidia.com/gpu=<id>`) — not the older `deploy.resources.reservations.devices` block:
 
 - `ai/ollama` and `ai/comfyui` hardcode both `nvidia.com/gpu=0` and `=1` directly (visibility into both GPUs, not a var)
-- `ai/forgeneo`, `ai/toolkit`, `ai/koboldcpp`, and `ai/textgen` hardcode `nvidia.com/gpu=0` only — the latter three are on-demand tools not expected to run alongside `ai/ollama`/`ai/comfyui`/`ai/forgeneo` simultaneously
+- `ai/forgeneo`, `ai/koboldcpp`, and `ai/textgen` hardcode `nvidia.com/gpu=0` only — the latter two are on-demand tools not expected to run alongside `ai/ollama`/`ai/comfyui`/`ai/forgeneo` simultaneously
+- `ai/toolkit` exposes both GPUs; select GPU 0 for training or GPU 1 for captioning in its UI.
 - Everything else on a GPU reads `nvidia.com/gpu=${GPU_ID}` from its own `.env`: `ai/embedding`, `media/immich`, `media/photoprism`, `media/plex`, `media/stash` — all currently pinned to `GPU_ID=1`
 - OpenWebUI's sidecar is **CPU-only** (Zen5-optimized llama.cpp, see Custom Builds) — it does not reserve a GPU device
 - CDI device declarations only grant visibility, not an exclusive lock — VRAM budgeting across services sharing a GPU is a manual convention, not enforced by Docker
@@ -201,6 +202,8 @@ Every subcommand on both personas accepts `--json` for machine-parseable output 
 | Live Stats   | `docker pstats`  | Live container stats dashboard (`-1` one-shot, `-s` sort column)         |
 
 ## Custom Builds
+
+- AI Toolkit (catalog-based local model resolution, authenticated MCP): build lives in `ai-toolkit-docker`, published as `ghcr.io/delfianto/ai-toolkit`
 
 - ComfyUI & API Proxy (CUDA 13.4.2, Python 3.14, DLSS, and API proxy): build moved to its own repo (`comfyui-docker`)
 - Forge Neo SD WebUI (CUDA 13.2, Python 3.13, `ai/forgeneo`'s `forgeneo` service): build moved to its own repo (`sd-webui-forge-docker`)

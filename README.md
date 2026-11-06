@@ -41,7 +41,7 @@ Projects are organized by category under `category/service`. All 29 services are
 
 | Service | Path | Description | Integration |
 | :--- | :--- | :--- | :--- |
-| **AI Toolkit** | [`ai/toolkit`](ai/toolkit/README.md) | Ostris LoRA trainer for Krea 2, Qwen Image 2.1, and diffusion models | GPU 0 for training, GPU 1 for captioning; UI at `toolkit.${TRAEFIK_ACME_DOMAIN}` |
+| **AI Toolkit** | [`ai/toolkit`](ai/toolkit/README.md) | Ostris LoRA trainer for Krea 2, Qwen Image 2.1, and diffusion models | GPU 0 for training, GPU 1 for captioning; UI at `ostris.${TRAEFIK_ACME_DOMAIN}` |
 | **Bifrost** | [`ai/bifrost`](ai/bifrost/) | Unified AI proxy gateway across local and remote model providers | Upstream for Open WebUI; uses VectorChord (PostgreSQL) and Valkey |
 | **ComfyUI** | [`ai/comfyui`](ai/comfyui/README.md) | Node-based generative AI workflow engine (`comfyui-app`) + API v2 proxy (`comfyui-proxy`) | Dual GPUs visible via CDI; Linux DLSS5 via Proton; loopback ports 8188 and 8189; Traefik UI |
 | **Embedding** | [`ai/embedding`](ai/embedding/) | Text embedding and reranking microservice for RAG pipelines | TEI embedder, reranker, and proxy on GPU 1; used by Open WebUI |

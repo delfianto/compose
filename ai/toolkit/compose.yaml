@@ -1,8 +1,7 @@
 services:
   toolkit:
-    image: local/aitoolkit-mcp:latest
-    build: .
-    container_name: toolkit
+    image: ${AI_TOOLKIT_IMAGE}
+    container_name: ai-toolkit
     restart: "no"
     init: true
     user: "0:0"
@@ -18,16 +17,18 @@ services:
       - source: aitoolkit_auth
         target: AI_TOOLKIT_AUTH
     environment:
-      TOOLKIT_MCP_ALLOWED_HOSTS: "localhost:*,127.0.0.1:*,toolkit:*,ostris-mcp.${TRAEFIK_ACME_DOMAIN}"
+      TOOLKIT_MCP_ALLOWED_HOSTS: "localhost:*,127.0.0.1:*,ai-toolkit:*,ostris-mcp.${TRAEFIK_ACME_DOMAIN}"
     networks:
       - proxy
     volumes:
       - ${COMPOSE_BASE}/lib/secret-env.sh:/secret-env.sh:ro
-      - ./entrypoint.sh:/entrypoint.sh:ro
-      - ./mcp_adapter:/opt/toolkit-mcp-src:ro
-      # Ubuntu's /usr/lib sitecustomize wins; use a .pth import for our lazy patch.
-      - ./sitecustomize.py:/usr/local/lib/python3.12/dist-packages/toolkit_local_models.py:ro
-      - ./toolkit-local-models.pth:/usr/local/lib/python3.12/dist-packages/toolkit-local-models.pth:ro
+      # Catalog configuration is host data; resolver and compatibility code ship in the image.
+      - type: bind
+        source: ${MODEL_CATALOG}
+        target: /etc/ai-toolkit/models.json
+        read_only: true
+        bind:
+          create_host_path: false
       - ${DATASETS_DIR}:/app/ai-toolkit/datasets
       # Direct shared paths for training checkpoints, VAE and text encoders.
       # Refuse a missing source instead of silently creating an empty model tree.
@@ -37,7 +38,7 @@ services:
         read_only: true
         bind:
           create_host_path: false
-      # Legacy job paths only; new jobs use /models directly without aliases.
+      # Existing model assets remain available to catalog entries and saved jobs.
       - ${DATA_DIR}/models:/app/ai-toolkit/models:ro
       - ${DATA_DIR}/output:/app/ai-toolkit/output
       - ${DATA_DIR}/config:/app/ai-toolkit/config
@@ -62,16 +63,16 @@ services:
       start_period: 90s
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.toolkit.entrypoints=websecure"
-      - "traefik.http.routers.toolkit.rule=Host(`ostris.${TRAEFIK_ACME_DOMAIN}`)"
-      - "traefik.http.routers.toolkit.tls.certresolver=cloudflare"
-      - "traefik.http.routers.toolkit.service=toolkit"
-      - "traefik.http.services.toolkit.loadbalancer.server.port=8675"
-      - "traefik.http.routers.toolkit-mcp.entrypoints=websecure"
-      - "traefik.http.routers.toolkit-mcp.rule=Host(`ostris-mcp.${TRAEFIK_ACME_DOMAIN}`)"
-      - "traefik.http.routers.toolkit-mcp.tls.certresolver=cloudflare"
-      - "traefik.http.routers.toolkit-mcp.service=toolkit-mcp"
-      - "traefik.http.services.toolkit-mcp.loadbalancer.server.port=8676"
+      - "traefik.http.routers.ai-toolkit.entrypoints=websecure"
+      - "traefik.http.routers.ai-toolkit.rule=Host(`ostris.${TRAEFIK_ACME_DOMAIN}`)"
+      - "traefik.http.routers.ai-toolkit.tls.certresolver=cloudflare"
+      - "traefik.http.routers.ai-toolkit.service=ai-toolkit"
+      - "traefik.http.services.ai-toolkit.loadbalancer.server.port=8675"
+      - "traefik.http.routers.ai-toolkit-mcp.entrypoints=websecure"
+      - "traefik.http.routers.ai-toolkit-mcp.rule=Host(`ostris-mcp.${TRAEFIK_ACME_DOMAIN}`)"
+      - "traefik.http.routers.ai-toolkit-mcp.tls.certresolver=cloudflare"
+      - "traefik.http.routers.ai-toolkit-mcp.service=ai-toolkit-mcp"
+      - "traefik.http.services.ai-toolkit-mcp.loadbalancer.server.port=8676"
       - "homepage.group=Artificial Intelligence"
       - "homepage.name=AI Toolkit"
       - "homepage.icon=mdi-tune-vertical"
