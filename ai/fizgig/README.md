@@ -17,6 +17,20 @@ UI: `https://fizgig.${TRAEFIK_ACME_DOMAIN}` or host-local
 `http://127.0.0.1:8082`. The login uses the central `fizgig_password` secret.
 No new HF token is required for local-only operation.
 
+## MCP
+
+The same image supervises the UI and an authenticated MCP companion, with isolated
+Python dependencies. MCP is at `http://127.0.0.1:8083/mcp` for local agents or
+`https://fizgig-mcp.${TRAEFIK_ACME_DOMAIN}/mcp` through Traefik. Send the existing
+Fizgig password as bearer authentication on every request. The central secret is
+reused; no credential is embedded in client configurations.
+
+The [image's MCP guide](https://github.com/delfianto/fizgig-docker/blob/main/docs/mcp.md)
+owns tool descriptions and queue semantics. Preparation does not start training;
+adding to an active queue can. `/health` checks both processes. The MCP process
+does not load models or reserve GPU memory. Training workers remain offline;
+the companion calls only the UI's container loopback API.
+
 ## Shared models
 
 `${DATA_DIR}/config/models.json` selects explicit bundles. ComfyUI's manifest and

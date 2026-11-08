@@ -16,10 +16,13 @@ services:
     secrets:
       - source: fizgig_password
         target: FIZGIG_PASSWORD
+    environment:
+      FIZGIG_MCP_ALLOWED_HOSTS: "localhost:*,127.0.0.1:*,fizgig:*,fizgig-mcp.${TRAEFIK_ACME_DOMAIN}"
     networks:
       - proxy
     ports:
       - "127.0.0.1:${FIZGIG_PORT}:8081"
+      - "127.0.0.1:8083:8083"
     volumes:
       - ${COMPOSE_BASE}/lib/secret-env.sh:/secret-env.sh:ro
       - type: bind
@@ -61,7 +64,7 @@ services:
     healthcheck:
       test:
         - CMD-SHELL
-        - "curl -fsS http://127.0.0.1:8081/ > /dev/null"
+        - "curl -fsS http://127.0.0.1:8083/health > /dev/null"
       interval: 15s
       timeout: 5s
       retries: 5
@@ -73,6 +76,11 @@ services:
       - "traefik.http.routers.fizgig.tls.certresolver=cloudflare"
       - "traefik.http.routers.fizgig.service=fizgig"
       - "traefik.http.services.fizgig.loadbalancer.server.port=8081"
+      - "traefik.http.routers.fizgig-mcp.entrypoints=websecure"
+      - "traefik.http.routers.fizgig-mcp.rule=Host(`fizgig-mcp.${TRAEFIK_ACME_DOMAIN}`)"
+      - "traefik.http.routers.fizgig-mcp.tls.certresolver=cloudflare"
+      - "traefik.http.routers.fizgig-mcp.service=fizgig-mcp"
+      - "traefik.http.services.fizgig-mcp.loadbalancer.server.port=8083"
       - "homepage.group=Artificial Intelligence"
       - "homepage.name=Fizgig"
       - "homepage.icon=mdi-tune-vertical"
