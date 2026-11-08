@@ -43,7 +43,7 @@ services:
       - proxy
     volumes:
       - ${DATA_DIR}/models:/data/models
-      - ${DATA_DIR}/input:/data/input
+      - ${INPUT_DIR:-${DATA_DIR}/input}:/data/input
       - ${DATA_DIR}/user:/data/user
       - ${DATA_DIR}/custom_nodes:/data/custom_nodes
       - ${OUTPUT_DIR}:/data/output
@@ -122,7 +122,7 @@ services:
       - proxy
     volumes:
       - ${DATA_DIR}/models:/data/models
-      - ${DATA_DIR}/input:/data/input
+      - ${INPUT_DIR:-${DATA_DIR}/input}:/data/input
       - ${DATA_DIR}/user:/data/user
       - ${OUTPUT_DIR}:/data/output
     depends_on:

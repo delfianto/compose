@@ -94,13 +94,13 @@ uv run --with comfy-sdk python <path-to-comfyui-docker>/smoke-test-proxy.py
 
 ## Data Paths & Volume Layout
 
-All valuable and persistent data lives outside the container under `${DATA_DIR}` and `${OUTPUT_DIR}`:
+All valuable and persistent data lives outside the container under `${DATA_DIR}`, with separate input and output storage overrides:
 
 | Host Path | Container Mount | Purpose |
 | :--- | :--- | :--- |
 | `${DATA_DIR}/models` | `/data/models` | Checkpoints, LoRAs, VAEs, GGUFs, ControlNet weights, DLSS5 DLLs |
 | `${DATA_DIR}/custom_nodes` | `/data/custom_nodes` | Persistent custom node Git checkouts |
-| `${DATA_DIR}/input` | `/data/input` | Input images, audio, and reference assets |
+| `${INPUT_DIR:-${DATA_DIR}/input}` | `/data/input` | Input images, audio, and reference assets; shared by the app and proxy |
 | `${DATA_DIR}/user` | `/data/user` | SQLite database (`comfyui.db`), user settings, LoRA metadata, proxy storage |
 | `${OUTPUT_DIR}` | `/data/output` | Generated renders |
 | `${DATA_DIR}/cache/uv` | `/var/cache/uv` | Persistent cache for `uv pip` custom node dependencies |
@@ -108,6 +108,18 @@ All valuable and persistent data lives outside the container under `${DATA_DIR}`
 | `${DATA_DIR}/cache/huggingface` | `/var/cache/huggingface` | Hugging Face model cache |
 | `${DATA_DIR}/cache/dlss5` | `/var/cache/dlss5` | Wine prefix and machine ID for Linux DLSS5 |
 | `tmpfs` | `/data/temp` | 8 GB high-speed memory scratch directory |
+
+### Separate Input Storage
+
+To put growing input uploads on a larger disk, set an absolute host path in `.env.local`:
+
+```env
+INPUT_DIR=/mnt/bulk/comfyui/input
+```
+
+An unset or empty `INPUT_DIR` keeps inputs at `${DATA_DIR}/input`. Both containers use the same override at `/data/input`.
+
+For existing inputs, stop the stack with `composectl stop ai-comfyui`, create the destination directory and copy the existing input contents there, then start it with `composectl start ai-comfyui`. Ensure the Docker daemon owner can read and write the destination. Changing the variable does not move existing files.
 
 ### Custom Node Dependency Management
 
@@ -169,6 +181,8 @@ COMFYUI_INSTALL_CUSTOM_NODE_REQUIREMENTS=true
 
 # Persistent paths
 DATA_DIR=/path/to/appdata/comfyui
+# Optional; empty defaults to ${DATA_DIR}/input
+INPUT_DIR=
 OUTPUT_DIR=/path/to/output
 
 # API proxy loopback port
