@@ -17,6 +17,12 @@ The UI is at `https://ostris.${TRAEFIK_ACME_DOMAIN}`. MCP is at
 `aitoolkit_auth` secret. Source code is baked into the image, with no local build
 context or application-code bind mounts.
 
+Host-local agents can also use `http://127.0.0.1:8675` for the UI/API and
+`http://127.0.0.1:8676/mcp` for MCP. Both published ports bind exclusively to
+`127.0.0.1`; the existing Traefik routes remain available. Send the same bearer
+token on authenticated requests. The MCP readiness check is
+`http://127.0.0.1:8676/health`.
+
 ## Models and persistent data
 
 `MODEL_CATALOG` in `.env` points to the host JSON catalog, mounted read-only at

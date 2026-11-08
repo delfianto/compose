@@ -20,6 +20,10 @@ services:
       TOOLKIT_MCP_ALLOWED_HOSTS: "localhost:*,127.0.0.1:*,ai-toolkit:*,ostris-mcp.${TRAEFIK_ACME_DOMAIN}"
     networks:
       - proxy
+    ports:
+      # Host-local agents only; keep these off LAN/public interfaces.
+      - "127.0.0.1:8675:8675"
+      - "127.0.0.1:8676:8676"
     volumes:
       - ${COMPOSE_BASE}/lib/secret-env.sh:/secret-env.sh:ro
       # Catalog configuration is host data; resolver and compatibility code ship in the image.
