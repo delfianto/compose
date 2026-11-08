@@ -10,6 +10,7 @@ GPUs, and APIs without sharing their lifecycle.
 | [Bifrost](bifrost/) | Gateway for accessing model providers through a common API | Connects AI clients to configured providers; uses PostgreSQL (VectorChord) and Valkey |
 | [ComfyUI](comfyui/README.md) | Workflow-based image, video, and generative media engine (`comfyui-app`) + official API proxy (`comfyui-proxy`) | Images from GHCR (`comfyui-docker`); both GPUs visible; persistent models, workflows, and outputs; local API proxy |
 | [Embedding](embedding/) | Text embedding and reranking for retrieval-augmented generation | TEI embedder, reranker, and proxy; GPU selected by `GPU_ID` |
+| [Fizgig](fizgig/README.md) | LoRA training, repair, profiling and extraction | Shared ComfyUI manifest/weights read-only; reuses Toolkit datasets and FP8 encoder; UI at `fizgig.${TRAEFIK_ACME_DOMAIN}` |
 | [Forge Neo](forgeneo/README.md) | Stable Diffusion WebUI for image generation | Images from GHCR (`sd-webui-forge-docker`); shares ComfyUI assets read-only; uses GPU 0 |
 | [Hollama](hollama/README.md) | Minimal browser client for local LLM APIs | Browser-side settings and conversations; configure an endpoint reachable from the browser |
 | [KoboldCpp](koboldcpp/) | GGUF inference with a browser interface and generation APIs | On-demand inference on GPU 0; models bind-mounted from storage |

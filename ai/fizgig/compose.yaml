@@ -1,0 +1,88 @@
+name: fizgig
+
+services:
+  fizgig:
+    image: ghcr.io/delfianto/fizgig:latest
+    container_name: fizgig
+    restart: "no"
+    init: true
+    user: "0:0"
+    entrypoint: ["/secret-env.sh"]
+    command: ["/entrypoint.sh"]
+    env_file:
+      - fizgig.env
+      - path: fizgig.env.local
+        required: false
+    secrets:
+      - source: fizgig_password
+        target: FIZGIG_PASSWORD
+    networks:
+      - proxy
+    ports:
+      - "127.0.0.1:${FIZGIG_PORT}:8081"
+    volumes:
+      - ${COMPOSE_BASE}/lib/secret-env.sh:/secret-env.sh:ro
+      - type: bind
+        source: ${MODEL_CATALOG}
+        target: /etc/fizgig/models.json
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${COMFY_MANIFEST_DIR}
+        target: /catalog
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${COMFY_MODELS_DIR}
+        target: /models
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${TOOLKIT_MODELS_DIR}
+        target: /toolkit-models
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${DATASETS_DIR}
+        target: /datasets
+        bind:
+          create_host_path: false
+      - ${DATA_DIR}:/workspace
+    devices:
+      # Both visible, as in Toolkit. Select the training GPU in Fizgig.
+      - nvidia.com/gpu=0
+      - nvidia.com/gpu=1
+    shm_size: "8gb"
+    stop_grace_period: 60s
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - "curl -fsS http://127.0.0.1:8081/ > /dev/null"
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 90s
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.fizgig.entrypoints=websecure"
+      - "traefik.http.routers.fizgig.rule=Host(`fizgig.${TRAEFIK_ACME_DOMAIN}`)"
+      - "traefik.http.routers.fizgig.tls.certresolver=cloudflare"
+      - "traefik.http.routers.fizgig.service=fizgig"
+      - "traefik.http.services.fizgig.loadbalancer.server.port=8081"
+      - "homepage.group=Artificial Intelligence"
+      - "homepage.name=Fizgig"
+      - "homepage.icon=mdi-tune-vertical"
+      - "homepage.href=https://fizgig.${TRAEFIK_ACME_DOMAIN}"
+      - "homepage.description=LoRA training and repair with shared local models"
+
+networks:
+  proxy:
+    external: true
+
+secrets:
+  fizgig_password:
+    file: ${SECRET_DIR}/fizgig_password
